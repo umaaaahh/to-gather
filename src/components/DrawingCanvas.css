@@ -1,0 +1,170 @@
+.dc-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0.75rem;
+  color: #f5f5f7;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The drawing stage carries the canvas-green frame art. Width tracks the phone
+   but is capped by viewport height so the toolbar stays on screen. The
+   574:753 ratio matches canvas-green.svg. */
+.dc-stage {
+  position: relative;
+  width: min(100%, calc(68vh * 574 / 753));
+  aspect-ratio: 574 / 753;
+  margin: 0 auto;
+  touch-action: none;
+
+  /* Size of the live background-template guide (e.g. the leaf), relative to
+     the square drawing area. Independent of the canvas itself — grows/shrinks
+     from centre. 1 = template's own aspect ratio contained in the square as
+     large as it'll go without cropping. */
+  --template-scale: 1;
+
+  /* Vertical position of the paper square (guide + canvas together) inside
+     the frame — see .dc-bg/.dc-canvas/.dc-busy below. Kept on both so the
+     live guide and where strokes actually land never drift apart; per-zone
+     overrides go on .dc-root[data-zone="..."] .dc-stage. */
+  --paper-top: 16%;
+}
+
+/* Decorative frame — fills the stage exactly (same ratio, no distortion). */
+.dc-surface {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The real canvas + any per-zone template sit inside the frame's paper area:
+   ~13% in from each side, nudged down to centre in the cream panel. Square.
+   .dc-bg and .dc-canvas share this exact box so the live guide always lines
+   up with where strokes actually land (the export bakes the template in at
+   full frame regardless of CSS, so keeping the two in sync here is what
+   makes tracing the guide land in the right place in practice). */
+.dc-bg,
+.dc-canvas,
+.dc-busy {
+  position: absolute;
+  left: 13%;
+  width: 74%;
+  top: var(--paper-top);
+  aspect-ratio: 1 / 1;
+}
+
+/* The flower template sits higher in its own artwork than the tree's, so
+   the paper square needs more headroom above it — nudge down to taste. */
+.dc-root[data-zone="stem"] .dc-stage {
+  --paper-top: 24%;
+}
+
+.dc-bg {
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0.9;
+  transform: scale(var(--template-scale));
+  transform-origin: center;
+}
+
+.dc-canvas {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.dc-busy {
+  background: rgba(255, 255, 255, 0.35);
+  cursor: progress;
+}
+
+/* ---- toolbar --------------------------------------------------------- */
+.dc-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dc-tools,
+.dc-sizes,
+.dc-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dc-tool,
+.dc-size,
+.dc-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0.4rem 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: #2c2c2e;
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dc-tool--active,
+.dc-size--active {
+  background: #0a84ff;
+  border-color: #0a84ff;
+  color: #fff;
+}
+
+.dc-size-dot {
+  display: inline-block;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---- palette -------------------------------------------------------- */
+.dc-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dc-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.dc-swatch--active {
+  border-color: #0a84ff;
+  transform: scale(1.08);
+}
+
+/* ---- actions ------------------------------------------------------- */
+.dc-btn--primary {
+  background: #30d158;
+  border-color: #30d158;
+  color: #04210d;
+}
+
+.dc-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

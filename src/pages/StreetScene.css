@@ -1,0 +1,511 @@
+.street-scene {
+  position: relative;
+  width: 100%;
+  max-width: 480px; /* mobile-first canvas, matches typical phone viewport */
+  /* Phone-sized frame: fills the screen height exactly, never scrolls
+     itself. dvh keeps it honest as mobile browser chrome shows/hides.
+     The left/right panning happens inside .street-scroll. */
+  height: 500vh;
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden; /* frame clips the clouds and the ends of the street */
+  /* Blue sky gradient — lighter near the rooftops, deeper up top. */
+  background: linear-gradient(#6fb2e6 0%, #a9d3f0 55%, #cfd8e3 100%);
+  touch-action: manipulation;
+
+  /* ---- Ground / street palette -------------------------------------
+     Single place to recolour the area below the houses. Colours accept
+     any CSS value (hex, gradient via background-image, etc). Footpath +
+     kerb heights are percentages of the .scene-ground box; the road is
+     its own frame-anchored band sized by --road-height (see below).   */
+  --footpath-color: #7a6d57;   /* pavement directly under the houses */
+  --kerb-color: #8f8677;       /* thin edge between footpath and road */
+  --road-color: #6f7073;       /* asphalt band along the bottom       */
+  --road-line-color: transparent; /* centre lane dashes; set a colour to show */
+
+  --ground-top: 100%;           /* where the footpath starts (from the top) */
+  --footpath-height: 13%;
+  --kerb-height: 1.5%;
+
+  /* ---- Scene lift -------------------------------------------------
+     Raises the houses + footpath off the bottom edge of the frame by
+     this much (as a % of the scene height). Purely repositions the
+     houses — it does NOT resize the road (see --road-height).
+     0% = houses sit on the floor. */
+  --scene-lift: 50%;
+
+  /* ---- Road band -------------------------------------------------
+     Height of the asphalt strip pinned to the bottom of the scrolling
+     street (see .scene-track), independent of --scene-lift — tune the
+     two separately until the houses sit nicely on the road. A dvh unit
+     (not %) so it stays a fixed viewport-relative height regardless of
+     .scene-track's own width-driven size. */
+  --road-height: 22dvh;
+
+  /* ---- Street length -----------------------------------------------
+     How long the street is, as a % of the phone frame width. 100% = the
+     whole street fits on screen with no scroll. Larger = a longer street
+     you pan left/right across (the house SVG stretches to fill it). */
+  --scene-width: 260%;
+
+  /* ---- House artwork position ---------------------------------------
+     Nudges/scales ONLY the house image — the footpath, kerb, road and
+     zones are untouched, so use these instead of --scene-lift now that
+     the footpath/road are dialed in. Positive --house-offset-y moves the
+     art down, negative moves it up; --house-scale grows it from the
+     bottom edge (the ground line), so it won't drift off the footpath. */
+  --house-offset-y: 10%;
+  --house-scale: 1;
+}
+
+.scene-layer {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Cloud track: 2 tiles wide, drifting left forever. translateX(-50%)
+   lands tile 2 exactly where tile 1 started, so the loop has no seam. */
+.clouds {
+  position: absolute;
+  top: 10%;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  width: 290%;
+  pointer-events: none;
+  user-select: none;
+  animation: clouds-drift 90s linear infinite;
+}
+
+.cloud-tile {
+  flex: 0 0 50%;
+  width: 50%;
+  /* gentle vertical bob, offset the 2nd tile so they don't bob in unison */
+  animation: clouds-bob 7s ease-in-out infinite;
+}
+
+.cloud-tile:nth-child(2) {
+  animation-delay: -3.5s;
+}
+
+@keyframes clouds-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes clouds-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5%); }
+}
+
+/* The horizontal pan track. Fills the frame; scrolls left/right when the
+   street (.scene-track) is wider than the frame. Vertical is locked. */
+.street-scroll {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end; /* street sits on the bottom edge, sky above */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Everything that pans with the street — houses/footpath AND the road —
+   lives in here, so the road scrolls left/right in lock-step with the
+   buildings instead of sitting as a separate frame-anchored band. */
+.scene-track {
+  position: relative;
+  flex: none;
+  width: var(--scene-width);
+}
+
+.scene-ground {
+  position: relative;
+  /* .transform below creates a stacking context; without an explicit
+     z-index here it'd default to "auto", which paints BELOW any sibling
+     with a positive z-index — including .scene-road (z-index: 1) — no
+     matter what z-index its own children (zones, drawings) have. This
+     keeps the whole scene, drawings included, above the road. */
+  z-index: 2;
+  width: 100%;
+  aspect-ratio: 660 / 285; /* matches Home_page_house.svg viewBox ratio */
+  /* Lift the houses + footpath up off the road. The road is a sibling
+     inside .scene-track and is unaffected by this. */
+  transform: translateY(calc(-1 * var(--scene-lift)));
+}
+
+.scene-layer.house {
+  bottom: 0;
+  z-index: 2;
+  /* Independent of the parent .scene-ground's --scene-lift transform —
+     moves/scales just the artwork. See --house-offset-y / --house-scale. */
+  transform: translateY(var(--house-offset-y)) scale(var(--house-scale));
+  transform-origin: bottom center;
+}
+
+/* Footpath + kerb: stacked inside .scene-ground, so they ride up with the
+   scene when it's lifted. Colours/heights come from the custom properties
+   on .street-scene above. */
+.ground-footpath,
+.ground-kerb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.ground-footpath {
+  top: var(--ground-top);
+  height: var(--footpath-height);
+  background: var(--footpath-color);
+  z-index: 3; /* in front of the house (z-index 2) */
+}
+
+.ground-kerb {
+  top: calc(var(--ground-top) + var(--footpath-height));
+  height: var(--kerb-height);
+  background: var(--kerb-color);
+  z-index: 1; /* stays behind the house, unlike the footpath above */
+}
+
+/* Road: a sibling of .scene-ground inside .scene-track, so it's part of
+   the scrolling street and pans with the houses. bottom:0 pins it to
+   .scene-track's bottom edge, which flex align-items:flex-end keeps flush
+   with the frame's bottom edge regardless of .scene-track's own
+   width-driven height — so it doesn't drift on resize. Unaffected by
+   .scene-ground's --scene-lift transform since it's not nested inside it.
+   Sits behind everything else in the track (z-index 1). */
+.scene-road {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--road-height);
+  z-index: 1;
+  background: var(--road-color);
+  pointer-events: none;
+}
+
+/* Centre lane markings — hidden unless --road-line-color is set. */
+.scene-road::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--road-line-color) 0 7%,
+    transparent 7% 14%
+  );
+}
+
+/* Zones are real <button> elements so they're focusable/tappable
+   without relying on :hover, which doesn't exist on touch. */
+.zone {
+  position: absolute;
+  z-index: 6; /* above .zone-art (5) so the hotspot stays tappable over it */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-center;
+  gap: 0.4em;
+  padding: 0;
+  border: 3px dashed rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: zone-pulse 3s ease-in-out infinite;
+}
+
+/* Cycle attention across the 3 zones one at a time, rather than
+   all pulsing in unison — staggered by animation-delay. */
+.zone:nth-of-type(1) { animation-delay: 0s; }
+.zone:nth-of-type(2) { animation-delay: 1s; }
+.zone:nth-of-type(3) { animation-delay: 2s; }
+
+@keyframes zone-pulse {
+  0%, 66%, 100% {
+    border-color: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+  16% {
+    border-color: rgba(255, 255, 255, 1);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
+  }
+}
+
+.zone:active {
+  transform: scale(0.97);
+}
+
+/* Fixed scene furniture (e.g. the tree). Above the footpath (3) so it isn't
+   buried under it; below the scatter layers (5) so contributions still
+   layer on top of it. */
+.zone-fixture {
+  position: absolute;
+  z-index: 4;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Notice board — decorative for now (no tap target yet, see NOTICE_BOARD in
+   StreetScene.jsx). z-index 7 keeps it above everything else in the scene
+   (scatter items 5, hotspots 6) so it's never hidden behind other content. */
+.notice-board-art {
+  position: absolute;
+  z-index: 7;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* ---- Scattered zone contributions -----------------------------------------
+   Shared by the tree canopy, the flower bed and the character yard — every
+   zone's contributions pile up over time this way instead of only showing
+   the most recent. .scatter sits exactly over its zone's box. It's a
+   container so items can be sized with cqw units (a % of the container's
+   width) regardless of which box they fall in — every item in a given
+   scatter comes out the same size. */
+.scatter {
+  position: absolute;
+  z-index: 5; /* above the zone fixture (4), below the hotspot (6) */
+  container-type: size; /* size, not inline-size — unlocks cqh for the max-height clamp below */
+  pointer-events: none;
+}
+
+/* Placement guides — only rendered while SHOW_LEAF_BOXES is on, for the
+   tree's canopy boxes. Purely visual; leaves are positioned against the
+   canopy, not nested here. */
+.leaf-box {
+  position: absolute;
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  background: rgba(80, 200, 120, 0.14);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.leaf-box-tag {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* One scattered item (a leaf, a flower, a character). Positioned (left/top
+   as a % of the container) and centred on that point via the individual
+   `translate` property, with a resting tilt in the individual `rotate`
+   property (kept separate so the wind animation can drive `rotate` without
+   disturbing the centring). */
+.scatter-item {
+  position: absolute;
+  translate: -50% -50%;
+  rotate: var(--item-rot, 0deg);
+  transform-origin: 50% 0%; /* swing from the top, like it's on a twig */
+}
+
+/* Flowers (and anything else planted, not hung) anchor at their base instead
+   of their centre — the scattered point marks where the stem meets the
+   ground, and both the sway pivot and the item itself sit above that point,
+   not centred on it. */
+.scatter-item--rooted {
+  translate: -50% -100%;
+  transform-origin: 50% 100%;
+}
+
+.scatter-item-img {
+  display: block;
+  width: var(--item-w, 24cqw);
+  height: auto;
+  /* Safety clamp: whatever --item-w is set to, an item can never render
+     taller than its container's own box (cqh needs container-type: size
+     on .scatter, see above) — keeps oversized/miscalibrated items from
+     spilling out past the zone they're supposed to stay inside. */
+  max-height: 92cqh;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}
+
+/* Mirror items in `flip: true` boxes. It's on the image's `transform`, not
+   the slot's `rotate`, so the wind sway still runs in the same direction. */
+.scatter-item--flip .scatter-item-img {
+  transform: scaleX(-1);
+}
+
+/* Gentle wind: rock `rotate` around the item's resting tilt. animation-delay
+   is set inline per item so they don't sway in unison. Only the tree's
+   leaves opt into this (see LEAF_WIND) — flowers/characters stay put. */
+.scatter-item--wind {
+  animation: scatter-sway 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes scatter-sway {
+  from {
+    rotate: calc(var(--item-rot, 0deg) - 4deg);
+  }
+  to {
+    rotate: calc(var(--item-rot, 0deg) + 5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scatter-item--wind {
+    animation: none;
+  }
+}
+
+/* Characters wander back and forth around their seeded spot — `translate`
+   (the item's base position) and `transform` are independent CSS
+   properties, so this stacks on top of it without disturbing the anchor.
+   --walk-dist/--walk-dur come in per item (seeded) so they don't all pace
+   in lockstep. steps(8) instead of a smooth easing curve is what gives it
+   the hoppy/bouncy feel instead of a gliding one; the up/down hop is baked
+   into the keyframes themselves (translateY dips at each mid-stride point). */
+.scatter-item--walking {
+  animation: scatter-walk var(--walk-dur, 6s) steps(8, jump-end) infinite alternate;
+}
+
+@keyframes scatter-walk {
+  0% {
+    transform: translate(calc(-1 * var(--walk-dist, 6cqw)), 0);
+  }
+  25% {
+    transform: translate(calc(-0.5 * var(--walk-dist, 6cqw)), calc(-1 * var(--walk-hop, 3cqw)));
+  }
+  50% {
+    transform: translate(0, 0);
+  }
+  75% {
+    transform: translate(calc(0.5 * var(--walk-dist, 6cqw)), calc(-1 * var(--walk-hop, 3cqw)));
+  }
+  100% {
+    transform: translate(var(--walk-dist, 6cqw), 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scatter-item--walking {
+    animation: none;
+  }
+}
+
+.zone-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  padding: 0.3em 0.7em;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+}
+
+.zone-label-text {
+  font-size: 0.8rem;
+}
+
+.zone-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.95;
+}
+
+.zone-stars {
+  color: #ffd54f;
+  letter-spacing: 0.05em;
+}
+
+/* Bottom-centre call to action. "Start" reveals the hotspots; "Return" drops
+   back to the clean scene. */
+.scene-cta {
+  position: absolute;
+  bottom: 3.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  min-width: 8.5rem;
+  padding: 0.85em 2em;
+  border: none;
+  border-radius: 999px;
+  background: #30d158;
+  color: #04210d;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.street-scene[data-mode="contribute"] .scene-cta {
+  background: #f5f5f7;
+  color: #1c1c1e;
+}
+
+.scene-cta:active {
+  transform: translateX(-50%) scale(0.96);
+}
+
+/* Notice board button, integrated into the scene, with a
+   more prominent shine than the zone pulse per spec. */
+/* Tap target sitting exactly over .notice-board-art (same box, inline
+   style, so they pan together). The button itself is an invisible hit area
+   the size of the whole board; .notice-board-badge inside is the visible,
+   naturally-sized shiny label, centred so it isn't stretched into the
+   board's own (portrait) proportions. */
+.notice-board-button {
+  position: absolute;
+  z-index: 8; /* above the art (7) so it's actually tappable, not covered */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.notice-board-button:active .notice-board-badge {
+  transform: scale(0.96);
+}
+
+.notice-board-badge {
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #d9822b, #f2b155, #d9822b);
+  background-size: 200% 100%;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: notice-shine 1.8s linear infinite;
+}
+
+@keyframes notice-shine {
+  0% { background-position: 200% 0; box-shadow: 0 0 4px rgba(242, 177, 85, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(242, 177, 85, 0.95); }
+  100% { background-position: -200% 0; box-shadow: 0 0 4px rgba(242, 177, 85, 0.4); }
+}
