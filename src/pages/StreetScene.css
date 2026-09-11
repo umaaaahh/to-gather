@@ -509,3 +509,93 @@
   50% { box-shadow: 0 0 16px rgba(242, 177, 85, 0.95); }
   100% { background-position: -200% 0; box-shadow: 0 0 4px rgba(242, 177, 85, 0.4); }
 }
+
+/* ---- Hidden window "surprise" --------------------------------------------
+   View-mode-only pulsing dot tucked into a window (see WINDOW_SOUND in
+   StreetScene.jsx). Unmounted entirely once Start reveals the zone
+   hotspots, so there's nothing to hide/show, just show/tap-then-gone. */
+.window-sound-button {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.window-sound-dot {
+  display: block;
+  font-size: 1.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 85, 0, 0.85));
+  animation: window-sound-pulse 3s ease-in-out infinite;
+}
+
+@keyframes window-sound-pulse {
+  0%, 100% {
+    transform: scale(0.85);
+    filter: drop-shadow(0 0 4px rgba(255, 85, 0, 0.5));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 12px rgba(255, 85, 0, 0.95));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .window-sound-dot {
+    animation: none;
+  }
+}
+
+/* ---- Sound modal ----------------------------------------------------- */
+.sound-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.sound-modal {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: #1c1c1e;
+  border-radius: 14px;
+  padding: 1.75rem 0.75rem 0.75rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.sound-modal iframe {
+  display: block;
+  border: none;
+  border-radius: 8px;
+}
+
+.sound-modal-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sound-modal-close:active {
+  background: rgba(255, 255, 255, 0.25);
+}

@@ -63,7 +63,20 @@ const ZONES = [
 // (top/left/width/height as a % of the scene-ground box, so it pans with the
 // street and holds across phone widths). Not wired to a hotspot yet — once
 // it's placed, .notice-board-button gets moved/resized to sit on top of it.
-const NOTICE_BOARD = { top: "83%", left: "19%", width: "10%", height: "25%" };
+const NOTICE_BOARD = { top: "83%", left: "46.5%", width: "10%", height: "25%" };
+
+// ---- Hidden window "surprise" ----------------------------------------------
+// A pulsing button tucked into one of the house windows, view-mode only —
+// it disappears once Start is tapped and the zone hotspots take over the
+// screen. Box is a % of .scene-ground, same coordinate system as everything
+// else above.
+const WINDOW_SOUND = { top: "81%", left: "63%", width: "10%", height: "14%" };
+
+// A second window surprise, same pattern as WINDOW_SOUND above — a different
+// window pane so the two don't compete for attention. Purely decorative for
+// now (no onClick action yet); wire up real content the same way the music
+// note button opens its modal.
+const WINDOW_BOOK = { top: "81%", left: "77.5%", width: "10%", height: "14%" };
 
 // ---- Scattered zone contributions -----------------------------------------
 // Every zone's contributions pile up over time instead of only showing the
@@ -182,6 +195,7 @@ export default function StreetScene() {
   const navigate = useNavigate();
   const [drawings, setDrawings] = useState(getAllDrawings);
   const [mode, setMode] = useState("view"); // "view" | "contribute"
+  const [soundOpen, setSoundOpen] = useState(false);
 
   useEffect(() => subscribe(setDrawings), []);
 
@@ -266,21 +280,67 @@ export default function StreetScene() {
                a separate fixed-to-frame coordinate system. The hit area
                covers the whole board; the visible shiny label badge inside
                is centred and naturally sized so it doesn't get stretched
-               into the board's own (portrait) proportions. */}
-            <button
-              type="button"
-              className="notice-board-button"
-              onClick={() => navigate("/notices")}
-              aria-label="Community notice board"
-              style={{
-                top: NOTICE_BOARD.top,
-                left: NOTICE_BOARD.left,
-                width: NOTICE_BOARD.width,
-                height: NOTICE_BOARD.height,
-              }}
-            >
-              <span className="notice-board-badge">Notice Board</span>
-            </button>
+               into the board's own (portrait) proportions. View mode only,
+               same as the window surprise — gone once Start reveals the
+               zone hotspots, back once Return drops back to the clean view. */}
+            {mode === "view" && (
+              <button
+                type="button"
+                className="notice-board-button"
+                onClick={() => navigate("/notices")}
+                aria-label="Community notice board"
+                style={{
+                  top: NOTICE_BOARD.top,
+                  left: NOTICE_BOARD.left,
+                  width: NOTICE_BOARD.width,
+                  height: NOTICE_BOARD.height,
+                }}
+              >
+                <span className="notice-board-badge">Notice Board</span>
+              </button>
+            )}
+
+            {/* Hidden window surprise — view mode only, gone the moment
+               Start reveals the zone hotspots. */}
+            {mode === "view" && (
+              <button
+                type="button"
+                className="window-sound-button"
+                onClick={() => setSoundOpen(true)}
+                aria-label="Something's playing in the window"
+                style={{
+                  top: WINDOW_SOUND.top,
+                  left: WINDOW_SOUND.left,
+                  width: WINDOW_SOUND.width,
+                  height: WINDOW_SOUND.height,
+                }}
+              >
+                <span className="window-sound-dot" aria-hidden="true">
+                  🎵
+                </span>
+              </button>
+            )}
+
+            {/* Second window surprise — same view-mode-only pattern as the
+               music note above, no action wired up yet. */}
+            {mode === "view" && (
+              <button
+                type="button"
+                className="window-sound-button"
+                onClick={() => {}}
+                aria-label="Something's in the window"
+                style={{
+                  top: WINDOW_BOOK.top,
+                  left: WINDOW_BOOK.left,
+                  width: WINDOW_BOOK.width,
+                  height: WINDOW_BOOK.height,
+                }}
+              >
+                <span className="window-sound-dot" aria-hidden="true">
+                  📖
+                </span>
+              </button>
+            )}
 
             {/* Tree canopy: the leaf boxes (guides, toggled by SHOW_LEAF_BOXES)
                plus every contributed leaf scattered into them. */}
@@ -438,6 +498,30 @@ export default function StreetScene() {
       >
         {mode === "view" ? "Start" : "Return"}
       </button>
+
+      {soundOpen && (
+        <div className="sound-modal-backdrop" onClick={() => setSoundOpen(false)}>
+          <div className="sound-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="sound-modal-close"
+              onClick={() => setSoundOpen(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <iframe
+              title="Melbourne playlist"
+              width="100%"
+              height="300"
+              scrolling="no"
+              frameBorder="no"
+              allow="autoplay; encrypted-media"
+              src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/playlists/soundcloud%253Aplaylists%253A2297287761&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
