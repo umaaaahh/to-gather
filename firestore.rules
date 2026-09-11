@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /drawings/{drawingId} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['zone', 'url', 'path', 'createdAt'])
+        && request.resource.data.zone in ['tree', 'stem', 'free']
+        && request.resource.data.url is string
+        && request.resource.data.url.size() < 2000
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if true; // dev-only: powers clearDrawings() while tuning the scene
+    }
+  }
+}

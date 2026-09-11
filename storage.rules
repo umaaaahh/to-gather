@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /drawings/{zone}/{fileName} {
+      allow read: if true;
+
+      allow write: if zone in ['tree', 'stem', 'free']
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType == 'image/png';
+
+      allow delete: if true; // dev-only: powers clearDrawings() while tuning the scene
+    }
+  }
+}

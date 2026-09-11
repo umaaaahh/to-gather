@@ -1,0 +1,276 @@
+.notice-page {
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh;
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Corkboard: warm brown base + a fine dot texture standing in for grain. */
+  background:
+    radial-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px) 0 0 / 10px 10px,
+    linear-gradient(#b9835a, #a9754d);
+}
+
+/* ---- Header: a wood plank banner, like a sign nailed above the board ---- */
+.notice-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.9em 1em;
+  background: linear-gradient(180deg, #8b5e34, #6b4423);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+.notice-back {
+  flex: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.notice-back:active {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.notice-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  color: #fdf3e3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.notice-header-spacer {
+  flex: none;
+  width: 2.2rem;
+}
+
+/* ---- Board surface: everything pinned to the cork ---- */
+.notice-board-frame {
+  padding: 1.25rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.nb-card {
+  position: relative;
+  background: #fdf6e8;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Washi-tape strip pinning a card to the board. */
+.nb-tape {
+  position: absolute;
+  top: -0.6rem;
+  left: 50%;
+  width: 3.2rem;
+  height: 1.3rem;
+  background: rgba(242, 177, 85, 0.85);
+  border: 1px solid rgba(217, 130, 43, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.nb-tape--calendar {
+  transform: translateX(-50%) rotate(-3deg);
+}
+
+.nb-tape--event {
+  top: -0.5rem;
+  left: 1.4rem;
+  width: 1.8rem;
+  height: 1.1rem;
+  transform: rotate(-8deg);
+  background: rgba(48, 209, 88, 0.55);
+  border-color: rgba(28, 150, 60, 0.5);
+}
+
+/* ---- Calendar ---- */
+.nb-calendar {
+  padding: 1.1rem 1rem 1.3rem;
+  transform: rotate(-0.6deg);
+}
+
+.nb-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+
+.nb-cal-month {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #3a2a18;
+}
+
+.nb-cal-nav {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: none;
+  border-radius: 999px;
+  background: #efe0c4;
+  color: #6b4423;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nb-cal-nav:active {
+  background: #e3cfa4;
+}
+
+.nb-cal-weekdays,
+.nb-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.nb-cal-weekdays span {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #9a7b52;
+  padding-bottom: 0.35rem;
+}
+
+.nb-cal-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4a3520;
+  border-radius: 999px;
+}
+
+.nb-cal-cell--empty {
+  visibility: hidden;
+}
+
+.nb-cal-cell--today {
+  background: #d9822b;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(217, 130, 43, 0.5);
+}
+
+.nb-cal-dot {
+  position: absolute;
+  bottom: 0.15rem;
+  left: 50%;
+  translate: -50% 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #30d158;
+}
+
+.nb-cal-cell--today .nb-cal-dot {
+  background: #fff;
+}
+
+/* ---- Events, stacked under the calendar ---- */
+.nb-events-heading {
+  margin: 0 0 0.7rem 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fdf3e3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.nb-events-empty {
+  margin: 0 0.2rem;
+  font-size: 0.82rem;
+  color: #fdf3e3;
+  opacity: 0.85;
+}
+
+.nb-events-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.nb-event {
+  transform: rotate(var(--tilt, 0deg));
+  display: flex;
+  align-items: stretch;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.nb-event-date {
+  flex: none;
+  width: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #6b4423;
+  color: #fdf3e3;
+}
+
+.nb-event-day {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.nb-event-month {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.nb-event-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.nb-event-tag {
+  align-self: flex-start;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: #30d158;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+}
+
+.nb-event-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #3a2a18;
+}
+
+.nb-event-meta {
+  font-size: 0.75rem;
+  color: #7a6449;
+}

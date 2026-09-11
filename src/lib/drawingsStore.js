@@ -1,71 +1,100 @@
-// Local-only stand-in for Phase 2 (Firebase). Accumulates every finished
-// drawing per zone as a list of data URLs in sessionStorage so contributions
-// stack up on the street immediately, with no backend. Phase 2 replaces this
-// with a Storage upload + Firestore collection read; the shape here (an array
-// of URLs per zone, oldest first) is what StreetScene already expects, so the
-// swap stays contained to this file.
+// Phase 2: real backing store. Every finished drawing is a PNG uploaded to
+// Firebase Storage under drawings/{zone}/{id}.png, with a matching Firestore
+// doc in the "drawings" collection ({ zone, url, path, createdAt }) so the
+// street scene can subscribe to live updates and order contributions by
+// arrival time. Shape returned to callers stays what Phase 1 already used —
+// an array of URLs per zone, oldest first — so StreetScene/DrawZone didn't
+// need to change beyond DrawZone now awaiting saveDrawing.
 
-const KEY = "toGather.drawings.v2"; // v1 held a single URL per zone; v2 holds a list
+import { db, storage } from "./firebase";
+import {
+  collection,
+  deleteDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+  addDoc,
+} from "firebase/firestore";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+
+const COLLECTION = "drawings";
 const listeners = new Set();
 
-function readAll() {
-  try {
-    const parsed = JSON.parse(sessionStorage.getItem(KEY)) || {};
-    // Be forgiving if an old/hand-edited value slipped a bare string in.
-    for (const k of Object.keys(parsed)) {
-      if (!Array.isArray(parsed[k])) parsed[k] = parsed[k] ? [parsed[k]] : [];
-    }
-    return parsed;
-  } catch {
-    return {};
-  }
+let cache = {}; // { zoneKey: [url, ...] }, oldest first
+let unsubscribeSnapshot = null;
+
+function startListening() {
+  if (unsubscribeSnapshot) return;
+  const q = query(collection(db, COLLECTION), orderBy("createdAt", "asc"));
+  unsubscribeSnapshot = onSnapshot(q, (snap) => {
+    const next = {};
+    snap.forEach((docSnap) => {
+      const { zone, url } = docSnap.data();
+      if (!zone || !url) return;
+      (next[zone] ??= []).push(url);
+    });
+    cache = next;
+    listeners.forEach((fn) => fn(cache));
+  });
 }
 
 // Always an array (oldest contribution first), even for an untouched zone.
 export function getDrawings(zoneKey) {
-  return readAll()[zoneKey] || [];
+  startListening();
+  return cache[zoneKey] || [];
 }
 
 export function getAllDrawings() {
-  return readAll();
-}
-
-// Append one finished drawing to a zone. (Every zone accumulates now — the
-// tree scatters its list into the canopy; stem/free currently just show the
-// most recent, but the history is kept for when they accumulate too.)
-export function saveDrawing(zoneKey, dataUrl) {
-  const all = readAll();
-  all[zoneKey] = [...(all[zoneKey] || []), dataUrl];
-  try {
-    sessionStorage.setItem(KEY, JSON.stringify(all));
-  } catch {
-    // sessionStorage full / unavailable — non-fatal for this placeholder
-  }
-  listeners.forEach((fn) => fn(all));
-}
-
-// Wipe a zone's contributions (handy while tuning the scene). No-arg clears all.
-export function clearDrawings(zoneKey) {
-  const all = zoneKey ? readAll() : {};
-  if (zoneKey) delete all[zoneKey];
-  try {
-    sessionStorage.setItem(KEY, JSON.stringify(all));
-  } catch {
-    /* non-fatal */
-  }
-  listeners.forEach((fn) => fn(all));
+  startListening();
+  return cache;
 }
 
 export function subscribe(fn) {
+  startListening();
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
-export function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+// Upload one finished drawing (a PNG Blob from DrawingCanvas) to Storage,
+// then record it in Firestore. Firestore's onSnapshot listener above picks
+// the new doc up and pushes it out to every subscriber.
+export async function saveDrawing(zoneKey, pngBlob) {
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path = `drawings/${zoneKey}/${id}.png`;
+  const storageRef = ref(storage, path);
+
+  await uploadBytes(storageRef, pngBlob, { contentType: "image/png" });
+  const url = await getDownloadURL(storageRef);
+
+  await addDoc(collection(db, COLLECTION), {
+    zone: zoneKey,
+    url,
+    path,
+    createdAt: serverTimestamp(),
   });
+}
+
+// Wipe a zone's contributions (handy while tuning the scene). No-arg clears
+// all. Deletes both the Firestore docs and their Storage objects.
+export async function clearDrawings(zoneKey) {
+  const base = collection(db, COLLECTION);
+  const q = zoneKey ? query(base, where("zone", "==", zoneKey)) : query(base);
+  const snap = await getDocs(q);
+
+  await Promise.all(
+    snap.docs.map(async (docSnap) => {
+      const { path } = docSnap.data();
+      await deleteDoc(docSnap.ref);
+      if (path) {
+        try {
+          await deleteObject(ref(storage, path));
+        } catch {
+          // storage object already gone — non-fatal
+        }
+      }
+    }),
+  );
 }

@@ -430,14 +430,6 @@ export default function StreetScene() {
         </div>
       </div>
 
-      <button
-        className="notice-board-button"
-        onClick={() => navigate("/notices")}
-        aria-label="Community notice board"
-      >
-        Notice Board
-      </button>
-
       {/* Bottom-centre call to action: reveal the zones, or drop back to the
          clean view. */}
       <button

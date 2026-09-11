@@ -497,8 +497,8 @@
   background: linear-gradient(90deg, #d9822b, #f2b155, #d9822b);
   background-size: 200% 100%;
   color: #fff;
-  font-weight: 700;
-  font-size: 0.75rem;
+  font-weight: 500;
+  font-size: 0.60rem;
   white-space: nowrap;
   overflow: hidden;
   animation: notice-shine 1.8s linear infinite;
