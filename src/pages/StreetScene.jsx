@@ -95,21 +95,31 @@ const SHOW_LEAF_BOXES = false;
 // past the last box's capacity still land (they pile into the last box)
 // rather than disappearing. `flip: true` mirrors that box's leaves
 // horizontally (the wind sway direction is unaffected).
+//
+// Capacities sum to 149 — the tree zone's query cap in drawingsStore.js
+// (ZONE_LIMITS) — split across the three boxes in the same 40:110:60 ratio
+// the original (uncapped) design used, so the canopy's visual density stays
+// the same shape but never implies more drawings than the query can ever
+// actually fetch.
 const LEAF_BOXES = [
-  { id: "top-left", top: "20%", left: "-20%", width: "60%", height: "20%", capacity: 40},
-  { id: "top-right", top: "5%", left: "25%", width: "70%", height: "35%", capacity: 110, flip: true },
-  { id: "low-right", top: "30%", left: "55%", width: "50%", height: "40%", capacity: 60, flip: true },
+  { id: "top-left", top: "20%", left: "-20%", width: "60%", height: "20%", capacity: 28 },
+  { id: "top-right", top: "5%", left: "25%", width: "70%", height: "35%", capacity: 78, flip: true },
+  { id: "low-right", top: "30%", left: "55%", width: "50%", height: "40%", capacity: 43, flip: true },
 ];
 
 // Flowers don't need the tree's multi-box clustering — one box spanning the
-// whole zone is enough, and every contribution lands in it.
-const STEM_BOXES = [{ id: "bed", top: "0%", left: "0%", width: "100%", height: "100%" }];
+// whole zone is enough, and every contribution lands in it. `capacity`
+// documents the stem zone's query cap (drawingsStore.js's ZONE_LIMITS) —
+// it's a no-op here since this is the only/last box (see layoutScatter).
+const STEM_BOXES = [{ id: "bed", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 25 }];
 
 // Characters roam the road, not just the small "free" hotspot box — the
 // walking box below is a separate, wider area (roughly one screen's width
 // of road, not the whole scrollable street) that the scatter/walk uses
 // instead of ZONES' `free` entry, which stays only as the tap target.
-const FREE_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", height: "100%" }];
+// `capacity` documents the free zone's query cap (ZONE_LIMITS); a no-op here
+// for the same reason as STEM_BOXES above.
+const FREE_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 114 }];
 // ~1 screen's width of road: tied to --scene-width (260% of the frame) —
 // 100/260 ≈ 38%. If --scene-width changes, nudge this to match.
 const FREE_ROAD_BOX = { top: "118%", left: "0%", width: "38%", height: "18%" };
@@ -390,7 +400,13 @@ export default function StreetScene() {
                     animationDelay: `${-(((leaf.key * 0.53) % 3.4)).toFixed(2)}s`,
                   }}
                 >
-                  <img className="scatter-item-img" src={leaf.url} alt="" draggable={false} />
+                  <img
+                    className="scatter-item-img"
+                    src={leaf.url}
+                    alt=""
+                    draggable={false}
+                    loading="lazy"
+                  />
                 </div>
               ))}
             </div>
@@ -419,7 +435,13 @@ export default function StreetScene() {
                     animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
                   }}
                 >
-                  <img className="scatter-item-img" src={item.url} alt="" draggable={false} />
+                  <img
+                    className="scatter-item-img"
+                    src={item.url}
+                    alt=""
+                    draggable={false}
+                    loading="lazy"
+                  />
                 </div>
               ))}
             </div>
@@ -454,7 +476,13 @@ export default function StreetScene() {
                     animationDelay: `${-(((item.key * 0.71) % 5)).toFixed(2)}s`,
                   }}
                 >
-                  <img className="scatter-item-img" src={item.url} alt="" draggable={false} />
+                  <img
+                    className="scatter-item-img"
+                    src={item.url}
+                    alt=""
+                    draggable={false}
+                    loading="lazy"
+                  />
                 </div>
               ))}
             </div>

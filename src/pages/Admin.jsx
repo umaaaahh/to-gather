@@ -94,7 +94,7 @@ function DrawingsList() {
     setDeletingId(item.id);
     setError(null);
     try {
-      await deleteDrawing(item.id, item.path);
+      await deleteDrawing(item.id, item.path, item.thumbPath);
     } catch {
       setError("Delete failed — check your connection and try again.");
     } finally {
@@ -110,7 +110,9 @@ function DrawingsList() {
     }
     setBulkBusy(true);
     setError(null);
-    const results = await Promise.allSettled(items.map((item) => deleteDrawing(item.id, item.path)));
+    const results = await Promise.allSettled(
+      items.map((item) => deleteDrawing(item.id, item.path, item.thumbPath)),
+    );
     const failed = results.filter((r) => r.status === "rejected").length;
     if (failed > 0) {
       setError(`${failed} of ${items.length} deletes failed — check your connection and try again.`);
