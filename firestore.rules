@@ -12,7 +12,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
 
       allow update: if false;
-      allow delete: if true; // dev-only: powers clearDrawings() while tuning the scene
+      allow delete: if request.auth != null; // admin-only (Uma's Firebase Auth account)
     }
   }
 }

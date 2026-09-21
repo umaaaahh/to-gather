@@ -10,6 +10,7 @@ import { db, storage } from "./firebase";
 import {
   collection,
   deleteDoc,
+  doc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -98,6 +99,31 @@ export async function saveDrawing(zoneKey, pngBlob) {
   lastSubmission = submission;
   submissionListeners.forEach((fn) => fn(submission));
   return submission;
+}
+
+// Admin listing: every drawing with its doc id (needed to target a single
+// delete), newest first. Requires an authenticated admin session per the
+// Firestore rules — callers should only invoke this from the gated /admin
+// route.
+export function subscribeAdminDrawings(fn) {
+  const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snap) => {
+    fn(snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+  });
+}
+
+// Delete a single drawing (admin action). Removes the Firestore doc and its
+// Storage object; the live onSnapshot listeners in StreetScene/Admin pick up
+// the removal automatically.
+export async function deleteDrawing(id, path) {
+  await deleteDoc(doc(db, COLLECTION, id));
+  if (path) {
+    try {
+      await deleteObject(ref(storage, path));
+    } catch {
+      // storage object already gone — non-fatal
+    }
+  }
 }
 
 // Wipe a zone's contributions (handy while tuning the scene). No-arg clears

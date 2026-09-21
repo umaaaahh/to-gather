@@ -9,7 +9,7 @@ service firebase.storage {
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType == 'image/png';
 
-      allow delete: if true; // dev-only: powers clearDrawings() while tuning the scene
+      allow delete: if request.auth != null; // admin-only (Uma's Firebase Auth account)
     }
   }
 }
