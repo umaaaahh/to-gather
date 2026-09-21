@@ -21,6 +21,10 @@ export default function DrawZone() {
       return;
     }
     try {
+      // saveDrawing() itself emits the "submitted" signal (see
+      // subscribeToSubmissions/getLastSubmission in drawingsStore.js) once
+      // the write actually lands — that's the hook point for future
+      // consumers (entry animation, kangaroo reaction), not this handler.
       await saveDrawing(key, pngBlob);
       navigate("/");
     } catch (err) {

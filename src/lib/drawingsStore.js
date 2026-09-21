@@ -26,6 +26,24 @@ const listeners = new Set();
 let cache = {}; // { zoneKey: [url, ...] }, oldest first
 let unsubscribeSnapshot = null;
 
+// "submitted" signal — fires once per successful saveDrawing(), after both
+// the Storage upload and the Firestore doc write have completed. This is the
+// intended hook point for future consumers that react to a fresh publish
+// (e.g. an entry animation or the kangaroo's post-drawing reaction) without
+// touching the submit path in DrawZone/DrawingCanvas at all.
+const submissionListeners = new Set();
+let lastSubmission = null; // { zone, id, url, path, createdAt } | null
+
+export function subscribeToSubmissions(fn) {
+  submissionListeners.add(fn);
+  return () => submissionListeners.delete(fn);
+}
+
+// Most recent successful publish (or null if none yet this session).
+export function getLastSubmission() {
+  return lastSubmission;
+}
+
 function startListening() {
   if (unsubscribeSnapshot) return;
   const q = query(collection(db, COLLECTION), orderBy("createdAt", "asc"));
@@ -69,12 +87,17 @@ export async function saveDrawing(zoneKey, pngBlob) {
   await uploadBytes(storageRef, pngBlob, { contentType: "image/png" });
   const url = await getDownloadURL(storageRef);
 
-  await addDoc(collection(db, COLLECTION), {
+  const docRef = await addDoc(collection(db, COLLECTION), {
     zone: zoneKey,
     url,
     path,
     createdAt: serverTimestamp(),
   });
+
+  const submission = { zone: zoneKey, id: docRef.id, url, path, createdAt: Date.now() };
+  lastSubmission = submission;
+  submissionListeners.forEach((fn) => fn(submission));
+  return submission;
 }
 
 // Wipe a zone's contributions (handy while tuning the scene). No-arg clears

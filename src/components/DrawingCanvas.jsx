@@ -29,7 +29,12 @@ const UNDO_LIMIT = 6;
  * @param {number} [exportSize=400]                 the exported PNG is always exportSize x exportSize
  *                                                   — the full square drawing area, matching the live
  *                                                   paper box exactly, so nothing drawn is ever clipped
- * @param {(pngBlob: Blob) => void} onDone          called when the user taps Done
+ * @param {(pngBlob: Blob) => void|Promise<void>} onDone  called when the user taps Done.
+ *                                                   May return a promise (e.g. a Firestore/Storage
+ *                                                   write) — DrawingCanvas awaits it before releasing
+ *                                                   the submit lock, so a slow save or a fast repeat
+ *                                                   tap can't fire a second export while one is still
+ *                                                   in flight.
  * @param {() => void} [onCancel]                   optional — renders a Back control
  */
 export default function DrawingCanvas({
@@ -47,6 +52,11 @@ export default function DrawingCanvas({
   const undoStackRef = useRef([]);
   const bgImgRef = useRef(null);
   const dirtyRef = useRef(false); // has anything actually been drawn?
+  // Guards the Done action end-to-end (export + onDone, including whatever
+  // async save onDone performs). A ref rather than just the `busy` state
+  // because it must block re-entry synchronously — a second pointer event
+  // can land before React commits the re-render that disables the button.
+  const submitLockRef = useRef(false);
 
   const [tool, setTool] = useState("brush"); // "brush" | "eraser" | "fill"
   const [color, setColor] = useState(palette[0] ?? "#000000");
@@ -205,12 +215,16 @@ export default function DrawingCanvas({
 
   // ---- export -----------------------------------------------------------
   const handleDone = useCallback(() => {
-    if (busy) return;
+    // Blocks fast double-taps (before the disabled-button re-render commits)
+    // and slow-network retries (stays locked for the full onDone await below,
+    // not just the synchronous export) — see submitLockRef above.
+    if (submitLockRef.current) return;
     // Untouched canvas -> don't bother exporting or storing anything.
     if (!dirtyRef.current) {
       onDone?.(null);
       return;
     }
+    submitLockRef.current = true;
     setBusy(true);
 
     // The export frame is always the same square as the live paper box —
@@ -235,14 +249,17 @@ export default function DrawingCanvas({
 
     octx.drawImage(canvasRef.current, 0, 0, exportSize, exportSize);
 
-    out.toBlob(
-      (blob) => {
+    out.toBlob(async (blob) => {
+      try {
+        // Awaited so the lock spans the caller's async save (e.g. Firestore/
+        // Storage upload in DrawZone), not just this synchronous export.
+        await onDone?.(blob);
+      } finally {
+        submitLockRef.current = false;
         setBusy(false);
-        onDone?.(blob);
-      },
-      "image/png",
-    );
-  }, [busy, exportSize, onDone]);
+      }
+    }, "image/png");
+  }, [exportSize, onDone]);
 
   return (
     <div className="dc-root" data-zone={zone}>
