@@ -53,15 +53,22 @@ async function main() {
     let seededId;
     const seededPath = "drawings/tree/seed.png";
 
+    const seededThumbPath = "drawings/tree/seed-thumb.png";
+
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const ref_ = await addDoc(collection(ctx.firestore(), "drawings"), {
         zone: "tree",
         url: "https://example.com/seed.png",
         path: seededPath,
+        thumbUrl: "https://example.com/seed-thumb.png",
+        thumbPath: seededThumbPath,
         createdAt: new Date(),
       });
       seededId = ref_.id;
       await uploadBytes(ref(ctx.storage(), seededPath), PNG_BYTES, {
+        contentType: "image/png",
+      });
+      await uploadBytes(ref(ctx.storage(), seededThumbPath), PNG_BYTES, {
         contentType: "image/png",
       });
     });
@@ -80,6 +87,8 @@ async function main() {
           zone: "stem",
           url: "https://example.com/new.png",
           path: "drawings/stem/new.png",
+          thumbUrl: "https://example.com/new-thumb.png",
+          thumbPath: "drawings/stem/new-thumb.png",
           createdAt: serverTimestamp(),
         }),
       );
@@ -91,6 +100,19 @@ async function main() {
           zone: "not-a-zone",
           url: "https://example.com/bad.png",
           path: "drawings/bad/new.png",
+          thumbUrl: "https://example.com/bad-thumb.png",
+          thumbPath: "drawings/bad/bad-thumb.png",
+          createdAt: serverTimestamp(),
+        }),
+      );
+    });
+
+    await check("unauthenticated create rejected when missing thumbUrl (Firestore)", async () => {
+      await assertFails(
+        addDoc(collection(anon.firestore(), "drawings"), {
+          zone: "stem",
+          url: "https://example.com/no-thumb.png",
+          path: "drawings/stem/no-thumb.png",
           createdAt: serverTimestamp(),
         }),
       );
@@ -125,8 +147,12 @@ async function main() {
       await assertSucceeds(deleteObject(ref(admin.storage(), seededPath)));
     });
 
-    assert.equal(passed, 9);
-    console.log(`\n${passed}/9 rules tests passed.`);
+    await check("authenticated admin delete succeeds (Storage thumbnail)", async () => {
+      await assertSucceeds(deleteObject(ref(admin.storage(), seededThumbPath)));
+    });
+
+    assert.equal(passed, 11);
+    console.log(`\n${passed}/11 rules tests passed.`);
   } finally {
     await testEnv.cleanup();
   }

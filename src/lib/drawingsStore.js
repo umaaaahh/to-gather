@@ -1,10 +1,12 @@
-// Phase 2: real backing store. Every finished drawing is a PNG uploaded to
-// Firebase Storage under drawings/{zone}/{id}.png, with a matching Firestore
-// doc in the "drawings" collection ({ zone, url, path, createdAt }) so the
-// street scene can subscribe to live updates and order contributions by
-// arrival time. Shape returned to callers stays what Phase 1 already used —
-// an array of URLs per zone, oldest first — so StreetScene/DrawZone didn't
-// need to change beyond DrawZone now awaiting saveDrawing.
+// Phase 2: real backing store. Every finished drawing uploads two PNGs to
+// Firebase Storage — the full-resolution export at drawings/{zone}/{id}.png
+// and a 150x150 thumbnail at drawings/{zone}/{id}-thumb.png — with a matching
+// Firestore doc in the "drawings" collection ({ zone, url, path, thumbUrl,
+// thumbPath, createdAt }) so the street scene can subscribe to live updates
+// and order contributions by arrival time. Each zone's listener is capped to
+// its N most recent drawings (see ZONE_LIMITS) rather than the whole
+// collection. Shape returned to callers stays what earlier phases already
+// used — an array of (thumbnail) URLs per zone, oldest first.
 
 import { db, storage } from "./firebase";
 import {
@@ -51,7 +53,7 @@ const zoneUnsubscribes = [];
 // (e.g. an entry animation or the kangaroo's post-drawing reaction) without
 // touching the submit path in DrawZone/DrawingCanvas at all.
 const submissionListeners = new Set();
-let lastSubmission = null; // { zone, id, url, path, createdAt } | null
+let lastSubmission = null; // { zone, id, url, path, thumbUrl, thumbPath, createdAt } | null
 
 export function subscribeToSubmissions(fn) {
   submissionListeners.add(fn);
