@@ -36,11 +36,11 @@ const listeners = new Set();
 // stays in Firestore/Storage untouched ("hide, don't delete"), so no
 // retirement job is needed.
 //
-// tree: the four crayon trees' leaf boxes (CRAYON_TREES in StreetScene.jsx)
-// sum to 448 (75 + 149 + 149 + 75), plus a 10-leaf buffer so people who were
+// tree: the three crayon trees' leaf boxes (CRAYON_TREES in StreetScene.jsx)
+// sum to 299 (75 + 149 + 75), plus a 10-leaf buffer so people who were
 // mid-drawing when the last tree filled still land — layoutScatter piles
 // the extras into the last box.
-const ZONE_LIMITS = { tree: 458, stem: 25, free: 114 };
+const ZONE_LIMITS = { tree: 309, stem: 25, free: 114 };
 
 // Zones that keep their N OLDEST drawings instead of the newest: once the
 // trees are full they stay full, so nothing gets swapped out and no leaf

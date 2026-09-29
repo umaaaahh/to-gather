@@ -212,17 +212,17 @@ const NOTICE_BADGE_POS = { top: 43, left: 50 };
 //
 // Every tree is its own tap target, but only one is open at a time: they fill
 // left to right, and a tree stays greyed out and locked (in contribute mode)
-// until the one before it is full. All four share the tree zone's drawings —
+// until the one before it is full. All three share the tree zone's drawings —
 // which tree a leaf lands on comes from its arrival order, not which tree
 // was tapped, so two people finishing the last leaves of a tree at once
 // just spill onto the next one instead of being locked out.
 //
 // `leafBoxes` are that tree's canopy boxes, as a % of the TREE's own box.
 // Leaves fill tree 1's boxes in order, then tree 2's, and so on (see
-// layoutScatter). Trees 2 and 3 get a full canopy (28 / 78 / 43 = 149, the
-// old tree's split); trees 1 and 4 are half off-screen, so they only get
-// two boxes over the part that shows, at half capacity (45 / 30 = 75).
-// Capacities sum to 448 — keep drawingsStore.js's ZONE_LIMITS.tree at that
+// layoutScatter). Tree 2 gets a full canopy (78 / 28 / 43 = 149, the old
+// tree's split); trees 1 and 3 are half off-screen, so they only get two
+// boxes over the part that shows, at half capacity (75 each).
+// Capacities sum to 299 — keep drawingsStore.js's ZONE_LIMITS.tree at that
 // plus its overflow buffer.
 const CRAYON_TREES = [
   {
@@ -239,18 +239,6 @@ const CRAYON_TREES = [
   },
   {
     id: "tree-2",
-    top: "56%",
-    left: "28%",
-    width: "11%",
-    height: "55%",
-    leafBoxes: [
-      { id: "top-left", top: "10%", left: "-15%", width: "45%", height: "25%", capacity: 28 },
-      { id: "top-right", top: "2%", left: "20%", width: "60%", height: "35%", capacity: 78, flip: true },
-      { id: "low-right", top: "25%", left: "55%", width: "55%", height: "35%", capacity: 43, flip: true },
-    ],
-  },
-  {
-    id: "tree-3",
     top: "57%",
     left: "67%",
     width: "12%",
@@ -263,7 +251,7 @@ const CRAYON_TREES = [
     ],
   },
   {
-    id: "tree-4",
+    id: "tree-3",
     top: "55%",
     left: "139%",
     width: "15%",
