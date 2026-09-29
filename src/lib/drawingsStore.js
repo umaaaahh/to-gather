@@ -4,8 +4,8 @@
 // Firestore doc in the "drawings" collection ({ zone, url, path, thumbUrl,
 // thumbPath, createdAt }) so the street scene can subscribe to live updates
 // and order contributions by arrival time. Each zone's listener is capped to
-// its N most recent drawings (see ZONE_LIMITS) rather than the whole
-// collection. Shape returned to callers stays what earlier phases already
+// N drawings (see ZONE_LIMITS) rather than the whole collection — the N most
+// recent, or for the tree the N oldest (see OLDEST_FIRST_ZONES). Shape returned to callers stays what earlier phases already
 // used — an array of (thumbnail) URLs per zone, oldest first.
 
 import { db, storage } from "./firebase";
@@ -35,7 +35,17 @@ const listeners = new Set();
 // Anything older than the Nth drawing simply falls outside the query — it
 // stays in Firestore/Storage untouched ("hide, don't delete"), so no
 // retirement job is needed.
-const ZONE_LIMITS = { tree: 149, stem: 25, free: 114 };
+//
+// tree: the four crayon trees' leaf boxes (CRAYON_TREES in StreetScene.jsx)
+// sum to 448 (75 + 149 + 149 + 75), plus a 10-leaf buffer so people who were
+// mid-drawing when the last tree filled still land — layoutScatter piles
+// the extras into the last box.
+const ZONE_LIMITS = { tree: 458, stem: 25, free: 114 };
+
+// Zones that keep their N OLDEST drawings instead of the newest: once the
+// trees are full they stay full, so nothing gets swapped out and no leaf
+// ever moves. Anything past the cap stays stored, just never shown.
+const OLDEST_FIRST_ZONES = new Set(["tree"]);
 
 // Thumbnails keep the scattered street scene cheap to load: every upload
 // also produces a 150x150 PNG alongside the full-resolution export, and the
@@ -68,22 +78,23 @@ export function getLastSubmission() {
 function startListening() {
   if (zoneUnsubscribes.length) return;
   for (const zoneKey of Object.keys(ZONE_LIMITS)) {
+    const oldestFirst = OLDEST_FIRST_ZONES.has(zoneKey);
     const q = query(
       collection(db, COLLECTION),
       where("zone", "==", zoneKey),
-      orderBy("createdAt", "desc"),
+      orderBy("createdAt", oldestFirst ? "asc" : "desc"),
       limit(ZONE_LIMITS[zoneKey]),
     );
     zoneUnsubscribes.push(
       onSnapshot(q, (snap) => {
-        // Query comes back newest-first (that's what limit() keeps); reverse
-        // to oldest-first so layoutScatter's index-based seeding stays as
-        // stable as possible while a zone is under its cap. Falls back to the
-        // full-res url for drawings uploaded before thumbnails existed, so
-        // pre-migration drawings don't just vanish from the scene.
-        const urls = snap.docs
-          .map((d) => d.data())
-          .reverse()
+        // Newest-first queries come back newest-first (that's what limit()
+        // keeps); reverse to oldest-first so layoutScatter's index-based
+        // seeding stays as stable as possible while a zone is under its cap.
+        // Falls back to the full-res url for drawings uploaded before
+        // thumbnails existed, so pre-migration drawings don't just vanish
+        // from the scene.
+        const docs = snap.docs.map((d) => d.data());
+        const urls = (oldestFirst ? docs : docs.reverse())
           .map((data) => data.thumbUrl || data.url)
           .filter(Boolean);
         cache = { ...cache, [zoneKey]: urls };
@@ -165,6 +176,26 @@ export async function saveDrawing(zoneKey, pngBlob) {
   lastSubmission = submission;
   submissionListeners.forEach((fn) => fn(submission));
   return submission;
+}
+
+// "save failed" signal — DrawZone hands the save off and goes straight back
+// to the scene instead of waiting on the uploads, so if a background save
+// doesn't land, this is how the scene finds out and tells the person.
+const saveErrorListeners = new Set();
+
+export function subscribeToSaveErrors(fn) {
+  saveErrorListeners.add(fn);
+  return () => saveErrorListeners.delete(fn);
+}
+
+// Fire-and-forget saveDrawing(): the new drawing turns up in the scene via
+// the onSnapshot listeners once it lands; a failure goes out on the "save
+// failed" signal above instead of throwing.
+export function saveDrawingInBackground(zoneKey, pngBlob) {
+  saveDrawing(zoneKey, pngBlob).catch((err) => {
+    console.error("Failed to save drawing:", err);
+    saveErrorListeners.forEach((fn) => fn({ zone: zoneKey, error: err }));
+  });
 }
 
 // Admin listing: every drawing with its doc id (needed to target a single

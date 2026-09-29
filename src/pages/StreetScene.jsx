@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllDrawings, subscribe } from "../lib/drawingsStore";
+import { getAllDrawings, subscribe, subscribeToSaveErrors } from "../lib/drawingsStore";
 import { ASSETS } from "../lib/assets";
 import "./StreetScene.css";
 
@@ -40,9 +40,10 @@ const ZONES = [
     artWidth: "13%",
     artHeight: "240%",
     artFit: "fill",
-    // The tree no longer shows a single stretched drawing — contributed
-    // leaves scatter into the canopy boxes below (LEAF_BOXES). This box is
-    // just the fixture footprint + the frame the leaf boxes are placed in.
+    // Old tree — art only now, kept as a reference while the crayon trees'
+    // leaf boxes get mapped out (then it's deleted). Its leaves and hotspot
+    // moved to CRAYON_TREES, so no hotspot here.
+    hotspot: false,
   },
   {
     id: "stem",
@@ -238,16 +239,109 @@ const NOTICE_BOARD = {
 //   left — 0 = board's left edge, 50 = middle, 100 = right edge
 const NOTICE_BADGE_POS = { top: 43, left: 50 };
 
-// Crayon trees — standalone decoration, independent of the "tree" zone (its
-// art, hotspot and leaf canopy are untouched). Same % coordinates as above,
-// one box per tree. The image keeps its aspect ratio (object-fit: contain).
+// Crayon trees — the "tree" zone's leaves live on these. Same % coordinates
+// as above, one box per tree. The image keeps its aspect ratio
+// (object-fit: contain). `flip: true` mirrors the tree left-to-right.
+//
+// Every tree is its own tap target, but only one is open at a time: they fill
+// left to right, and a tree stays greyed out and locked (in contribute mode)
+// until the one before it is full. All four share the tree zone's drawings —
+// which tree a leaf lands on comes from its arrival order, not which tree
+// was tapped, so two people finishing the last leaves of a tree at once
+// just spill onto the next one instead of being locked out.
+//
+// `leafBoxes` are that tree's canopy boxes, as a % of the TREE's own box.
+// Leaves fill tree 1's boxes in order, then tree 2's, and so on (see
+// layoutScatter). Trees 2 and 3 get a full canopy (28 / 78 / 43 = 149, the
+// old tree's split); trees 1 and 4 are half off-screen, so they only get
+// two boxes over the part that shows, at half capacity (45 / 30 = 75).
+// Capacities sum to 448 — keep drawingsStore.js's ZONE_LIMITS.tree at that
+// plus its overflow buffer.
 const CRAYON_TREES = [
-  { id: "crayon-tree-1", top: "55%", left: "-5%", width: "15%", height: "50%" },
-  { id: "crayon-tree-2", top: "56%", left: "28%", width: "11%", height: "55%" },
-  // `flip: true` mirrors the tree left-to-right.
-  { id: "crayon-tree-3", top: "57%", left: "67%", width: "12%", height: "50%", flip: true },
-  { id: "crayon-tree-4", top: "55%", left: "139%", width: "15%", height: "50%", flip: true },
+  {
+    id: "tree-1",
+    top: "55%",
+    left: "-5.5%",
+    width: "15%",
+    height: "50%",
+    // Left third is off the start of the street — right side only.
+    leafBoxes: [
+      { id: "top-right", top: "-10%", left: "37.5%", width: "40%", height: "45%", capacity: 30, flip: true },
+      { id: "low-right", top: "22%", left: "55%", width: "50%", height: "45%", capacity: 45, flip: true },
+    ],
+  },
+  {
+    id: "tree-2",
+    top: "56%",
+    left: "28%",
+    width: "11%",
+    height: "55%",
+    leafBoxes: [
+      { id: "top-left", top: "10%", left: "-15%", width: "45%", height: "25%", capacity: 28 },
+      { id: "top-right", top: "2%", left: "20%", width: "60%", height: "35%", capacity: 78, flip: true },
+      { id: "low-right", top: "25%", left: "55%", width: "55%", height: "35%", capacity: 43, flip: true },
+    ],
+  },
+  {
+    id: "tree-3",
+    top: "57%",
+    left: "67%",
+    width: "12%",
+    height: "50%",
+    flip: true,
+    leafBoxes: [
+      { id: "top-left", top: "-5%", left: "10%", width: "75%", height: "45%", capacity: 78 },
+      { id: "top-right", top: "3%", left: "75%", width: "40%", height: "35%", capacity: 28, flip: true },
+      { id: "low-right", top: "25%", left: "-8%", width: "50%", height: "40%", capacity: 43, flip: true },
+    ],
+  },
+  {
+    id: "tree-4",
+    top: "55%",
+    left: "139%",
+    width: "15%",
+    height: "50%",
+    flip: true,
+    // Right third is past the end of the road — left side only. Last tree,
+    // so its last box also takes the overflow buffer.
+    leafBoxes: [
+      { id: "top-left", top: "-10%", left: "10%", width: "55%", height: "45%", capacity: 45 },
+      { id: "low-left", top: "25%", left: "2%", width: "45%", height: "40%", capacity: 30 },
+    ],
+  },
 ];
+
+// The label on whichever tree is open.
+const TREE_HOTSPOT = { label: "Colour the tree", level: "Easy", stars: 1 };
+
+// Every tree's tap box runs between the same two lines, whatever each tree's
+// own box is — TREE_HOTSPOT_TOP down to TREE_HOTSPOT_BOTTOM, as a % of the
+// scene-ground box (like the trees' `top`). Widths follow each tree.
+const TREE_HOTSPOT_TOP = 45;
+const TREE_HOTSPOT_BOTTOM = 105;
+
+// Every tree's leaf boxes chained left to right, so layoutScatter fills
+// tree 1, then tree 2, ... Box ids become "tree-1/top-left" etc.
+const TREE_LEAF_BOXES = CRAYON_TREES.flatMap((t) =>
+  t.leafBoxes.map((box) => ({ ...box, id: `${t.id}/${box.id}` })),
+);
+const treeCapacity = (t) => t.leafBoxes.reduce((sum, box) => sum + box.capacity, 0);
+
+// CRAYON_TREES are % of .scene-ground; they render inside .crayon-trees,
+// which is STREET_LENGTH% of that, so left/width get rescaled to it.
+const crayonTreeBox = (t) => ({
+  top: t.top,
+  left: `${(parseFloat(t.left) * 100) / STREET_LENGTH}%`,
+  width: `${(parseFloat(t.width) * 100) / STREET_LENGTH}%`,
+  height: t.height,
+});
+
+// The tree's box, stretched between TREE_HOTSPOT_TOP and TREE_HOTSPOT_BOTTOM.
+const treeHotspotBox = (t) => ({
+  ...crayonTreeBox(t),
+  top: `${TREE_HOTSPOT_TOP}%`,
+  height: `${TREE_HOTSPOT_BOTTOM - TREE_HOTSPOT_TOP}%`,
+});
 
 // ---- Hidden window "surprise" ----------------------------------------------
 // A pulsing button tucked into one of the house windows, view-mode only —
@@ -270,26 +364,17 @@ const WINDOW_BOOK = { top: "81%", left: "77.5%", width: "10%", height: "14%" };
 // are positioned as a % of the OWNING ZONE's own box (top/left/width/height
 // on ZONES above).
 //
-// Flip SHOW_LEAF_BOXES on to see the tree's canopy boxes (dashed outline +
-// a live fill count) while you position them, then set it back to false.
+// Flip SHOW_LEAF_BOXES on to see the crayon trees' canopy boxes (dashed
+// outline + a live fill count) while you position them, then set it back to
+// false.
 const SHOW_LEAF_BOXES = false;
 
-// Leaves fill box 0 up to its `capacity`, then box 1, and so on. Nudge a
-// capacity up for a fuller cluster, down for a sparser one. Extra leaves
-// past the last box's capacity still land (they pile into the last box)
-// rather than disappearing. `flip: true` mirrors that box's leaves
-// horizontally (the wind sway direction is unaffected).
-//
-// Capacities sum to 149 — the tree zone's query cap in drawingsStore.js
-// (ZONE_LIMITS) — split across the three boxes in the same 40:110:60 ratio
-// the original (uncapped) design used, so the canopy's visual density stays
-// the same shape but never implies more drawings than the query can ever
-// actually fetch.
-const LEAF_BOXES = [
-  { id: "top-left", top: "20%", left: "-20%", width: "60%", height: "20%", capacity: 28 },
-  { id: "top-right", top: "5%", left: "25%", width: "70%", height: "35%", capacity: 78, flip: true },
-  { id: "low-right", top: "30%", left: "55%", width: "50%", height: "40%", capacity: 43, flip: true },
-];
+// The trees' canopy boxes live on CRAYON_TREES (`leafBoxes`). Leaves fill box
+// 0 up to its `capacity`, then box 1, and so on. Nudge a capacity up for a
+// fuller cluster, down for a sparser one. Extra leaves past the last box's
+// capacity still land (they pile into the last box) rather than
+// disappearing. `flip: true` mirrors that box's leaves horizontally (the
+// wind sway direction is unaffected).
 
 // Flowers don't need the tree's multi-box clustering — one box spanning the
 // whole zone is enough, and every contribution lands in it. `capacity`
@@ -319,6 +404,10 @@ const FREE_ROAD_BOX = { top: "118%", left: "0%", width: "38%", height: "18%" };
 // you'd guess from the visible drawing's own size to land the same size on
 // screen — the max-height clamp is what actually keeps that in check.
 const LEAF_WIDTH = "24cqw";
+// LEAF_WIDTH was tuned on the old tree zone's 15%-wide box. Each crayon tree
+// is a different width, so scale it per tree to keep every leaf that size.
+const LEAF_WIDTH_REF = 15;
+const treeLeafWidth = (t) => `calc(${LEAF_WIDTH} * ${LEAF_WIDTH_REF / parseFloat(t.width)})`;
 const STEM_WIDTH = "26cqw";
 const FREE_WIDTH = "60cqw";
 
@@ -391,15 +480,37 @@ export default function StreetScene() {
   const [mode, setMode] = useState("view"); // "view" | "contribute"
   const [soundOpen, setSoundOpen] = useState(false);
 
-  useEffect(() => subscribe(setDrawings), []);
+  // Background saves (see DrawZone) that didn't land — shown as a toast for
+  // a few seconds.
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  const treeZone = ZONES.find((z) => z.id === "tree");
+  useEffect(() => subscribe(setDrawings), []);
+  useEffect(() => subscribeToSaveErrors(() => setSaveFailed(true)), []);
+  useEffect(() => {
+    if (!saveFailed) return undefined;
+    const timer = setTimeout(() => setSaveFailed(false), 5000);
+    return () => clearTimeout(timer);
+  }, [saveFailed]);
+
   const stemZone = ZONES.find((z) => z.id === "stem");
 
-  const treeLeaves = useMemo(
-    () => layoutScatter(drawings.tree ?? [], LEAF_BOXES, { inset: LEAF_INSET, maxRotDeg: 22 }),
-    [drawings.tree],
-  );
+  // Each crayon tree with its own leaves and a status: "full", "open" (the
+  // first tree that isn't full) or "locked" (every tree after that).
+  const trees = useMemo(() => {
+    const leaves = layoutScatter(drawings.tree ?? [], TREE_LEAF_BOXES, {
+      inset: LEAF_INSET,
+      maxRotDeg: 22,
+    });
+    const withLeaves = CRAYON_TREES.map((t) => {
+      const treeLeaves = leaves.filter((l) => l.boxId.startsWith(`${t.id}/`));
+      return { ...t, leaves: treeLeaves, full: treeLeaves.length >= treeCapacity(t) };
+    });
+    const openIdx = withLeaves.findIndex((t) => !t.full);
+    return withLeaves.map((t, i) => ({
+      ...t,
+      status: t.full ? "full" : i === openIdx ? "open" : "locked",
+    }));
+  }, [drawings.tree]);
   const stemFlowers = useMemo(
     () => layoutScatter(drawings.stem ?? [], STEM_BOXES, { inset: STEM_INSET, maxRotDeg: 8 }),
     [drawings.stem],
@@ -513,27 +624,111 @@ export default function StreetScene() {
                 ) : null,
               )}
 
-              {/* Crayon trees — see CRAYON_TREES above for their boxes. The
-                 wrapper clips them at the end of the road, so a tree past it
-                 doesn't make the street scroll further than the road goes. */}
+              {/* Crayon trees — see CRAYON_TREES above. Each tree is its art,
+                 its canopy (leaf box guides, toggled by SHOW_LEAF_BOXES, plus
+                 its scattered leaves) and, while contributing, its hotspot.
+                 The wrapper clips them at the end of the road, so a tree past
+                 it doesn't make the street scroll further than the road goes. */}
               <div className="crayon-trees" style={{ width: `${STREET_LENGTH}%` }}>
-                {CRAYON_TREES.map((t) => (
-                  <img
-                    key={t.id}
-                    className="zone-fixture"
-                    src={ASSETS.crayonTree}
-                    alt=""
-                    style={{
-                      top: t.top,
-                      // CRAYON_TREES are % of .scene-ground; the wrapper is
-                      // STREET_LENGTH% of that, so rescale left/width to it.
-                      left: `${(parseFloat(t.left) * 100) / STREET_LENGTH}%`,
-                      width: `${(parseFloat(t.width) * 100) / STREET_LENGTH}%`,
-                      height: t.height,
-                      transform: t.flip ? "scaleX(-1)" : undefined,
-                    }}
-                  />
-                ))}
+                {trees.map((t, i) => {
+                  const box = crayonTreeBox(t);
+                  const locked = mode === "contribute" && t.status === "locked";
+                  return (
+                    <Fragment key={t.id}>
+                      <img
+                        className={`zone-fixture crayon-tree${locked ? " crayon-tree--locked" : ""}`}
+                        src={ASSETS.crayonTree}
+                        alt=""
+                        style={{ ...box, transform: t.flip ? "scaleX(-1)" : undefined }}
+                      />
+
+                      <div className="scatter" style={{ ...box, "--item-w": treeLeafWidth(t) }}>
+                        {SHOW_LEAF_BOXES &&
+                          t.leafBoxes.map((leafBox) => {
+                            const fill = t.leaves.filter(
+                              (l) => l.boxId === `${t.id}/${leafBox.id}`,
+                            ).length;
+                            return (
+                              <div
+                                key={`box-${leafBox.id}`}
+                                className="leaf-box"
+                                style={{
+                                  top: leafBox.top,
+                                  left: leafBox.left,
+                                  width: leafBox.width,
+                                  height: leafBox.height,
+                                }}
+                              >
+                                <span className="leaf-box-tag">
+                                  {t.id} · {leafBox.id} · {fill}/{leafBox.capacity}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                        {t.leaves.map((leaf) => (
+                          <div
+                            key={`leaf-${leaf.key}`}
+                            className={`scatter-item${LEAF_WIND ? " scatter-item--wind" : ""}${
+                              leaf.flip ? " scatter-item--flip" : ""
+                            }`}
+                            style={{
+                              left: `${leaf.xPct}%`,
+                              top: `${leaf.yPct}%`,
+                              "--item-rot": `${leaf.rot.toFixed(1)}deg`,
+                              // spread the sway so leaves don't move in lockstep
+                              animationDelay: `${-(((leaf.key * 0.53) % 3.4)).toFixed(2)}s`,
+                            }}
+                          >
+                            <img
+                              className="scatter-item-img"
+                              src={leaf.url}
+                              alt=""
+                              draggable={false}
+                              loading="lazy"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Hotspot — only while contributing. Only the open
+                         tree is tappable; full and locked trees just say so. */}
+                      {mode === "contribute" && (
+                        <button
+                          type="button"
+                          className="zone tree-zone"
+                          style={treeHotspotBox(t)}
+                          disabled={t.status !== "open"}
+                          onClick={() => navigate("/draw/tree")}
+                          aria-label={
+                            t.status === "open"
+                              ? `${TREE_HOTSPOT.label} — ${TREE_HOTSPOT.level}`
+                              : `Tree ${i + 1} — ${t.status === "full" ? "full" : "locked"}`
+                          }
+                        >
+                          <span className="zone-label">
+                            {t.status === "open" ? (
+                              <>
+                                <span className="zone-label-text">{TREE_HOTSPOT.label}</span>
+                                <span className="zone-tag">
+                                  <span className="zone-stars" aria-hidden="true">
+                                    {"★".repeat(TREE_HOTSPOT.stars)}
+                                    {"☆".repeat(3 - TREE_HOTSPOT.stars)}
+                                  </span>
+                                  {TREE_HOTSPOT.level}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="zone-label-text">
+                                {t.status === "full" ? "Full" : "🔒 Locked"}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </div>
 
               {/* Hidden window surprise — view mode only, gone the moment
@@ -577,65 +772,6 @@ export default function StreetScene() {
                   </span>
                 </button>
               )}
-
-              {/* Tree canopy: the leaf boxes (guides, toggled by SHOW_LEAF_BOXES)
-                 plus every contributed leaf scattered into them. */}
-              <div
-                className="scatter"
-                data-show-boxes={SHOW_LEAF_BOXES ? "true" : "false"}
-                style={{
-                  top: zoneTop(treeZone),
-                  left: zoneLeft(treeZone),
-                  width: treeZone.width,
-                  height: treeZone.height,
-                  "--item-w": LEAF_WIDTH,
-                }}
-              >
-                {SHOW_LEAF_BOXES &&
-                  LEAF_BOXES.map((box) => {
-                    const fill = treeLeaves.filter((l) => l.boxId === box.id).length;
-                    return (
-                      <div
-                        key={`box-${box.id}`}
-                        className="leaf-box"
-                        style={{
-                          top: box.top,
-                          left: box.left,
-                          width: box.width,
-                          height: box.height,
-                        }}
-                      >
-                        <span className="leaf-box-tag">
-                          {box.id} · {fill}/{box.capacity}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                {treeLeaves.map((leaf) => (
-                  <div
-                    key={`leaf-${leaf.key}`}
-                    className={`scatter-item${LEAF_WIND ? " scatter-item--wind" : ""}${
-                      leaf.flip ? " scatter-item--flip" : ""
-                    }`}
-                    style={{
-                      left: `${leaf.xPct}%`,
-                      top: `${leaf.yPct}%`,
-                      "--item-rot": `${leaf.rot.toFixed(1)}deg`,
-                      // spread the sway so leaves don't move in lockstep
-                      animationDelay: `${-(((leaf.key * 0.53) % 3.4)).toFixed(2)}s`,
-                    }}
-                  >
-                    <img
-                      className="scatter-item-img"
-                      src={leaf.url}
-                      alt=""
-                      draggable={false}
-                      loading="lazy"
-                    />
-                  </div>
-                ))}
-              </div>
 
               {/* Flower bed: every contributed flower scatters into it, same
                  mechanism as the tree canopy above. */}
@@ -715,7 +851,7 @@ export default function StreetScene() {
 
               {/* Hotspots — only while contributing. */}
               {mode === "contribute" &&
-                ZONES.map((zone) => (
+                ZONES.filter((zone) => zone.hotspot !== false).map((zone) => (
                   <button
                     key={`hot-${zone.id}`}
                     className="zone"
@@ -753,6 +889,12 @@ export default function StreetScene() {
       >
         {mode === "view" ? "Start" : "Return"}
       </button>
+
+      {saveFailed && (
+        <p role="alert" className="save-toast">
+          Couldn't save your drawing — check your connection and try again.
+        </p>
+      )}
 
       {soundOpen && (
         <div className="sound-modal-backdrop" onClick={() => setSoundOpen(false)}>

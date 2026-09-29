@@ -337,6 +337,36 @@
   pointer-events: none;
 }
 
+/* Locked trees (contribute mode only) grey out until the tree before them
+   is full. */
+.crayon-tree {
+  transition: filter 0.4s ease, opacity 0.4s ease;
+}
+
+.crayon-tree--locked {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+/* Tree hotspots sit inside .crayon-trees, which turns taps off — switch them
+   back on. */
+.tree-zone {
+  pointer-events: auto;
+}
+
+/* Full and locked trees: not tappable, so no pulse and no press. */
+.tree-zone:disabled {
+  cursor: default;
+  animation: none;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: transparent;
+}
+
+.tree-zone:disabled:active {
+  transform: none;
+}
+
 /* Notice board art (see NOTICE_BOARD in StreetScene.jsx). It sits in
    .scene-track, anchored to the screen bottom; z-index 7 keeps it above
    .scene-ground (2), and so above everything drawn inside it. */
@@ -518,6 +548,27 @@
 
 /* Bottom-centre call to action. "Start" reveals the hotspots; "Return" drops
    back to the clean scene. */
+/* A background save that didn't land (see DrawZone) — sits just above the
+   Start button for a few seconds. */
+.save-toast {
+  position: absolute;
+  bottom: calc(3.5% + 4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 0.6em 1em;
+  border-radius: 12px;
+  background: rgba(176, 0, 32, 0.92);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .scene-cta {
   position: absolute;
   bottom: 3.5%;
