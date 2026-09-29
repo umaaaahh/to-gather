@@ -15,6 +15,11 @@ import "./StreetScene.css";
 // to top/left/width/height. `artFit` sets CSS object-fit: "contain" (default)
 // keeps the art's aspect ratio; "fill" stretches it to the box, so a taller
 // `artHeight` with the same `artWidth` gives a taller tree that's no wider.
+//
+// `offsetX`/`offsetY` move the WHOLE zone — its art, its tap hotspot and its
+// scattered drawings (the tree's leaf canopy) — together, without touching
+// the numbers above or anything else in the scene. Positive x = right,
+// positive y = down, as a % of the scene-ground box.
 const ZONES = [
   {
     id: "tree",
@@ -22,8 +27,11 @@ const ZONES = [
     level: "Easy",
     stars: 1,
     sceneArt: ASSETS.tree,
+    // Move the whole tree (art + hotspot + leaves) from here.
+    offsetX: "-10%",
+    offsetY: "0%",
     top: "45%",
-    left: "9%",
+    left: "10%",
     width: "15%",
     height: "60%",
     // Tree art only — stretched taller than the zone box, same width.
@@ -57,6 +65,146 @@ const ZONES = [
     height: "18%",
   },
 ];
+
+// A zone position (`top`/`artTop` or `left`/`artLeft`) shifted by the zone's
+// offsetY/offsetX, if it has one.
+const shifted = (value, offset) => (offset ? `calc(${value} + ${offset})` : value);
+const zoneTop = (zone, value = zone.top) => shifted(value, zone.offsetY);
+const zoneLeft = (zone, value = zone.left) => shifted(value, zone.offsetX);
+
+// ---- Street artwork ---------------------------------------------------------
+// The street is split into separate building pieces so each can be moved on
+// its own (e.g. to open up a gap for the tree). `left` is a % of the
+// scene-ground box — that's the knob to move a piece. The optional `scale`
+// resizes one piece on its own (1 = as tuned); it grows up and to the right
+// from its bottom-left corner, so it stays standing on the road.
+//
+// The buildings are cropped just above their own drawn road, and all sit on
+// one shared road + grass strip (ROAD_STRIP) that runs the full length of
+// the street along the ground line (the bottom of .scene-ground, which is
+// the bottom of the screen at --scene-lift: 0%).
+//
+// STREET_SCALE sizes the whole street — road strip, both buildings and the
+// buildings' `left` positions all scale together, so the layout keeps its
+// look. 1 = the layout as tuned below.
+//
+// The road and buildings were tuned separately, which is where the two base
+// sizes come from (in the same units: how thick the drawn grey road would
+// come out, as a % of the scene-ground width — equal numbers would be the
+// buildings at the true crayon scale of the road). Only touch these to
+// re-balance road vs buildings; use STREET_SCALE to resize everything.
+//
+// All other numbers are measurements of the file, in its own viewBox units:
+// `crop` is the region shown (the SVGs have transparent padding around the
+// art; the bottom edge is the top of the file's own road), `roadThickness`
+// is how thick the file draws the road — used only for scale. Only
+// re-measure them if the file is re-exported.
+const STREET_SCALE = 1;
+const STREET_ROAD_THICKNESS = 8.5 * STREET_SCALE;
+const STREET_BUILDING_SIZE = 3.9 * STREET_SCALE;
+// Empty road before the first building and after the last one, as a % of
+// the scene-ground width. Pieces' `left` is measured from the end of the
+// start padding, so changing it keeps the gaps between buildings the same.
+const STREET_START_PADDING = 8 * STREET_SCALE;
+const STREET_END_PADDING = 4 * STREET_SCALE;
+
+const STREET_PIECES = [
+  {
+    id: "left",
+    src: ASSETS.streetLeft,
+    left: "0%",
+    scale: 1.1,
+    // building 56.svg: viewBox 210.65 × 157.99. Its embedded PNG is at
+    // 0.1029 units/px, so these are PNG pixel measurements converted.
+    crop: { vbWidth: 210.65, vbHeight: 157.99, x: 8.33, y: 33.9, width: 188.13, height: 77.21 },
+    roadThickness: 12.15,
+  },
+  {
+    id: "right",
+    src: ASSETS.streetRight,
+    left: "72.4%",
+    scale: 1.1,
+    // building 94.svg: viewBox 2172 × 1512, 1:1 with its embedded PNG.
+    crop: { vbWidth: 2172, vbHeight: 1512, x: 184, y: 285, width: 1887, height: 763 },
+    roadThickness: 118,
+  },
+];
+
+// The road + grass strip, two ways (flip ROAD_WHOLE to compare):
+//   true  — the whole road drawing once, rounded ends and all, stretched
+//           sideways to the street length (thickness is unchanged). The
+//           further the street is from the drawing's natural length, the
+//           more the crayon grain stretches.
+//   false — a slice from the middle (where road and grass are even)
+//           repeated along the street; the road file's ends are rounded
+//           off and its grass fades out, so it can't tile end to end.
+// the road.svg: viewBox 2172 × 1512; road top at y 1048, grass ends ~1321,
+// road drawn from x ~187 to ~1989.
+const ROAD_WHOLE = true;
+const ROAD_STRIP = {
+  src: ASSETS.road,
+  crop: ROAD_WHOLE
+    ? { vbWidth: 2172, vbHeight: 1512, x: 184, y: 1048, width: 1808, height: 273 }
+    : { vbWidth: 2172, vbHeight: 1512, x: 500, y: 1048, width: 1200, height: 273 },
+  roadThickness: 118,
+};
+
+// Width of a piece of art at a given size knob, as a % of the scene-ground
+// width.
+const artWidth = ({ crop, roadThickness }, size) => (size * crop.width) / roadThickness;
+const pieceWidth = (piece) => artWidth(piece, STREET_BUILDING_SIZE * (piece.scale ?? 1));
+const pieceLeft = (piece) => STREET_END_PADDING + parseFloat(piece.left) * STREET_SCALE;
+const ROAD_TILE_WIDTH = artWidth(ROAD_STRIP, STREET_ROAD_THICKNESS);
+
+// Height of the road strip (road + grass), as a % of the scene-ground WIDTH.
+const ROAD_STRIP_HEIGHT = (ROAD_TILE_WIDTH * ROAD_STRIP.crop.height) / ROAD_STRIP.crop.width;
+
+// The road runs from the start of the street to whichever is further: the
+// end of the scene-ground box, or the end of the last building plus the end
+// padding.
+const STREET_LENGTH = Math.max(
+  100,
+  ...STREET_PIECES.map((p) => pieceLeft(p) + pieceWidth(p) + STREET_END_PADDING),
+);
+const ROAD_TILE_COUNT = ROAD_WHOLE ? 1 : Math.ceil(STREET_LENGTH / ROAD_TILE_WIDTH);
+
+const pieceBoxStyle = (piece) => ({
+  left: `${pieceLeft(piece)}%`,
+  width: `${pieceWidth(piece)}%`,
+  aspectRatio: `${piece.crop.width} / ${piece.crop.height}`,
+  // Stand the building on top of the road strip. A % margin resolves
+  // against the containing block's WIDTH, which is what the strip height is
+  // a % of too.
+  marginBottom: `${ROAD_STRIP_HEIGHT}%`,
+});
+
+// Box behind the drawn grey road: exactly the road's own area (the road is
+// the top STREET_ROAD_THICKNESS of the road strip), full street length.
+// Colour and how far it grows past the road's edges are CSS vars
+// (--road-box-*) on .street-scene.
+const roadBoxStyle = {
+  width: `${STREET_LENGTH}%`,
+  aspectRatio: `${STREET_LENGTH} / ${STREET_ROAD_THICKNESS}`,
+  marginBottom: `${ROAD_STRIP_HEIGHT - STREET_ROAD_THICKNESS}%`,
+};
+
+const roadTileStyle = {
+  width: `${(ROAD_TILE_WIDTH / STREET_LENGTH) * 100}%`,
+  aspectRatio: `${ROAD_STRIP.crop.width} / ${ROAD_STRIP.crop.height}`,
+  // Whole-road mode: stretch the one drawing sideways to exactly the street
+  // length. A transform (not width/height) so the SVG really stretches —
+  // an <img> of an SVG letterboxes rather than distorting.
+  ...(ROAD_WHOLE && {
+    transform: `scaleX(${STREET_LENGTH / ROAD_TILE_WIDTH})`,
+    transformOrigin: "left",
+  }),
+};
+
+const pieceImgStyle = ({ crop }) => ({
+  width: `${(crop.vbWidth / crop.width) * 100}%`,
+  left: `${(-crop.x / crop.width) * 100}%`,
+  top: `${(-crop.y / crop.height) * 100}%`,
+});
 
 // ---- Notice board fixture --------------------------------------------------
 // Decorative scene furniture, positioned the same way as a zone's `sceneArt`
@@ -236,284 +384,299 @@ export default function StreetScene() {
       {/* Horizontal pan track: the frame stays phone-sized, this scrolls
          left/right across the full-length street inside it. */}
       <div className="street-scroll">
-        {/* Everything that pans together: houses/footpath (.scene-ground)
-           plus the road, so the road scrolls in lock-step with the
-           buildings instead of sitting fixed behind them. */}
+        {/* Everything that pans together: the houses (.scene-ground) plus
+           the road, so the road scrolls in lock-step with the buildings
+           instead of sitting fixed behind them. */}
         <div className="scene-track">
-          {/* Asphalt band pinned to the bottom of the track, sized by
-             --road-height independently of where the scene sits. */}
-          <div className="scene-road" />
+          {/* Asphalt band pinned to the bottom of the track, filling up to
+             the ground line (sized by --scene-lift). */}
+          <div className="scene-road" style={{ width: `${STREET_LENGTH}%` }} />
 
           <div className="scene-ground">
-            <div className="ground-kerb" />
-            <div className="ground-footpath" />
+            <div className="street-art">
+              <div className="street-road-box" style={roadBoxStyle} />
+              <div className="street-road-strip" style={{ width: `${STREET_LENGTH}%` }}>
+                {Array.from({ length: ROAD_TILE_COUNT }, (_, i) => (
+                  <div key={i} className="street-road-tile" style={roadTileStyle}>
+                    <img className="house-img" src={ROAD_STRIP.src} alt="" style={pieceImgStyle(ROAD_STRIP)} />
+                  </div>
+                ))}
+              </div>
+              {STREET_PIECES.map((piece) => (
+                <div key={piece.id} className="street-piece" style={pieceBoxStyle(piece)}>
+                  <img className="house-img" src={piece.src} alt="Street view" style={pieceImgStyle(piece)} />
+                </div>
+              ))}
+            </div>
 
-            <img className="scene-layer house" src={ASSETS.house} alt="Street view" />
+            {/* Everything placed on top of the street art. See .scene-overlay
+               in the CSS for why it has its own vertical offset. */}
+            <div className="scene-overlay">
+              {/* Fixed scene furniture (the tree you colour). Always visible; the
+                 drawings sit on top of it. */}
+              {ZONES.map((zone) =>
+                zone.sceneArt ? (
+                  <img
+                    key={`fixture-${zone.id}`}
+                    className="zone-fixture"
+                    src={zone.sceneArt}
+                    alt=""
+                    style={{
+                      top: zoneTop(zone, zone.artTop ?? zone.top),
+                      left: zoneLeft(zone, zone.artLeft ?? zone.left),
+                      width: zone.artWidth ?? zone.width,
+                      height: zone.artHeight ?? zone.height,
+                      objectFit: zone.artFit,
+                    }}
+                  />
+                ) : null,
+              )}
 
-            {/* Fixed scene furniture (the tree you colour). Always visible; the
-               drawings sit on top of it. */}
-            {ZONES.map((zone) =>
-              zone.sceneArt ? (
-                <img
-                  key={`fixture-${zone.id}`}
-                  className="zone-fixture"
-                  src={zone.sceneArt}
-                  alt=""
-                  style={{
-                    top: zone.artTop ?? zone.top,
-                    left: zone.artLeft ?? zone.left,
-                    width: zone.artWidth ?? zone.width,
-                    height: zone.artHeight ?? zone.height,
-                    objectFit: zone.artFit,
-                  }}
-                />
-              ) : null,
-            )}
-
-            {/* Notice board fixture — see NOTICE_BOARD above for its box.
-               High z-index so it always renders on top of the rest of the
-               scene (house, tree, scattered contributions, etc). */}
-            <img
-              className="notice-board-art"
-              src={ASSETS.noticeBoard}
-              alt=""
-              style={{
-                top: NOTICE_BOARD.top,
-                left: NOTICE_BOARD.left,
-                width: NOTICE_BOARD.width,
-                height: NOTICE_BOARD.height,
-              }}
-            />
-
-            {/* Tap target for the notice board — same box as the art above,
-               so it pans with it and lines up exactly instead of living in
-               a separate fixed-to-frame coordinate system. The hit area
-               covers the whole board; the visible shiny label badge inside
-               is centred and naturally sized so it doesn't get stretched
-               into the board's own (portrait) proportions. View mode only,
-               same as the window surprise — gone once Start reveals the
-               zone hotspots, back once Return drops back to the clean view. */}
-            {mode === "view" && (
-              <button
-                type="button"
-                className="notice-board-button"
-                onClick={() => navigate("/notices")}
-                aria-label="Community notice board"
+              {/* Notice board fixture — see NOTICE_BOARD above for its box.
+                 High z-index so it always renders on top of the rest of the
+                 scene (house, tree, scattered contributions, etc). */}
+              <img
+                className="notice-board-art"
+                src={ASSETS.noticeBoard}
+                alt=""
                 style={{
                   top: NOTICE_BOARD.top,
                   left: NOTICE_BOARD.left,
                   width: NOTICE_BOARD.width,
                   height: NOTICE_BOARD.height,
                 }}
-              >
-                <span className="notice-board-badge">Notice Board</span>
-              </button>
-            )}
+              />
 
-            {/* Hidden window surprise — view mode only, gone the moment
-               Start reveals the zone hotspots. */}
-            {mode === "view" && (
-              <button
-                type="button"
-                className="window-sound-button"
-                onClick={() => setSoundOpen(true)}
-                aria-label="Something's playing in the window"
-                style={{
-                  top: WINDOW_SOUND.top,
-                  left: WINDOW_SOUND.left,
-                  width: WINDOW_SOUND.width,
-                  height: WINDOW_SOUND.height,
-                }}
-              >
-                <span className="window-sound-dot" aria-hidden="true">
-                  🎵
-                </span>
-              </button>
-            )}
-
-            {/* Second window surprise — same view-mode-only pattern as the
-               music note above, no action wired up yet. */}
-            {mode === "view" && (
-              <button
-                type="button"
-                className="window-sound-button"
-                onClick={() => {}}
-                aria-label="Something's in the window"
-                style={{
-                  top: WINDOW_BOOK.top,
-                  left: WINDOW_BOOK.left,
-                  width: WINDOW_BOOK.width,
-                  height: WINDOW_BOOK.height,
-                }}
-              >
-                <span className="window-sound-dot" aria-hidden="true">
-                  📖
-                </span>
-              </button>
-            )}
-
-            {/* Tree canopy: the leaf boxes (guides, toggled by SHOW_LEAF_BOXES)
-               plus every contributed leaf scattered into them. */}
-            <div
-              className="scatter"
-              data-show-boxes={SHOW_LEAF_BOXES ? "true" : "false"}
-              style={{
-                top: treeZone.top,
-                left: treeZone.left,
-                width: treeZone.width,
-                height: treeZone.height,
-                "--item-w": LEAF_WIDTH,
-              }}
-            >
-              {SHOW_LEAF_BOXES &&
-                LEAF_BOXES.map((box) => {
-                  const fill = treeLeaves.filter((l) => l.boxId === box.id).length;
-                  return (
-                    <div
-                      key={`box-${box.id}`}
-                      className="leaf-box"
-                      style={{
-                        top: box.top,
-                        left: box.left,
-                        width: box.width,
-                        height: box.height,
-                      }}
-                    >
-                      <span className="leaf-box-tag">
-                        {box.id} · {fill}/{box.capacity}
-                      </span>
-                    </div>
-                  );
-                })}
-
-              {treeLeaves.map((leaf) => (
-                <div
-                  key={`leaf-${leaf.key}`}
-                  className={`scatter-item${LEAF_WIND ? " scatter-item--wind" : ""}${
-                    leaf.flip ? " scatter-item--flip" : ""
-                  }`}
-                  style={{
-                    left: `${leaf.xPct}%`,
-                    top: `${leaf.yPct}%`,
-                    "--item-rot": `${leaf.rot.toFixed(1)}deg`,
-                    // spread the sway so leaves don't move in lockstep
-                    animationDelay: `${-(((leaf.key * 0.53) % 3.4)).toFixed(2)}s`,
-                  }}
-                >
-                  <img
-                    className="scatter-item-img"
-                    src={leaf.url}
-                    alt=""
-                    draggable={false}
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Flower bed: every contributed flower scatters into it, same
-               mechanism as the tree canopy above. */}
-            <div
-              className="scatter"
-              style={{
-                top: stemZone.top,
-                left: stemZone.left,
-                width: stemZone.width,
-                height: stemZone.height,
-                "--item-w": STEM_WIDTH,
-              }}
-            >
-              {stemFlowers.map((item) => (
-                <div
-                  key={`stem-${item.key}`}
-                  className={`scatter-item scatter-item--rooted${STEM_WIND ? " scatter-item--wind" : ""}`}
-                  style={{
-                    left: `${item.xPct}%`,
-                    top: `${item.yPct}%`,
-                    "--item-rot": `${item.rot.toFixed(1)}deg`,
-                    // spread the sway so flowers don't move in lockstep
-                    animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
-                  }}
-                >
-                  <img
-                    className="scatter-item-img"
-                    src={item.url}
-                    alt=""
-                    draggable={false}
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Road walk: every contributed character wanders around this
-               band instead of sitting still in the small "free" hotspot
-               box (that stays below, contribute-mode only, as the tap
-               target). */}
-            <div
-              className="scatter"
-              style={{
-                top: FREE_ROAD_BOX.top,
-                left: FREE_ROAD_BOX.left,
-                width: FREE_ROAD_BOX.width,
-                height: FREE_ROAD_BOX.height,
-                "--item-w": FREE_WIDTH,
-              }}
-            >
-              {freeCharacters.map((item) => (
-                <div
-                  key={`free-${item.key}`}
-                  className="scatter-item scatter-item--rooted scatter-item--walking"
-                  style={{
-                    left: `${item.xPct}%`,
-                    top: `${item.yPct}%`,
-                    "--item-rot": `${item.rot.toFixed(1)}deg`,
-                    // seeded per character so nobody paces in lockstep —
-                    // 15-30cqw of wander, a 5-9s stroll, a 2-4cqw hop, staggered starts
-                    "--walk-dist": `${(15 + seededUnit(item.key * 7 + 3) * 15).toFixed(1)}cqw`,
-                    "--walk-dur": `${(5 + seededUnit(item.key * 11 + 5) * 4).toFixed(1)}s`,
-                    "--walk-hop": `${(2 + seededUnit(item.key * 13 + 9) * 2).toFixed(1)}cqw`,
-                    animationDelay: `${-(((item.key * 0.71) % 5)).toFixed(2)}s`,
-                  }}
-                >
-                  <img
-                    className="scatter-item-img"
-                    src={item.url}
-                    alt=""
-                    draggable={false}
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Hotspots — only while contributing. */}
-            {mode === "contribute" &&
-              ZONES.map((zone) => (
+              {/* Tap target for the notice board — same box as the art above,
+                 so it pans with it and lines up exactly instead of living in
+                 a separate fixed-to-frame coordinate system. The hit area
+                 covers the whole board; the visible shiny label badge inside
+                 is centred and naturally sized so it doesn't get stretched
+                 into the board's own (portrait) proportions. View mode only,
+                 same as the window surprise — gone once Start reveals the
+                 zone hotspots, back once Return drops back to the clean view. */}
+              {mode === "view" && (
                 <button
-                  key={`hot-${zone.id}`}
-                  className="zone"
+                  type="button"
+                  className="notice-board-button"
+                  onClick={() => navigate("/notices")}
+                  aria-label="Community notice board"
                   style={{
-                    top: zone.top,
-                    left: zone.left,
-                    width: zone.width,
-                    height: zone.height,
+                    top: NOTICE_BOARD.top,
+                    left: NOTICE_BOARD.left,
+                    width: NOTICE_BOARD.width,
+                    height: NOTICE_BOARD.height,
                   }}
-                  onClick={() => navigate(`/draw/${zone.id}`)}
-                  aria-label={`${zone.label} — ${zone.level}`}
                 >
-                  <span className="zone-label">
-                    <span className="zone-label-text">{zone.label}</span>
-                    <span className="zone-tag">
-                      <span className="zone-stars" aria-hidden="true">
-                        {"★".repeat(zone.stars)}
-                        {"☆".repeat(3 - zone.stars)}
-                      </span>
-                      {zone.level}
-                    </span>
+                  <span className="notice-board-badge">Notice Board</span>
+                </button>
+              )}
+
+              {/* Hidden window surprise — view mode only, gone the moment
+                 Start reveals the zone hotspots. */}
+              {mode === "view" && (
+                <button
+                  type="button"
+                  className="window-sound-button"
+                  onClick={() => setSoundOpen(true)}
+                  aria-label="Something's playing in the window"
+                  style={{
+                    top: WINDOW_SOUND.top,
+                    left: WINDOW_SOUND.left,
+                    width: WINDOW_SOUND.width,
+                    height: WINDOW_SOUND.height,
+                  }}
+                >
+                  <span className="window-sound-dot" aria-hidden="true">
+                    🎵
                   </span>
                 </button>
-              ))}
+              )}
+
+              {/* Second window surprise — same view-mode-only pattern as the
+                 music note above, no action wired up yet. */}
+              {mode === "view" && (
+                <button
+                  type="button"
+                  className="window-sound-button"
+                  onClick={() => {}}
+                  aria-label="Something's in the window"
+                  style={{
+                    top: WINDOW_BOOK.top,
+                    left: WINDOW_BOOK.left,
+                    width: WINDOW_BOOK.width,
+                    height: WINDOW_BOOK.height,
+                  }}
+                >
+                  <span className="window-sound-dot" aria-hidden="true">
+                    📖
+                  </span>
+                </button>
+              )}
+
+              {/* Tree canopy: the leaf boxes (guides, toggled by SHOW_LEAF_BOXES)
+                 plus every contributed leaf scattered into them. */}
+              <div
+                className="scatter"
+                data-show-boxes={SHOW_LEAF_BOXES ? "true" : "false"}
+                style={{
+                  top: zoneTop(treeZone),
+                  left: zoneLeft(treeZone),
+                  width: treeZone.width,
+                  height: treeZone.height,
+                  "--item-w": LEAF_WIDTH,
+                }}
+              >
+                {SHOW_LEAF_BOXES &&
+                  LEAF_BOXES.map((box) => {
+                    const fill = treeLeaves.filter((l) => l.boxId === box.id).length;
+                    return (
+                      <div
+                        key={`box-${box.id}`}
+                        className="leaf-box"
+                        style={{
+                          top: box.top,
+                          left: box.left,
+                          width: box.width,
+                          height: box.height,
+                        }}
+                      >
+                        <span className="leaf-box-tag">
+                          {box.id} · {fill}/{box.capacity}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                {treeLeaves.map((leaf) => (
+                  <div
+                    key={`leaf-${leaf.key}`}
+                    className={`scatter-item${LEAF_WIND ? " scatter-item--wind" : ""}${
+                      leaf.flip ? " scatter-item--flip" : ""
+                    }`}
+                    style={{
+                      left: `${leaf.xPct}%`,
+                      top: `${leaf.yPct}%`,
+                      "--item-rot": `${leaf.rot.toFixed(1)}deg`,
+                      // spread the sway so leaves don't move in lockstep
+                      animationDelay: `${-(((leaf.key * 0.53) % 3.4)).toFixed(2)}s`,
+                    }}
+                  >
+                    <img
+                      className="scatter-item-img"
+                      src={leaf.url}
+                      alt=""
+                      draggable={false}
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Flower bed: every contributed flower scatters into it, same
+                 mechanism as the tree canopy above. */}
+              <div
+                className="scatter"
+                style={{
+                  top: stemZone.top,
+                  left: stemZone.left,
+                  width: stemZone.width,
+                  height: stemZone.height,
+                  "--item-w": STEM_WIDTH,
+                }}
+              >
+                {stemFlowers.map((item) => (
+                  <div
+                    key={`stem-${item.key}`}
+                    className={`scatter-item scatter-item--rooted${STEM_WIND ? " scatter-item--wind" : ""}`}
+                    style={{
+                      left: `${item.xPct}%`,
+                      top: `${item.yPct}%`,
+                      "--item-rot": `${item.rot.toFixed(1)}deg`,
+                      // spread the sway so flowers don't move in lockstep
+                      animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
+                    }}
+                  >
+                    <img
+                      className="scatter-item-img"
+                      src={item.url}
+                      alt=""
+                      draggable={false}
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Road walk: every contributed character wanders around this
+                 band instead of sitting still in the small "free" hotspot
+                 box (that stays below, contribute-mode only, as the tap
+                 target). */}
+              <div
+                className="scatter"
+                style={{
+                  top: FREE_ROAD_BOX.top,
+                  left: FREE_ROAD_BOX.left,
+                  width: FREE_ROAD_BOX.width,
+                  height: FREE_ROAD_BOX.height,
+                  "--item-w": FREE_WIDTH,
+                }}
+              >
+                {freeCharacters.map((item) => (
+                  <div
+                    key={`free-${item.key}`}
+                    className="scatter-item scatter-item--rooted scatter-item--walking"
+                    style={{
+                      left: `${item.xPct}%`,
+                      top: `${item.yPct}%`,
+                      "--item-rot": `${item.rot.toFixed(1)}deg`,
+                      // seeded per character so nobody paces in lockstep —
+                      // 15-30cqw of wander, a 5-9s stroll, a 2-4cqw hop, staggered starts
+                      "--walk-dist": `${(15 + seededUnit(item.key * 7 + 3) * 15).toFixed(1)}cqw`,
+                      "--walk-dur": `${(5 + seededUnit(item.key * 11 + 5) * 4).toFixed(1)}s`,
+                      "--walk-hop": `${(2 + seededUnit(item.key * 13 + 9) * 2).toFixed(1)}cqw`,
+                      animationDelay: `${-(((item.key * 0.71) % 5)).toFixed(2)}s`,
+                    }}
+                  >
+                    <img
+                      className="scatter-item-img"
+                      src={item.url}
+                      alt=""
+                      draggable={false}
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Hotspots — only while contributing. */}
+              {mode === "contribute" &&
+                ZONES.map((zone) => (
+                  <button
+                    key={`hot-${zone.id}`}
+                    className="zone"
+                    style={{
+                      top: zoneTop(zone),
+                      left: zoneLeft(zone),
+                      width: zone.width,
+                      height: zone.height,
+                    }}
+                    onClick={() => navigate(`/draw/${zone.id}`)}
+                    aria-label={`${zone.label} — ${zone.level}`}
+                  >
+                    <span className="zone-label">
+                      <span className="zone-label-text">{zone.label}</span>
+                      <span className="zone-tag">
+                        <span className="zone-stars" aria-hidden="true">
+                          {"★".repeat(zone.stars)}
+                          {"☆".repeat(3 - zone.stars)}
+                        </span>
+                        {zone.level}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
       </div>

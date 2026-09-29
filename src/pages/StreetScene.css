@@ -15,47 +15,63 @@
 
   /* ---- Ground / street palette -------------------------------------
      Single place to recolour the area below the houses. Colours accept
-     any CSS value (hex, gradient via background-image, etc). Footpath +
-     kerb heights are percentages of the .scene-ground box; the road is
-     its own frame-anchored band sized by --road-height (see below).   */
-  --footpath-color: #7a6d57;   /* pavement directly under the houses */
-  --kerb-color: #8f8677;       /* thin edge between footpath and road */
-  --road-color: #6f7073;       /* asphalt band along the bottom       */
+     any CSS value (hex, gradient via background-image, etc).          */
+  /* ---- Green ground box -----------------------------------------------
+     Solid band behind the road art, from the bottom of the screen up.
+     Its height is its own knob, independent of --scene-lift: it always
+     starts at the screen bottom, fills any lift gap, then rises
+     --ground-height above the ground line (as a % of the scene height,
+     the same units as --scene-lift). It sits BEHIND the street art, so
+     the crayon road + grass draw on top of it. 26% reaches the bottom of
+     the drawn grey road at STREET_SCALE 1; 0% = only fills the lift gap.
+     Colour matches the crayon grass (its pale green at ~45% opacity over
+     the bottom of the sky gradient). */
+  --ground-color: #98b169;
+  --ground-height: 26%;
   --road-line-color: transparent; /* centre lane dashes; set a colour to show */
 
-  --ground-top: 100%;           /* where the footpath starts (from the top) */
-  --footpath-height: 13%;
-  --kerb-height: 1.5%;
+  /* ---- Road box -----------------------------------------------------
+     Solid box behind the drawn crayon road — in front of the green
+     ground box, behind the road art and buildings. At 0% grow it covers
+     exactly the grey road, at any STREET_SCALE. The grow values extend
+     it past the road's top/bottom edge, as a % of the road's thickness
+     (100% = one road-thickness further). Colour defaults to the crayon
+     road's own grey, so it fills in the see-through bits of the texture. */
+  --road-box-color: #a09ea0;
+  --road-box-grow-top: 0%;
+  --road-box-grow-bottom: 0%;
 
   /* ---- Scene lift -------------------------------------------------
-     Raises the houses + footpath off the bottom edge of the frame by
-     this much (as a % of the scene height). Purely repositions the
-     houses — it does NOT resize the road (see --road-height).
-     0% = houses sit on the floor. */
-  --scene-lift: 50%;
-
-  /* ---- Road band -------------------------------------------------
-     Height of the asphalt strip pinned to the bottom of the scrolling
-     street (see .scene-track), independent of --scene-lift — tune the
-     two separately until the houses sit nicely on the road. A dvh unit
-     (not %) so it stays a fixed viewport-relative height regardless of
-     .scene-track's own width-driven size. */
-  --road-height: 22dvh;
+     Raises the street art (road + buildings) off the bottom edge of the
+     frame by this much (as a % of the scene height). The green ground
+     box always fills the gap underneath (see above).
+     0% = the street art sits on the bottom of the screen; negative sinks
+     it below the bottom edge (the green box follows). */
+  --scene-lift: -10%;
 
   /* ---- Street length -----------------------------------------------
      How long the street is, as a % of the phone frame width. 100% = the
      whole street fits on screen with no scroll. Larger = a longer street
-     you pan left/right across (the house SVG stretches to fill it). */
+     you pan left/right across (see STREET_PIECES for the building art). */
   --scene-width: 260%;
 
   /* ---- House artwork position ---------------------------------------
-     Nudges/scales ONLY the house image — the footpath, kerb, road and
-     zones are untouched, so use these instead of --scene-lift now that
-     the footpath/road are dialed in. Positive --house-offset-y moves the
-     art down, negative moves it up; --house-scale grows it from the
-     bottom edge (the ground line), so it won't drift off the footpath. */
-  --house-offset-y: 10%;
+     Nudges/scales ONLY the street artwork (all pieces together) — the
+     road band and zones are untouched. Positive --house-offset-y moves
+     the art down, negative moves it up (as a % of the .scene-ground
+     height); 0% puts the lowest grass right on the ground line.
+     --house-scale grows it from the bottom edge (the ground line). */
+  --house-offset-y: 0%;
   --house-scale: 1;
+
+  /* ---- Overlay position ---------------------------------------------
+     Moves everything placed on the street (tree, notice board, window
+     buttons, zones, drawings) up or down together, as a % of the
+     .scene-ground height. Negative = up. Their top/left numbers in
+     StreetScene.jsx were tuned back when --scene-lift was 50%. The street
+     art is now tuned at -10%, so this raises them the 60% difference to
+     put them back on the street. */
+  --overlay-offset-y: -50%;
 }
 
 .scene-layer {
@@ -115,7 +131,7 @@
   overscroll-behavior-x: contain;
 }
 
-/* Everything that pans with the street — houses/footpath AND the road —
+/* Everything that pans with the street — houses AND the road —
    lives in here, so the road scrolls left/right in lock-step with the
    buildings instead of sitting as a separate frame-anchored band. */
 .scene-track {
@@ -134,60 +150,110 @@
   z-index: 2;
   width: 100%;
   aspect-ratio: 660 / 285; /* matches Home_page_house.svg viewBox ratio */
-  /* Lift the houses + footpath up off the road. The road is a sibling
+  /* Lift the houses up off the road. The road is a sibling
      inside .scene-track and is unaffected by this. */
   transform: translateY(calc(-1 * var(--scene-lift)));
 }
 
-.scene-layer.house {
-  bottom: 0;
+/* Wrapper around all the street pieces, filling .scene-ground. The
+   --house-offset-y / --house-scale transform lives here (not on each piece)
+   so every piece moves and scales together and their roads stay lined up.
+   Independent of the parent .scene-ground's --scene-lift transform. */
+.street-art {
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  /* Independent of the parent .scene-ground's --scene-lift transform —
-     moves/scales just the artwork. See --house-offset-y / --house-scale. */
+  pointer-events: none;
   transform: translateY(var(--house-offset-y)) scale(var(--house-scale));
   transform-origin: bottom center;
 }
 
-/* Footpath + kerb: stacked inside .scene-ground, so they ride up with the
-   scene when it's lifted. Colours/heights come from the custom properties
-   on .street-scene above. */
-.ground-footpath,
-.ground-kerb {
+/* Layer holding everything placed on the street (tree, zones, drawings,
+   notice board, window buttons). It's exactly the .scene-ground box, so the
+   children's % positions mean the same thing, just shifted by
+   --overlay-offset-y. z-index 3 keeps the whole layer above .street-art (2);
+   the children's own z-indexes (4-7) still order them within it. */
+.scene-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  transform: translateY(var(--overlay-offset-y));
+}
+
+/* Crop window onto the drawn part of one street piece — left/width/
+   aspect-ratio/margin come inline from STREET_PIECES in StreetScene.jsx.
+   The file's transparent padding is clipped off. */
+.street-piece {
+  position: absolute;
+  bottom: 0;
+  overflow: hidden;
+}
+
+/* Road box: solid band behind the drawn grey road (above the green ground
+   box, below the road art and buildings). The element itself is exactly
+   the road's area — size/position come inline (roadBoxStyle in
+   StreetScene.jsx) so it tracks the road at any STREET_SCALE. The colour
+   fill is the ::before, grown past the road's edges by --road-box-grow-*. */
+.street-road-box {
   position: absolute;
   left: 0;
-  right: 0;
+  bottom: 0;
   pointer-events: none;
 }
 
-.ground-footpath {
-  top: var(--ground-top);
-  height: var(--footpath-height);
-  background: var(--footpath-color);
-  z-index: 3; /* in front of the house (z-index 2) */
+.street-road-box::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--road-box-grow-top));
+  bottom: calc(-1 * var(--road-box-grow-bottom));
+  background: var(--road-box-color);
 }
 
-.ground-kerb {
-  top: calc(var(--ground-top) + var(--footpath-height));
-  height: var(--kerb-height);
-  background: var(--kerb-color);
-  z-index: 1; /* stays behind the house, unlike the footpath above */
+/* Shared road + grass strip along the bottom of the street art, made of
+   repeated slices of the road file (see ROAD_STRIP in StreetScene.jsx).
+   Width comes inline (the full street length); overflow clips the last
+   tile at the end of the street. */
+.street-road-strip {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
 }
 
-/* Road: a sibling of .scene-ground inside .scene-track, so it's part of
-   the scrolling street and pans with the houses. bottom:0 pins it to
-   .scene-track's bottom edge, which flex align-items:flex-end keeps flush
-   with the frame's bottom edge regardless of .scene-track's own
-   width-driven height — so it doesn't drift on resize. Unaffected by
-   .scene-ground's --scene-lift transform since it's not nested inside it.
+.street-road-tile {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+}
+
+/* The full artwork file, scaled and offset (inline, from the piece's
+   `crop`) so only the cropped region shows through the box above. */
+.house-img {
+  position: absolute;
+  display: block;
+  max-width: none;
+}
+
+/* Green ground box: a sibling of .scene-ground inside .scene-track, so it
+   pans with the street (width comes inline: the full street length).
+   bottom:0 pins it to .scene-track's bottom edge, which flex
+   align-items:flex-end keeps flush with the frame's bottom edge. Its
+   height is a % of .scene-track — whose height IS .scene-ground's (the
+   only in-flow child), the same box --scene-lift's translate is a % of —
+   so --scene-lift fills exactly up to the ground line at any phone size,
+   and --ground-height carries on up from there.
    Sits behind everything else in the track (z-index 1). */
 .scene-road {
   position: absolute;
   left: 0;
-  right: 0;
   bottom: 0;
-  height: var(--road-height);
+  height: calc(var(--scene-lift) + var(--ground-height));
   z-index: 1;
-  background: var(--road-color);
+  background: var(--ground-color);
   pointer-events: none;
 }
 
@@ -247,7 +313,7 @@
   transform: scale(0.97);
 }
 
-/* Fixed scene furniture (e.g. the tree). Above the footpath (3) so it isn't
+/* Fixed scene furniture (e.g. the tree). Above the street art (2) so it isn't
    buried under it; below the scatter layers (5) so contributions still
    layer on top of it. */
 .zone-fixture {

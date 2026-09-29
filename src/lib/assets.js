@@ -6,11 +6,6 @@
 // but swap it for a custom domain before launch (it's rate-limited and not
 // meant for production traffic).
 
-// Exception: clouds are bundled locally. The R2 copy of Clouds.svg has an
-// opaque white full-canvas rectangle behind the clouds that boxes them off
-// against the sky; this copy is the same artwork with that background removed.
-import cloudsSvg from "../assets/Clouds.svg";
-
 // Exception: the drawing-canvas templates (leaf outline, flower stem) are
 // bundled locally because DrawingCanvas draws them onto a <canvas> to bake
 // them into the exported PNG. The pub-*.r2.dev domain sends no
@@ -29,8 +24,10 @@ const BASE =
 const url = (name) => `${BASE}/${encodeURIComponent(name)}`;
 
 export const ASSETS = {
-  clouds: cloudsSvg,
-  house: url("Home page house 2.svg"),
+  clouds: url("vector_clouds.svg"),
+  streetLeft: url("building 56.svg"),
+  streetRight: url("building 94.svg"),
+  road: url("the road.svg"),
   tree: url("Tree.svg"),
   leafOutline: leafOutlineSvg,
   stemOutline: stemOutlineSvg,
