@@ -1,5 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import StreetTour from "../components/StreetTour";
+import SunButton from "../components/SunButton";
 import { getAllDrawings, subscribe, subscribeToSaveErrors } from "../lib/drawingsStore";
 import { ASSETS } from "../lib/assets";
 import "./StreetScene.css";
@@ -429,8 +431,9 @@ function layoutScatter(urls, boxes, { inset = 14, maxRotDeg = 22 } = {}) {
   });
 }
 
-export default function StreetScene() {
+export default function StreetScene({ showTour = false, onTourDone }) {
   const navigate = useNavigate();
+  const sceneRef = useRef(null);
   const [drawings, setDrawings] = useState(getAllDrawings);
   const [mode, setMode] = useState("view"); // "view" | "contribute"
   const [soundOpen, setSoundOpen] = useState(false);
@@ -476,7 +479,7 @@ export default function StreetScene() {
   );
 
   return (
-    <div className="street-scene" data-mode={mode}>
+    <div className="street-scene" data-mode={mode} ref={sceneRef}>
       {/* Two tiles side by side so the drift loop is seamless. */}
       <div className="clouds">
         <img className="cloud-tile" src={ASSETS.clouds} alt="" />
@@ -572,6 +575,7 @@ export default function StreetScene() {
                     <Fragment key={t.id}>
                       <img
                         className={`zone-fixture crayon-tree${locked ? " crayon-tree--locked" : ""}`}
+                        data-tour={t.status === "open" ? "tree" : undefined}
                         src={ASSETS.crayonTree}
                         alt=""
                         style={{ ...box, transform: t.flip ? "scaleX(-1)" : undefined }}
@@ -816,14 +820,14 @@ export default function StreetScene() {
         </div>
       </div>
 
-      {/* Bottom-centre call to action: reveal the zones, or drop back to the
-         clean view. */}
-      <button
+      {/* Call to action, drawn as the sun in the sky: reveal the zones, or
+         drop back to the clean view. */}
+      <SunButton
         className="scene-cta"
         onClick={() => setMode((m) => (m === "view" ? "contribute" : "view"))}
       >
         {mode === "view" ? "Start" : "Return"}
-      </button>
+      </SunButton>
 
       {saveFailed && (
         <p role="alert" className="save-toast">
@@ -854,6 +858,10 @@ export default function StreetScene() {
           </div>
         </div>
       )}
+
+      {/* First-visit kangaroo tour (see StreetTour) — the spotlight targets
+         .scene-ground, .scene-cta and the open tree's data-tour="tree". */}
+      {showTour && <StreetTour sceneRef={sceneRef} onDone={onTourDone} />}
     </div>
   );
 }

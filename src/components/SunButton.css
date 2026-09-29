@@ -1,0 +1,76 @@
+.sun-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A slow "tap me" pulse — on the drawing and label rather than the button
+   itself, so the button's box stays still (the tour spotlight measures it
+   every frame and would chase the pulse otherwise). */
+.sun-button-art,
+.sun-button-label {
+  animation: sun-button-pulse 2.4s ease-in-out infinite;
+}
+
+.sun-button:active .sun-button-art,
+.sun-button:active .sun-button-label {
+  animation: none;
+  transform: scale(0.94);
+}
+
+.sun-button-art {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 14px rgba(255, 214, 110, 0.75));
+}
+
+.sun-button-rays {
+  transform-origin: 100px 100px;
+  animation: sun-button-spin 24s linear infinite;
+}
+
+.sun-button-label {
+  grid-area: 1 / 1;
+  margin-top: -0.35em; /* sit a little above the cheeks */
+  color: #6b3517;
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  /* Gaegu's strokes are thin; thicken them so the word reads on the sun. */
+  -webkit-text-stroke: 0.6px currentColor;
+  text-shadow: 0 1px 0 rgba(255, 245, 210, 0.8);
+}
+
+@keyframes sun-button-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes sun-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sun-button-art,
+  .sun-button-label,
+  .sun-button-rays {
+    animation: none;
+  }
+}
