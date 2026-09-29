@@ -86,11 +86,11 @@
    lands tile 2 exactly where tile 1 started, so the loop has no seam. */
 .clouds {
   position: absolute;
-  top: 10%;
+  top: 5%;
   left: 0;
   z-index: 1;
   display: flex;
-  width: 290%;
+  width: 270%;
   pointer-events: none;
   user-select: none;
   animation: clouds-drift 90s linear infinite;
@@ -323,9 +323,23 @@
   pointer-events: none;
 }
 
-/* Notice board — decorative for now (no tap target yet, see NOTICE_BOARD in
-   StreetScene.jsx). z-index 7 keeps it above everything else in the scene
-   (scatter items 5, hotspots 6) so it's never hidden behind other content. */
+/* Clip box for the crayon trees: starts at the street start, ends at the
+   road end (width inline = STREET_LENGTH). overflow-x: clip cuts off any
+   tree past the road without adding scroll room; unlike hidden it leaves
+   the vertical axis visible and doesn't create a stacking context, so the
+   trees' z-index still layers against the rest of .scene-overlay. */
+.crayon-trees {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  overflow-x: clip;
+  pointer-events: none;
+}
+
+/* Notice board art (see NOTICE_BOARD in StreetScene.jsx). It sits in
+   .scene-track, anchored to the screen bottom; z-index 7 keeps it above
+   .scene-ground (2), and so above everything drawn inside it. */
 .notice-board-art {
   position: absolute;
   z-index: 7;
@@ -538,14 +552,11 @@
 /* Tap target sitting exactly over .notice-board-art (same box, inline
    style, so they pan together). The button itself is an invisible hit area
    the size of the whole board; .notice-board-badge inside is the visible,
-   naturally-sized shiny label, centred so it isn't stretched into the
-   board's own (portrait) proportions. */
+   naturally-sized shiny label, placed by NOTICE_BADGE_POS (inline top/left)
+   so it isn't stretched into the board's own (portrait) proportions. */
 .notice-board-button {
   position: absolute;
   z-index: 8; /* above the art (7) so it's actually tappable, not covered */
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border: none;
   background: transparent;
   padding: 0;
@@ -558,6 +569,11 @@
 }
 
 .notice-board-badge {
+  /* top/left come inline and mark the badge's centre; `translate` (not
+     `transform`, which the :active press uses) pulls it back by half its
+     own size so that point really is the middle. */
+  position: absolute;
+  translate: -50% -50%;
   padding: 0.5em 1em;
   border-radius: 8px;
   background: linear-gradient(90deg, #d9822b, #f2b155, #d9822b);

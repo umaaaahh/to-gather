@@ -16,6 +16,10 @@
 // full A4 artboard with the stem in one corner, wrong scale for a template.
 import leafOutlineSvg from "../assets/leaf-outline.svg";
 import stemOutlineSvg from "../assets/Stem.svg";
+// The crayon trunk is bundled too: the bucket's tree_transparent.svg is just
+// this PNG wrapped in an <svg> with width/height but no viewBox, so as an
+// <img> it clips at its intrinsic 800x1325 instead of scaling to its box.
+import crayonTreePng from "../assets/tree.png";
 
 const BASE =
   import.meta.env.VITE_ASSET_BASE_URL ||
@@ -29,11 +33,12 @@ export const ASSETS = {
   streetRight: url("building 94.svg"),
   road: url("the road.svg"),
   tree: url("Tree.svg"),
+  crayonTree: crayonTreePng,
   leafOutline: leafOutlineSvg,
   stemOutline: stemOutlineSvg,
   stem: url("Stem 2.svg"),
   kangaroo: url("Kangaroo.svg"),
-  noticeBoard: url("Notice Board.svg"),
+  noticeBoard: url("noticeboard_try.png"),
 
   // Decorative frame behind the drawing surface (display only — not baked
   // into the exported PNG).

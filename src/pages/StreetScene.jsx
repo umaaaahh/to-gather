@@ -211,7 +211,43 @@ const pieceImgStyle = ({ crop }) => ({
 // (top/left/width/height as a % of the scene-ground box, so it pans with the
 // street and holds across phone widths). Not wired to a hotspot yet — once
 // it's placed, .notice-board-button gets moved/resized to sit on top of it.
-const NOTICE_BOARD = { top: "83%", left: "46.5%", width: "10%", height: "25%" };
+//
+// It lives in .scene-track (not .scene-overlay), so it's anchored to the
+// bottom of the screen and ignores --scene-lift / --overlay-offset-y.
+// To move/resize it, edit only these three numbers (all % of the street):
+//   bottom — gap between the board's feet and the screen bottom (0 = on the edge,
+//            bigger = higher, negative = sinks below the edge)
+//   left   — distance of the board's left edge from the left (bigger = further right)
+//   height — board size, grows upward from its feet; width follows automatically
+const NOTICE_BOARD_POS = { bottom: 0, left: 52, height: 40 };
+
+// Width = height x the art's 1728:2442 ratio, converted through the
+// scene-ground's 660:285 aspect, so the tap target hugs the board.
+const NOTICE_BOARD_WIDTH =
+  NOTICE_BOARD_POS.height * (1728 / 2442) * (285 / 660);
+const NOTICE_BOARD = {
+  bottom: `${NOTICE_BOARD_POS.bottom}%`,
+  left: `${NOTICE_BOARD_POS.left}%`,
+  width: `${NOTICE_BOARD_WIDTH}%`,
+  height: `${NOTICE_BOARD_POS.height}%`,
+};
+
+// Where the orange "Notice Board" badge sits ON the board, as a % of the
+// board itself (so it moves with the board). This is the badge's centre point:
+//   top  — 0 = board's top edge, 50 = middle, 100 = the feet
+//   left — 0 = board's left edge, 50 = middle, 100 = right edge
+const NOTICE_BADGE_POS = { top: 43, left: 50 };
+
+// Crayon trees — standalone decoration, independent of the "tree" zone (its
+// art, hotspot and leaf canopy are untouched). Same % coordinates as above,
+// one box per tree. The image keeps its aspect ratio (object-fit: contain).
+const CRAYON_TREES = [
+  { id: "crayon-tree-1", top: "55%", left: "-5%", width: "15%", height: "50%" },
+  { id: "crayon-tree-2", top: "56%", left: "28%", width: "11%", height: "55%" },
+  // `flip: true` mirrors the tree left-to-right.
+  { id: "crayon-tree-3", top: "57%", left: "67%", width: "12%", height: "50%", flip: true },
+  { id: "crayon-tree-4", top: "55%", left: "139%", width: "15%", height: "50%", flip: true },
+];
 
 // ---- Hidden window "surprise" ----------------------------------------------
 // A pulsing button tucked into one of the house windows, view-mode only —
@@ -392,6 +428,51 @@ export default function StreetScene() {
              the ground line (sized by --scene-lift). */}
           <div className="scene-road" style={{ width: `${STREET_LENGTH}%` }} />
 
+          {/* Notice board fixture — see NOTICE_BOARD above for its box.
+             A direct child of .scene-track (whose bottom edge is the screen
+             bottom), so `bottom` anchors it there. High z-index keeps it
+             above .scene-ground (2) and everything inside it. */}
+          <img
+            className="notice-board-art"
+            src={ASSETS.noticeBoard}
+            alt=""
+            style={{
+              bottom: NOTICE_BOARD.bottom,
+              left: NOTICE_BOARD.left,
+              width: NOTICE_BOARD.width,
+              height: NOTICE_BOARD.height,
+            }}
+          />
+
+          {/* Tap target for the notice board — same box as the art above,
+             so it pans with it and lines up exactly. The hit area covers the
+             whole board; the visible shiny label badge inside is centred and
+             naturally sized so it doesn't get stretched into the board's own
+             (portrait) proportions. View mode only, same as the window
+             surprise — gone once Start reveals the zone hotspots, back once
+             Return drops back to the clean view. */}
+          {mode === "view" && (
+            <button
+              type="button"
+              className="notice-board-button"
+              onClick={() => navigate("/notices")}
+              aria-label="Community notice board"
+              style={{
+                bottom: NOTICE_BOARD.bottom,
+                left: NOTICE_BOARD.left,
+                width: NOTICE_BOARD.width,
+                height: NOTICE_BOARD.height,
+              }}
+            >
+              <span
+                className="notice-board-badge"
+                style={{ top: `${NOTICE_BADGE_POS.top}%`, left: `${NOTICE_BADGE_POS.left}%` }}
+              >
+                Notice Board
+              </span>
+            </button>
+          )}
+
           <div className="scene-ground">
             <div className="street-art">
               <div className="street-road-box" style={roadBoxStyle} />
@@ -432,45 +513,28 @@ export default function StreetScene() {
                 ) : null,
               )}
 
-              {/* Notice board fixture — see NOTICE_BOARD above for its box.
-                 High z-index so it always renders on top of the rest of the
-                 scene (house, tree, scattered contributions, etc). */}
-              <img
-                className="notice-board-art"
-                src={ASSETS.noticeBoard}
-                alt=""
-                style={{
-                  top: NOTICE_BOARD.top,
-                  left: NOTICE_BOARD.left,
-                  width: NOTICE_BOARD.width,
-                  height: NOTICE_BOARD.height,
-                }}
-              />
-
-              {/* Tap target for the notice board — same box as the art above,
-                 so it pans with it and lines up exactly instead of living in
-                 a separate fixed-to-frame coordinate system. The hit area
-                 covers the whole board; the visible shiny label badge inside
-                 is centred and naturally sized so it doesn't get stretched
-                 into the board's own (portrait) proportions. View mode only,
-                 same as the window surprise — gone once Start reveals the
-                 zone hotspots, back once Return drops back to the clean view. */}
-              {mode === "view" && (
-                <button
-                  type="button"
-                  className="notice-board-button"
-                  onClick={() => navigate("/notices")}
-                  aria-label="Community notice board"
-                  style={{
-                    top: NOTICE_BOARD.top,
-                    left: NOTICE_BOARD.left,
-                    width: NOTICE_BOARD.width,
-                    height: NOTICE_BOARD.height,
-                  }}
-                >
-                  <span className="notice-board-badge">Notice Board</span>
-                </button>
-              )}
+              {/* Crayon trees — see CRAYON_TREES above for their boxes. The
+                 wrapper clips them at the end of the road, so a tree past it
+                 doesn't make the street scroll further than the road goes. */}
+              <div className="crayon-trees" style={{ width: `${STREET_LENGTH}%` }}>
+                {CRAYON_TREES.map((t) => (
+                  <img
+                    key={t.id}
+                    className="zone-fixture"
+                    src={ASSETS.crayonTree}
+                    alt=""
+                    style={{
+                      top: t.top,
+                      // CRAYON_TREES are % of .scene-ground; the wrapper is
+                      // STREET_LENGTH% of that, so rescale left/width to it.
+                      left: `${(parseFloat(t.left) * 100) / STREET_LENGTH}%`,
+                      width: `${(parseFloat(t.width) * 100) / STREET_LENGTH}%`,
+                      height: t.height,
+                      transform: t.flip ? "scaleX(-1)" : undefined,
+                    }}
+                  />
+                ))}
+              </div>
 
               {/* Hidden window surprise — view mode only, gone the moment
                  Start reveals the zone hotspots. */}
