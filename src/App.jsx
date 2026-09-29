@@ -7,6 +7,7 @@ import CanvasTest from "./pages/CanvasTest";
 import Admin from "./pages/Admin";
 import SplashScreen from "./components/SplashScreen";
 import RadioLayer from "./components/RadioLayer";
+import BookshelfLayer from "./components/Bookshelf";
 
 export default function App() {
   // First-visit intro, once per page load: the logo splash, then the
@@ -20,6 +21,11 @@ export default function App() {
   const [radioOpen, setRadioOpen] = useState(false);
   const openRadio = useCallback(() => setRadioOpen(true), []);
   const closeRadio = useCallback(() => setRadioOpen(false), []);
+
+  // The community bookshelf popup, opened from the street's 📖 window.
+  const [shelfOpen, setShelfOpen] = useState(false);
+  const openShelf = useCallback(() => setShelfOpen(true), []);
+  const closeShelf = useCallback(() => setShelfOpen(false), []);
 
   return (
     <BrowserRouter>
@@ -35,6 +41,7 @@ export default function App() {
               showTour={intro === "tour"}
               onTourDone={endTour}
               onOpenRadio={openRadio}
+              onOpenBookshelf={openShelf}
             />
           }
         >
@@ -45,6 +52,7 @@ export default function App() {
         <Route path="/admin" element={<Admin />} />
       </Routes>
       <RadioLayer open={radioOpen} onOpen={openRadio} onClose={closeRadio} />
+      <BookshelfLayer open={shelfOpen} onClose={closeShelf} />
     </BrowserRouter>
   );
 }

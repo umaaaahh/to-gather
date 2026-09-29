@@ -40,6 +40,10 @@ export const ASSETS = {
   stem: url("Stem 2.svg"),
   kangaroo: url("Kangaroo_Crayon Style.PNG"),
   noticeBoard: url("noticeboard_try.png"),
+  // Crayon boombox in the street's music window (opens the radio).
+  radio: url("Untitled - 30 September 2026 at 01.21.06 (1).png"),
+  // Crayon book row in the street's bookshelf window (opens the Bookshelf).
+  books: url("books 2.png"),
 
   // Decorative frame behind the drawing surface (display only — not baked
   // into the exported PNG).

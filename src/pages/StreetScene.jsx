@@ -2,7 +2,6 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutlet } from "react-router-dom";
 import StreetTour from "../components/StreetTour";
 import SunButton from "../components/SunButton";
-import MiniBoomboxArt from "../components/MiniBoomboxArt";
 import DrawingArrival from "../components/DrawingArrival";
 import {
   getAllDrawings,
@@ -314,13 +313,13 @@ const treeHotspotBox = (t) => {
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above.
-const WINDOW_SOUND = { top: "86%", left: "32.7%", width: "8%", height: "14%" };
+const WINDOW_SOUND = { top: "83.5%", left: "15%", width: "8%", height: "14%" };
 
 // A second window surprise, same pattern as WINDOW_SOUND above — a different
-// window pane so the two don't compete for attention. Purely decorative for
-// now (no onClick action yet); wire up real content the same way the music
-// note button opens its modal.
-const WINDOW_BOOK = { top: "81%", left: "77.5%", width: "10%", height: "14%" };
+// window pane so the two don't compete for attention. Opens the community
+// bookshelf popup (see Bookshelf.jsx), the same way the boombox opens the
+// radio.
+const WINDOW_BOOK = { top: "86.5%", left: "33.5%", width: "6%", height: "14%" };
 
 // ---- Scattered zone contributions -----------------------------------------
 // Every zone's contributions pile up over time instead of only showing the
@@ -589,7 +588,12 @@ function planWalks(items) {
   });
 }
 
-export default function StreetScene({ showTour = false, onTourDone, onOpenRadio }) {
+export default function StreetScene({
+  showTour = false,
+  onTourDone,
+  onOpenRadio,
+  onOpenBookshelf,
+}) {
   const navigate = useNavigate();
   // The /draw/:zoneId child route (DrawZone). While it's open the street
   // stays mounted underneath, blurred, and the canvas floats over it.
@@ -907,18 +911,18 @@ export default function StreetScene({ showTour = false, onTourDone, onOpenRadio 
                     height: WINDOW_SOUND.height,
                   }}
                 >
-                  <MiniBoomboxArt className="window-boombox" />
+                  <img className="window-boombox" src={ASSETS.radio} alt="" draggable="false" />
                 </button>
               )}
 
               {/* Second window surprise — same view-mode-only pattern as the
-                 music note above, no action wired up yet. */}
+                 boombox above; opens the bookshelf. */}
               {mode === "view" && (
                 <button
                   type="button"
                   className="window-sound-button"
-                  onClick={() => {}}
-                  aria-label="Something's in the window"
+                  onClick={onOpenBookshelf}
+                  aria-label="Open the community bookshelf"
                   style={{
                     top: WINDOW_BOOK.top,
                     left: WINDOW_BOOK.left,
@@ -926,9 +930,7 @@ export default function StreetScene({ showTour = false, onTourDone, onOpenRadio 
                     height: WINDOW_BOOK.height,
                   }}
                 >
-                  <span className="window-sound-dot" aria-hidden="true">
-                    📖
-                  </span>
+                  <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
                 </button>
               )}
 

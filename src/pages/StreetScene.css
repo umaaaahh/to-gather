@@ -708,39 +708,54 @@
   }
 }
 
-/* The mini boombox drawing (MiniBoomboxArt) sat in the music window in
+/* The crayon boombox picture (ASSETS.radio) sat in the music window in
    place of the old 🎵 — part of the street, so it pans with the buildings.
    Centred in its WINDOW_SOUND box (the tap area stays the full box) and
-   does the same slow glowing "tap me" pulse the note did, grown from its
-   feet so it stays sat on the sill. Width is the knob for its size. */
+   has a slow glowing "tap me" pulse — only the glow breathes, the drawing
+   itself stays still on the sill. Width is the knob for its size. */
 .window-boombox {
   display: block;
   width: 55%;
   height: auto;
-  overflow: visible;
   transform-origin: 50% 100%;
+  pointer-events: none;
+  user-select: none;
   animation: window-boombox-pulse 3s ease-in-out infinite;
 }
 
+/* Glow only — the art itself stays still, just the orange halo breathes. */
 @keyframes window-boombox-pulse {
   0%, 100% {
-    transform: scale(0.92);
     filter: drop-shadow(0 0 3px rgba(255, 85, 0, 0.45));
   }
   50% {
-    transform: scale(1.06);
     filter: drop-shadow(0 0 9px rgba(255, 85, 0, 0.9));
   }
 }
 
-.window-sound-button:active .window-boombox {
+/* The crayon book row (books.png) in the bookshelf window, in place of the
+   old 📖 — same glow-only pulse as the boombox. The art is wide (9:4), so it
+   takes most of its WINDOW_BOOK box's width. */
+.window-books {
+  display: block;
+  width: 90%;
+  height: auto;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  user-select: none;
+  animation: window-boombox-pulse 3s ease-in-out infinite;
+}
+
+.window-sound-button:active .window-boombox,
+.window-sound-button:active .window-books {
   animation: none;
   transform: scale(0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .window-sound-dot,
-  .window-boombox {
+  .window-boombox,
+  .window-books {
     animation: none;
   }
 }
