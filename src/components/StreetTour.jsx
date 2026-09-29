@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ASSETS } from "../lib/assets";
+// Alpha-only silhouette of the notice board art, bundled so it's same-origin:
+// a CSS mask-image needs CORS, which the asset bucket doesn't send.
+import noticeBoardMask from "../assets/notice-board-mask.png";
 import "./StreetTour.css";
 
 // Horizontal drag (px) that counts as a swipe between steps.
@@ -25,12 +28,20 @@ const ADVANCE_MS = 700;
 // The spotlit area is live — the street underneath really pans and taps —
 // and doneWhen says what doing the step looks like, so the tour moves on by
 // itself: "scroll" = the street gets panned, a selector = that gets tapped.
+// look: true makes a step look-only (the spotlight is blocked too), for
+// things that would leave the street and cut the tour short if tapped.
 const TOUR_STEPS = [
   {
     text: "Swipe left and right to explore the street.",
     target: [".scene-ground"],
     hint: "swipe",
     doneWhen: "scroll",
+  },
+  {
+    text: "This is the notice board. Tap it any time to see what's on around the street!",
+    target: [".notice-board-art"],
+    hint: "tap",
+    look: true,
   },
   {
     text: "Tap the sun to start, then pick a leaf, a flower or a character to draw.",
@@ -90,7 +101,46 @@ function measure(scene, step) {
     pointer = { x: Math.min(Math.max(x, 28), sceneBox.width - 28), y: spot.top };
   }
 
-  return { spot, pointer, feetBottom: sceneBox.height - feetY };
+  // The notice board's box, so it can be cut out of the kangaroo layer.
+  const boardEl = scene.querySelector(".notice-board-art");
+  let board = null;
+  if (boardEl) {
+    const r = boardEl.getBoundingClientRect();
+    if (r.right > sceneBox.left && r.left < sceneBox.right) {
+      board = {
+        left: r.left - sceneBox.left,
+        top: r.top - sceneBox.top,
+        width: r.width,
+        height: r.height,
+      };
+    }
+  }
+
+  return { spot, pointer, board, feetBottom: sceneBox.height - feetY };
+}
+
+// The board stands at the front of the street, so the kangaroo should hop
+// behind it — but the kangaroo lives up in the tour overlay, above the whole
+// street. So its layer is masked: everything visible except the board's
+// silhouette, where the real board (dimmed or lit like the rest of the
+// scene) shows through from underneath.
+function boardCutout(board) {
+  if (!board) return undefined;
+  const image = `linear-gradient(#000, #000), url(${noticeBoardMask})`;
+  const position = `0 0, ${board.left}px ${board.top}px`;
+  const size = `100% 100%, ${board.width}px ${board.height}px`;
+  return {
+    maskImage: image,
+    maskPosition: position,
+    maskSize: size,
+    maskRepeat: "no-repeat",
+    maskComposite: "exclude",
+    WebkitMaskImage: image,
+    WebkitMaskPosition: position,
+    WebkitMaskSize: size,
+    WebkitMaskRepeat: "no-repeat",
+    WebkitMaskComposite: "xor",
+  };
 }
 
 const sameLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -264,6 +314,7 @@ export default function StreetTour({ sceneRef, onDone }) {
               height: layout.spot.height,
             }}
           />
+          {current.look && <div className="tour-block" style={layout.spot} />}
         </>
       ) : (
         <div className="tour-dim tour-block" />
@@ -281,6 +332,19 @@ export default function StreetTour({ sceneRef, onDone }) {
           <span key={step} className="tour-pointer-hand">
             {current.hint === "swipe" ? "👆" : "👇"}
           </span>
+        </div>
+      )}
+
+      {layout && (
+        <div className="tour-kangaroo-layer" style={boardCutout(layout.board)}>
+          <div className="tour-kangaroo" style={{ bottom: layout.feetBottom }}>
+            <img
+              className="tour-kangaroo-img"
+              src={ASSETS.kangaroo}
+              alt=""
+              draggable="false"
+            />
+          </div>
         </div>
       )}
 
@@ -331,14 +395,9 @@ export default function StreetTour({ sceneRef, onDone }) {
             </div>
           </div>
 
-          <div className="tour-kangaroo">
-            <img
-              className="tour-kangaroo-img"
-              src={ASSETS.kangaroo}
-              alt=""
-              draggable="false"
-            />
-          </div>
+          {/* Holds the kangaroo's place under the bubble (the kangaroo
+             itself is drawn in .tour-kangaroo-layer above) and takes swipes. */}
+          <div className="tour-kangaroo-spot" />
         </div>
       )}
 

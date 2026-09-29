@@ -1,0 +1,56 @@
+/* Floats over the (blurred) street — see StreetScene.css "Drawing overlay
+   open". Fills the phone frame and scrolls on its own if a short screen
+   can't fit the paper plus toolbar. */
+.draw-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40; /* above the scene's zones, sun, toasts and modals */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0.75rem 0;
+  /* A light warm wash so the paper and buttons pop off the blur. */
+  background: rgba(255, 248, 230, 0.28);
+  animation: draw-overlay-in 0.25s ease-out;
+}
+
+/* Vertically centred when it fits, but (unlike justify-content: center)
+   still scrollable from the top when it doesn't. */
+.draw-overlay > :first-child {
+  margin-top: auto;
+}
+
+.draw-overlay > :last-child {
+  margin-bottom: auto;
+}
+
+.draw-overlay-title {
+  margin-bottom: 0.1rem;
+  text-align: center;
+  color: #6b3517;
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  -webkit-text-stroke: 0.6px currentColor;
+  text-shadow:
+    0 0 10px rgba(255, 250, 235, 0.95),
+    0 1px 0 rgba(255, 250, 235, 0.95);
+}
+
+@keyframes draw-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw-overlay {
+    animation: none;
+  }
+}

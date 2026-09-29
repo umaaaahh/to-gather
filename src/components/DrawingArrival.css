@@ -1,0 +1,136 @@
+/* A just-submitted drawing's entrance — see DrawingArrival.jsx. The loading
+   screen reuses the logo splash (.splash / .splash-logo, SplashScreen.css). */
+
+.arrival-loading {
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Three bouncing crayon-brown dots under the logo. */
+.arrival-dots {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.arrival-dots span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #b86b42;
+  animation: arrival-dot 0.9s ease-in-out infinite;
+}
+
+.arrival-dots span:nth-child(2) { animation-delay: 0.15s; }
+.arrival-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes arrival-dot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  30% {
+    transform: translateY(-0.55rem);
+    opacity: 1;
+  }
+}
+
+/* The drawing itself, in screen coordinates: starts on the paper's box,
+   then the inline transform carries it to its spot in the scene. Above the
+   fading splash so it's there as the logo clears. */
+.arrival-clone {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  animation: arrival-clone-in 0.5s ease-out both; /* with the splash fade */
+}
+
+.arrival-clone[data-phase="fly"],
+.arrival-clone[data-phase="glow"],
+.arrival-clone[data-phase="fading"] {
+  /* FLY_MS in DrawingArrival.jsx — a little overshoot as it settles. */
+  transition: transform 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* Didn't find its spot in the scene: just fade away where it is. */
+.arrival-clone:not([data-landing])[data-phase="fading"] {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.arrival-img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* White glow behind the drawing: grows in as it lands, holds through the
+   glow phase, then fades (GLOW_FADE_MS). */
+.arrival-glow {
+  position: absolute;
+  inset: -30%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.6) 35%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.arrival-clone[data-phase="fly"] .arrival-glow {
+  transition-delay: 0.6s; /* kicks in over the last part of the flight */
+}
+
+.arrival-clone[data-phase="fly"] .arrival-glow,
+.arrival-clone[data-phase="glow"] .arrival-glow {
+  opacity: 1;
+  transform: scale(1);
+  animation: arrival-glow-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes arrival-glow-pulse {
+  to {
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes arrival-clone-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Screen-reader-only status line. */
+.arrival-sr {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival-dots span,
+  .arrival-glow {
+    animation: none;
+  }
+}
+
+/* The scene item the drawing is flying into (StreetScene marks it): hidden
+   until the clone hands over, and frozen mid-sway/walk so the clone's
+   landing spot stays put. */
+.scatter-item.scatter-item--arriving,
+.scatter-item.scatter-item--arriving .scatter-item-img {
+  animation-play-state: paused;
+}
+
+.scatter-item.scatter-item--arriving {
+  visibility: hidden;
+}

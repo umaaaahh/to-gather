@@ -292,6 +292,12 @@
   animation: zone-pulse 3s ease-in-out infinite;
 }
 
+/* Label tag colour-coded by difficulty: easy green, medium orange, hard
+   red (see .zone-label). --zone-ink is the darker outline shade. */
+.zone--easy { --zone-color: #6aaa6d; --zone-ink: #2e6b31; }
+.zone--medium { --zone-color: #eba054; --zone-ink: #925b24; }
+.zone--hard { --zone-color: #ee5b59; --zone-ink: #810f0d; }
+
 /* Cycle attention across the 3 zones one at a time, rather than
    all pulsing in unison — staggered by animation-delay. */
 .zone:nth-of-type(1) { animation-delay: 0s; }
@@ -354,8 +360,8 @@
   pointer-events: auto;
 }
 
-/* Full and locked trees: not tappable, so no pulse and no press. */
-.tree-zone:disabled {
+/* Full and locked trees and flower beds: not tappable, so no pulse and no press. */
+.zone:disabled {
   cursor: default;
   animation: none;
   border-style: solid;
@@ -363,7 +369,7 @@
   background: transparent;
 }
 
-.tree-zone:disabled:active {
+.zone:disabled:active {
   transform: none;
 }
 
@@ -416,6 +422,18 @@
   white-space: nowrap;
 }
 
+/* Characters' walk area guide — only rendered while SHOW_WALK_BOX is on.
+   Above the characters so it's visible; never tappable. */
+.walk-box {
+  position: absolute;
+  z-index: 6;
+  border: 2px dashed rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  background: rgba(229, 57, 53, 0.16);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
 /* One scattered item (a leaf, a flower, a character). Positioned (left/top
    as a % of the container) and centred on that point via the individual
    `translate` property, with a resting tilt in the individual `rotate`
@@ -444,8 +462,9 @@
   /* Safety clamp: whatever --item-w is set to, an item can never render
      taller than its container's own box (cqh needs container-type: size
      on .scatter, see above) — keeps oversized/miscalibrated items from
-     spilling out past the zone they're supposed to stay inside. */
-  max-height: 92cqh;
+     spilling out past the zone they're supposed to stay inside. A
+     scatter can loosen it with --item-max-h (the flower beds do). */
+  max-height: var(--item-max-h, 92cqh);
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
 }
 
@@ -477,73 +496,95 @@
   }
 }
 
-/* Characters wander back and forth around their seeded spot — `translate`
-   (the item's base position) and `transform` are independent CSS
-   properties, so this stacks on top of it without disturbing the anchor.
-   --walk-dist/--walk-dur come in per item (seeded) so they don't all pace
-   in lockstep. steps(8) instead of a smooth easing curve is what gives it
-   the hoppy/bouncy feel instead of a gliding one; the up/down hop is baked
-   into the keyframes themselves (translateY dips at each mid-stride point). */
+/* Characters stroll back and forth along the road around their seeded
+   spot — `translate` (the item's base position) and `transform` are
+   independent CSS properties, so this stacks on top of it without
+   disturbing the anchor. The slot walks steadily (--walk-dist either way,
+   --walk-dur per leg) while the image bobs a little --walk-hop hop every
+   --hop-dur, a whole fraction of a leg so the hops stay in step with the
+   turns. All per item (see planWalks in StreetScene.jsx); --walk-delay
+   staggers them so nobody walks in lockstep. */
 .scatter-item--walking {
-  animation: scatter-walk var(--walk-dur, 6s) steps(8, jump-end) infinite alternate;
+  animation: scatter-walk var(--walk-dur, 6s) linear var(--walk-delay, 0s) infinite alternate;
+}
+
+.scatter-item--walking .scatter-item-img {
+  animation: scatter-hop var(--hop-dur, 0.45s) ease-out var(--walk-delay, 0s) infinite;
 }
 
 @keyframes scatter-walk {
-  0% {
-    transform: translate(calc(-1 * var(--walk-dist, 6cqw)), 0);
+  from {
+    transform: translateX(calc(-1 * var(--walk-dist, 6cqw)));
   }
-  25% {
-    transform: translate(calc(-0.5 * var(--walk-dist, 6cqw)), calc(-1 * var(--walk-hop, 3cqw)));
+  to {
+    transform: translateX(var(--walk-dist, 6cqw));
   }
-  50% {
-    transform: translate(0, 0);
-  }
-  75% {
-    transform: translate(calc(0.5 * var(--walk-dist, 6cqw)), calc(-1 * var(--walk-hop, 3cqw)));
-  }
+}
+
+@keyframes scatter-hop {
+  0%,
   100% {
-    transform: translate(var(--walk-dist, 6cqw), 0);
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(calc(-1 * var(--walk-hop, 3cqw)));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scatter-item--walking {
+  .scatter-item--walking,
+  .scatter-item--walking .scatter-item-img {
     animation: none;
   }
 }
 
+/* Crayon tag in the Gaegu hand the tour bubble and sun button use, filled
+   with the zone's difficulty colour (--zone-color, see .zone--easy etc.)
+   with cream ink. */
 .zone-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25em;
+  gap: 0.1em;
+  max-width: 100%;
+  padding: 0.25em 0.75em 0.3em;
+  border: 2.5px solid var(--zone-ink, #b86b42);
+  border-radius: 14px;
+  background: var(--zone-color, #fffaf3);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  color: #fffaf3;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
   font-weight: 700;
-  color: #fff;
+  line-height: 1.05;
   text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  padding: 0.3em 0.7em;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 12px;
 }
 
 .zone-label-text {
-  font-size: 0.8rem;
+  font-size: 1.1rem;
+  /* Gaegu's strokes are thin; thicken them a touch. */
+  -webkit-text-stroke: 0.4px currentColor;
 }
 
 .zone-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.35em;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.95;
+  gap: 0.3em;
+  font-size: 0.85rem;
 }
 
 .zone-stars {
-  color: #ffd54f;
+  color: #ffe082;
   letter-spacing: 0.05em;
+}
+
+/* Full / locked trees and beds: a quiet cream tag instead of the colour. */
+.zone:disabled .zone-label {
+  border-color: rgba(184, 107, 66, 0.5);
+  background: rgba(255, 250, 243, 0.8);
+  box-shadow: none;
+  color: rgba(107, 53, 23, 0.75);
+  text-shadow: none;
 }
 
 /* Bottom-centre call to action. "Start" reveals the hotspots; "Return" drops
@@ -571,7 +612,7 @@
 
 /* The sun (see SunButton for its look). Pinned to the frame, not the
    street, so it stays put in the sky while the street pans — it's far away.
-   Sits just under the cloud band, above the rooftops. */
+   Sits up in the top-left of the sky, among the clouds. */
 .scene-cta {
   position: absolute;
   top: 10%;
@@ -667,56 +708,60 @@
   }
 }
 
+/* The mini boombox drawing (MiniBoomboxArt) sat in the music window in
+   place of the old 🎵 — part of the street, so it pans with the buildings.
+   Centred in its WINDOW_SOUND box (the tap area stays the full box) and
+   does the same slow glowing "tap me" pulse the note did, grown from its
+   feet so it stays sat on the sill. Width is the knob for its size. */
+.window-boombox {
+  display: block;
+  width: 55%;
+  height: auto;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  animation: window-boombox-pulse 3s ease-in-out infinite;
+}
+
+@keyframes window-boombox-pulse {
+  0%, 100% {
+    transform: scale(0.92);
+    filter: drop-shadow(0 0 3px rgba(255, 85, 0, 0.45));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 9px rgba(255, 85, 0, 0.9));
+  }
+}
+
+.window-sound-button:active .window-boombox {
+  animation: none;
+  transform: scale(0.9);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .window-sound-dot {
+  .window-sound-dot,
+  .window-boombox {
     animation: none;
   }
 }
 
-/* ---- Sound modal ----------------------------------------------------- */
-.sound-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.65);
+/* ---- Drawing overlay open ----------------------------------------------
+   The /draw/:zoneId route renders DrawZone inside the scene (see useOutlet
+   in StreetScene.jsx). Everything else in the frame is blurred and made
+   inert behind it; the sky gradient on .street-scene itself is left alone
+   so the blurred edges fade into sky rather than a hard frame edge. Looping
+   animations (clouds, sun) are paused too — blurring a moving layer every
+   frame is expensive on phones. */
+.street-scene > :not(.draw-overlay) {
+  transition: filter 0.25s ease;
 }
 
-.sound-modal {
-  position: relative;
-  width: 100%;
-  max-width: 360px;
-  background: #1c1c1e;
-  border-radius: 14px;
-  padding: 1.75rem 0.75rem 0.75rem;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+.street-scene[data-drawing] > :not(.draw-overlay) {
+  filter: blur(7px) saturate(0.85);
+  pointer-events: none;
 }
 
-.sound-modal iframe {
-  display: block;
-  border: none;
-  border-radius: 8px;
-}
-
-.sound-modal-close {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.5rem;
-  width: 1.8rem;
-  height: 1.8rem;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 1.2rem;
-  line-height: 1;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.sound-modal-close:active {
-  background: rgba(255, 255, 255, 0.25);
+.street-scene[data-drawing] > :not(.draw-overlay),
+.street-scene[data-drawing] > :not(.draw-overlay) * {
+  animation-play-state: paused;
 }

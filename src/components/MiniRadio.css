@@ -1,0 +1,143 @@
+.mini-radio {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 84px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: "Gochi Hand", "Comic Sans MS", cursive;
+  color: #2b2b2b;
+  -webkit-tap-highlight-color: transparent;
+  animation: mini-radio-in 0.35s cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+
+.mini-radio:active .mini-radio-art {
+  transform: scale(0.92);
+}
+
+.mini-radio-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 3px 5px rgba(40, 30, 60, 0.3));
+}
+
+.mini-boombox-cone {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Station tag hung under the radio, in the station's button colour. */
+.mini-radio-label {
+  max-width: 100%;
+  padding: 0.05rem 0.5rem 0.1rem;
+  border: 2px solid #2b2b2b;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background: var(--c);
+  box-shadow: 2px 2px 0 #2b2b2b;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: rotate(-2deg);
+}
+
+.mini-radio-note {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.35rem;
+  font-size: 1.3rem;
+  color: #8a4fd8;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Tuning in: a slow "waiting" pulse. Playing: the same bob, thump and
+   floating note as the big boombox. */
+.mini-radio:not(.playing) .mini-radio-art {
+  animation: mini-radio-wait 1.4s ease-in-out infinite;
+}
+
+.mini-radio.playing .mini-radio-art {
+  animation: mini-radio-bob 0.84s ease-in-out infinite;
+}
+
+.mini-radio.playing .mini-boombox-cone {
+  animation: mini-radio-thump 0.42s ease-in-out infinite alternate;
+}
+
+.mini-radio.playing .mini-boombox-cone.right {
+  animation-delay: 0.21s;
+}
+
+.mini-radio.playing .mini-radio-note {
+  animation: mini-radio-float 2s ease-out infinite;
+}
+
+@keyframes mini-radio-in {
+  from {
+    opacity: 0;
+    transform: translateX(40%) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mini-radio-wait {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes mini-radio-bob {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-3deg) translateY(-3%);
+  }
+  75% {
+    transform: rotate(3deg) translateY(-3%);
+  }
+}
+
+@keyframes mini-radio-thump {
+  to {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes mini-radio-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(-10deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.6rem) rotate(15deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-radio,
+  .mini-radio * {
+    animation: none !important;
+  }
+}

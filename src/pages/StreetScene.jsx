@@ -1,8 +1,15 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutlet } from "react-router-dom";
 import StreetTour from "../components/StreetTour";
 import SunButton from "../components/SunButton";
-import { getAllDrawings, subscribe, subscribeToSaveErrors } from "../lib/drawingsStore";
+import MiniBoomboxArt from "../components/MiniBoomboxArt";
+import DrawingArrival from "../components/DrawingArrival";
+import {
+  getAllDrawings,
+  subscribe,
+  subscribeToSaveErrors,
+  subscribeToSubmissions,
+} from "../lib/drawingsStore";
 import { ASSETS } from "../lib/assets";
 import "./StreetScene.css";
 
@@ -16,21 +23,11 @@ import "./StreetScene.css";
 // as a % of the scene-ground box.
 const ZONES = [
   {
-    id: "stem",
-    label: "Draw a flower",
-    level: "Medium",
-    stars: 2,
-    top: "100.5%",
-    left: "35%",
-    width: "15%",
-    height: "10%",
-  },
-  {
     id: "free",
     label: "Draw a character",
     level: "Hard",
     stars: 3,
-    top: "118%",
+    top: "105.5%", // on the road
     left: "72%",
     width: "24%",
     height: "18%",
@@ -294,11 +291,23 @@ const crayonTreeBox = (t) => ({
 });
 
 // The tree's box, stretched between TREE_HOTSPOT_TOP and TREE_HOTSPOT_BOTTOM.
-const treeHotspotBox = (t) => ({
-  ...crayonTreeBox(t),
-  top: `${TREE_HOTSPOT_TOP}%`,
-  height: `${TREE_HOTSPOT_BOTTOM - TREE_HOTSPOT_TOP}%`,
-});
+// Trees 1 and 3 hang off the ends of .crayon-trees, which clips them, so the
+// off-street part of the box is padded out — the label then centres (and
+// wraps) inside the part that shows instead of being cut off. Padding % is of
+// the containing block (.crayon-trees), same as left/width.
+const treeHotspotBox = (t) => {
+  const left = parseFloat(t.left);
+  const right = left + parseFloat(t.width);
+  const hiddenLeft = Math.max(0, -left);
+  const hiddenRight = Math.max(0, right - STREET_LENGTH);
+  return {
+    ...crayonTreeBox(t),
+    top: `${TREE_HOTSPOT_TOP}%`,
+    height: `${TREE_HOTSPOT_BOTTOM - TREE_HOTSPOT_TOP}%`,
+    paddingLeft: `${(hiddenLeft * 100) / STREET_LENGTH}%`,
+    paddingRight: `${(hiddenRight * 100) / STREET_LENGTH}%`,
+  };
+};
 
 // ---- Hidden window "surprise" ----------------------------------------------
 // A pulsing button tucked into one of the house windows, view-mode only —
@@ -316,8 +325,8 @@ const WINDOW_BOOK = { top: "81%", left: "77.5%", width: "10%", height: "14%" };
 // ---- Scattered zone contributions -----------------------------------------
 // Every zone's contributions pile up over time instead of only showing the
 // most recent — each new drawing drops into a box (the tree's canopy has
-// several, to cluster leaves naturally; the flower bed and character yard
-// each just use one spanning the whole zone) at a scattered position. Boxes
+// several, to cluster leaves naturally; each flower bed and the character yard
+// just use one spanning the whole zone) at a scattered position. Boxes
 // are positioned as a % of the OWNING ZONE's own box (top/left/width/height
 // on ZONES above).
 //
@@ -333,22 +342,91 @@ const SHOW_LEAF_BOXES = false;
 // disappearing. `flip: true` mirrors that box's leaves horizontally (the
 // wind sway direction is unaffected).
 
-// Flowers don't need the tree's multi-box clustering — one box spanning the
-// whole zone is enough, and every contribution lands in it. `capacity`
-// documents the stem zone's query cap (drawingsStore.js's ZONE_LIMITS) —
-// it's a no-op here since this is the only/last box (see layoutScatter).
-const STEM_BOXES = [{ id: "bed", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 25 }];
+// Flower beds on the grass — the "stem" zone, split into beds the way the
+// tree zone is split into trees. Same % coordinates as ZONES (of the
+// scene-ground box). The road runs ≈ 104.5–124% down and the visible grass
+// ≈ 124–140%, so beds sit in that band. The notice board covers ≈ 52–64%
+// across and is drawn over the whole scene, so keep beds clear of that gap.
+//
+// Every bed is its own tap target, but only one is open at a time: they fill
+// left to right, and a bed stays locked (in contribute mode) until the one
+// before it is full. All share the stem zone's drawings — which bed a flower
+// lands in comes from its arrival order, not which bed was tapped.
+// Capacities sum to 100 — keep drawingsStore.js's ZONE_LIMITS.stem at that
+// plus its overflow buffer (the last bed takes the overflow).
+const FLOWER_BEDS = [
+  { id: "bed-1", top: "127%", left: "8%", width: "15%", height: "10%", capacity: 20 },
+  { id: "bed-2", top: "127%", left: "32%", width: "15%", height: "10%", capacity: 20 },
+  { id: "bed-3", top: "127%", left: "68%", width: "15%", height: "10%", capacity: 20 },
+  { id: "bed-4", top: "127%", left: "96%", width: "15%", height: "10%", capacity: 20 },
+  { id: "bed-5", top: "127%", left: "124%", width: "15%", height: "10%", capacity: 20 },
+];
+
+// The label on whichever bed is open.
+const FLOWER_HOTSPOT = { label: "Draw a flower", level: "Medium", stars: 2 };
+
+// One scatter box per bed, covering the bottom half of it — a flower is
+// planted at its root and grows upward, so keeping roots low keeps the
+// (big) flowers sitting down on the grass. Flowers don't need the
+// tree's multi-box clustering. Chained left to right so layoutScatter fills
+// bed 1, then bed 2, ...
+const STEM_BOXES = FLOWER_BEDS.map((b) => ({
+  id: b.id,
+  top: "50%",
+  left: "0%",
+  width: "100%",
+  height: "50%",
+  capacity: b.capacity,
+}));
+
+const bedBox = (b) => ({ top: b.top, left: b.left, width: b.width, height: b.height });
 
 // Characters roam the road, not just the small "free" hotspot box — the
 // walking box below is a separate, wider area (roughly one screen's width
 // of road, not the whole scrollable street) that the scatter/walk uses
 // instead of ZONES' `free` entry, which stays only as the tap target.
 // `capacity` documents the free zone's query cap (ZONE_LIMITS); a no-op here
-// for the same reason as STEM_BOXES above.
+// since it is the only/last box (see layoutScatter).
 const FREE_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 114 }];
 // ~1 screen's width of road: tied to --scene-width (260% of the frame) —
 // 100/260 ≈ 38%. If --scene-width changes, nudge this to match.
-const FREE_ROAD_BOX = { top: "118%", left: "0%", width: "38%", height: "18%" };
+// Edit these four numbers to move/resize where characters walk (same %
+// coordinates as ZONES — of the scene-ground box).
+const FREE_ROAD_BOX = { top: "105.5%", left: "0%", width: "147%", height: "18%" };
+
+// Flip SHOW_WALK_BOX on to see FREE_ROAD_BOX on the street (dashed outline +
+// its numbers) while you position it, then set it back to false.
+const SHOW_WALK_BOX = false;
+
+// Characters' size and movement, as a % of the scene-ground WIDTH — fixed,
+// whatever shape FREE_ROAD_BOX is, so resizing the box only changes how much
+// room they have. Drawings are square, so CHARACTER_SIZE is both width and
+// height.
+//
+// Each character strolls back and forth along the walk box (see
+// planWalks). WALK_REACH is how much of the box's length one stroll covers
+// ([min, max], seeded per character): 1 = end to end. They all walk at
+// WALK_SPEED (% of the scene width per second), bobbing a WALK_HOP-high hop
+// about every HOP_SECONDS.
+const CHARACTER_SIZE = 6;
+const WALK_REACH = [0.5, 1];
+const WALK_SPEED = 2.5;
+const WALK_HOP = [0.5, 1];
+const HOP_SECONDS = 0.45;
+
+// The same in the walk box's own units (the scatter's cqw / % of its box).
+// The scene-ground is 660:285, so its height is 285/660 of its width.
+const WALK_BOX_W = parseFloat(FREE_ROAD_BOX.width);
+const WALK_BOX_H = (parseFloat(FREE_ROAD_BOX.height) * 285) / 660;
+const toWalkBoxW = (v) => (v / WALK_BOX_W) * 100;
+const toWalkBoxH = (v) => (v / WALK_BOX_H) * 100;
+
+// The box is a hard limit. Left/right is handled by planWalks. Top/bottom:
+// feet stay low enough for the whole character plus its highest hop to fit
+// above them, and a touch up from the bottom edge. (If the box is shorter
+// than a character, feet just sit on its bottom edge.)
+const FREE_INSET_BOTTOM = 3;
+const FREE_INSET_TOP = Math.min(toWalkBoxH(CHARACTER_SIZE + WALK_HOP[1]), 100 - FREE_INSET_BOTTOM);
 
 // Every item in a scatter renders at this width (of its container's width,
 // via a container query unit). Height follows the artwork's own aspect
@@ -365,14 +443,16 @@ const LEAF_WIDTH = "24cqw";
 // is a different width, so scale it per tree to keep every leaf that size.
 const LEAF_WIDTH_REF = 15;
 const treeLeafWidth = (t) => `calc(${LEAF_WIDTH} * ${LEAF_WIDTH_REF / parseFloat(t.width)})`;
-const STEM_WIDTH = "26cqw";
-const FREE_WIDTH = "60cqw";
+const STEM_WIDTH = "44cqw";
+// Flowers stand on their root point and grow upward, so they may rise past
+// the top of their (short) bed — this replaces the default 92cqh clamp.
+const STEM_MAX_HEIGHT = "170cqh";
+const FREE_WIDTH = `${toWalkBoxW(CHARACTER_SIZE)}cqw`;
 
 // How far inside a box an item's centre is kept, as a % of the box, so its
 // bulk doesn't spill past the box edge.
 const LEAF_INSET = 14;
 const STEM_INSET = 12;
-const FREE_INSET = 14;
 
 // Gentle "wind" sway applied to every item (see .scatter-item--wind in the
 // CSS — it animates the image around a top pivot). The tree's leaves and the
@@ -396,7 +476,12 @@ const asNum = (pctStr) => parseFloat(pctStr);
 // live directly in it and the boxes stay pure visual guides. `maxRotDeg`
 // caps the random resting tilt (0 keeps everything upright, e.g. the
 // standing characters).
-function layoutScatter(urls, boxes, { inset = 14, maxRotDeg = 22 } = {}) {
+// `insetX` / `insetTop` / `insetBottom` override `inset` for those edges.
+function layoutScatter(
+  urls,
+  boxes,
+  { inset = 14, insetX = inset, insetTop = inset, insetBottom = inset, maxRotDeg = 22 } = {},
+) {
   let boxIdx = 0;
   let countInBox = 0;
 
@@ -424,33 +509,123 @@ function layoutScatter(urls, boxes, { inset = 14, maxRotDeg = 22 } = {}) {
       url,
       boxId: box.id,
       flip: !!box.flip,
-      xPct: bx + ((inset + u * (100 - inset * 2)) / 100) * bw,
-      yPct: by + ((inset + v * (100 - inset * 2)) / 100) * bh,
+      xPct: bx + ((insetX + u * (100 - insetX * 2)) / 100) * bw,
+      yPct: by + ((insetTop + v * (100 - insetTop - insetBottom)) / 100) * bh,
       rot,
     };
   });
 }
 
-export default function StreetScene({ showTour = false, onTourDone }) {
+// Each character's stroll, as % of the scene width: where its feet are
+// placed (the middle of the stroll, returned as xPct in the box),
+// `walkDist` (how far it goes either way) and `walkDur` (seconds per
+// one-way leg).
+//
+// The road it can use is the walk box's length, minus half a character at
+// each end (so its body stays in the box). Each character's scattered spot,
+// taken as a fraction of the way along that road, is the middle of its
+// stroll — so they stay spread out — and it strolls WALK_REACH of the whole
+// road, shifted if need be to stay on it.
+//
+// Walking past the notice board (drawn over the whole scene) is fine, but
+// nobody should hang about behind it: a stroll that would turn around behind
+// the board has that end pushed out past the board's far side, so they walk
+// straight through (or, if there's no road past it, pulled back short of
+// the board's near side).
+function planWalks(items) {
+  const half = CHARACTER_SIZE / 2;
+  const boxLeft = parseFloat(FREE_ROAD_BOX.left);
+  const lo = boxLeft + half;
+  const hi = boxLeft + WALK_BOX_W - half;
+  if (hi <= lo) return items.map((item) => ({ ...item, walkDist: 0, walkDur: 1 }));
+
+  // Anywhere the character is even partly behind the board.
+  const boardLo = NOTICE_BOARD_POS.left - half;
+  const boardHi = NOTICE_BOARD_POS.left + NOTICE_BOARD_WIDTH + half;
+  const behindBoard = (x) => x > boardLo && x < boardHi;
+  // Move a turnaround point out from behind the board — past it in the
+  // direction of travel if that's still on the road, else back before it.
+  const clearOfBoard = (x, outward) => {
+    if (!behindBoard(x)) return x;
+    if (outward > 0) return boardHi <= hi ? boardHi : boardLo;
+    return boardLo >= lo ? boardLo : boardHi;
+  };
+
+  return items.map((item) => {
+    const spot = lo + (item.xPct / 100) * (hi - lo);
+    const reach = WALK_REACH[0] + seededUnit(item.key * 7 + 3) * (WALK_REACH[1] - WALK_REACH[0]);
+    const dist = ((hi - lo) * reach) / 2;
+    const centre = Math.min(Math.max(spot, lo + dist), hi - dist);
+    const left = clearOfBoard(centre - dist, -1);
+    const right = clearOfBoard(centre + dist, 1);
+    const walkDist = Math.max(0, (right - left) / 2);
+    const walkDur = Math.max((2 * walkDist) / WALK_SPEED, 2 * HOP_SECONDS);
+    return {
+      ...item,
+      xPct: (((left + right) / 2 - boxLeft) / WALK_BOX_W) * 100,
+      walkDist,
+      walkDur,
+    };
+  });
+}
+
+export default function StreetScene({ showTour = false, onTourDone, onOpenRadio }) {
   const navigate = useNavigate();
+  // The /draw/:zoneId child route (DrawZone). While it's open the street
+  // stays mounted underneath, blurred, and the canvas floats over it.
+  // Submitting a drawing drops back to the clean view (no hotspots, sun
+  // says "Start") and plays its entrance (see DrawingArrival) via
+  // onSubmitted; cancelling leaves contribute mode on.
+  const [mode, setMode] = useState("view"); // "view" | "contribute"
+  // The just-submitted drawing's entrance: { key, zone, imageUrl, fromRect,
+  // thumbUrl } — thumbUrl arrives once the save lands, and marks which
+  // scene item is the new one (hidden until the entrance hands over).
+  const [arrival, setArrival] = useState(null);
+  const drawOverlay = useOutlet({
+    // `entrance` is null if the paper couldn't be measured — skip it then.
+    onSubmitted: (entrance) => {
+      setMode("view");
+      if (entrance) setArrival({ ...entrance, key: Date.now(), thumbUrl: null });
+    },
+  });
   const sceneRef = useRef(null);
   const [drawings, setDrawings] = useState(getAllDrawings);
-  const [mode, setMode] = useState("view"); // "view" | "contribute"
-  const [soundOpen, setSoundOpen] = useState(false);
 
   // Background saves (see DrawZone) that didn't land — shown as a toast for
   // a few seconds.
   const [saveFailed, setSaveFailed] = useState(false);
 
   useEffect(() => subscribe(setDrawings), []);
-  useEffect(() => subscribeToSaveErrors(() => setSaveFailed(true)), []);
+  useEffect(
+    () =>
+      subscribeToSaveErrors(() => {
+        setSaveFailed(true);
+        setArrival(null); // nothing's coming — drop the loading screen
+      }),
+    [],
+  );
+  useEffect(
+    () =>
+      subscribeToSubmissions((s) =>
+        setArrival((a) => (a && !a.thumbUrl && a.zone === s.zone ? { ...a, thumbUrl: s.thumbUrl } : a)),
+      ),
+    [],
+  );
+  // The entrance's image is a local copy of the export — free it after.
+  useEffect(() => {
+    if (!arrival) return undefined;
+    return () => URL.revokeObjectURL(arrival.imageUrl);
+  }, [arrival?.imageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The scene item a new drawing is flying into (see DrawingArrival) — it's
+  // marked data-arrival, hidden (scatter-item--arriving) and loaded eagerly
+  // so the entrance can measure it.
+  const arrivingUrl = arrival?.thumbUrl ?? null;
+  const isArriving = (item) => arrivingUrl !== null && item.url === arrivingUrl;
   useEffect(() => {
     if (!saveFailed) return undefined;
     const timer = setTimeout(() => setSaveFailed(false), 5000);
     return () => clearTimeout(timer);
   }, [saveFailed]);
-
-  const stemZone = ZONES.find((z) => z.id === "stem");
 
   // Each crayon tree with its own leaves and a status: "full", "open" (the
   // first tree that isn't full) or "locked" (every tree after that).
@@ -469,17 +644,43 @@ export default function StreetScene({ showTour = false, onTourDone }) {
       status: t.full ? "full" : i === openIdx ? "open" : "locked",
     }));
   }, [drawings.tree]);
-  const stemFlowers = useMemo(
-    () => layoutScatter(drawings.stem ?? [], STEM_BOXES, { inset: STEM_INSET, maxRotDeg: 8 }),
-    [drawings.stem],
-  );
+  // Each flower bed with its own flowers and a status, same rules as the
+  // trees: "full", "open" (the first bed that isn't full) or "locked".
+  const beds = useMemo(() => {
+    const flowers = layoutScatter(drawings.stem ?? [], STEM_BOXES, {
+      inset: STEM_INSET,
+      maxRotDeg: 8,
+    });
+    const withFlowers = FLOWER_BEDS.map((b) => {
+      const bedFlowers = flowers.filter((f) => f.boxId === b.id);
+      return { ...b, flowers: bedFlowers, full: bedFlowers.length >= b.capacity };
+    });
+    const openIdx = withFlowers.findIndex((b) => !b.full);
+    return withFlowers.map((b, i) => ({
+      ...b,
+      status: b.full ? "full" : i === openIdx ? "open" : "locked",
+    }));
+  }, [drawings.stem]);
   const freeCharacters = useMemo(
-    () => layoutScatter(drawings.free ?? [], FREE_BOXES, { inset: FREE_INSET, maxRotDeg: 0 }),
+    () =>
+      planWalks(
+        layoutScatter(drawings.free ?? [], FREE_BOXES, {
+          insetX: 0,
+          insetTop: FREE_INSET_TOP,
+          insetBottom: FREE_INSET_BOTTOM,
+          maxRotDeg: 0,
+        }),
+      ),
     [drawings.free],
   );
 
   return (
-    <div className="street-scene" data-mode={mode} ref={sceneRef}>
+    <div
+      className="street-scene"
+      data-mode={mode}
+      data-drawing={drawOverlay ? "" : undefined}
+      ref={sceneRef}
+    >
       {/* Two tiles side by side so the drift loop is seamless. */}
       <div className="clouds">
         <img className="cloud-tile" src={ASSETS.clouds} alt="" />
@@ -608,9 +809,10 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                         {t.leaves.map((leaf) => (
                           <div
                             key={`leaf-${leaf.key}`}
+                            data-arrival={isArriving(leaf) ? "" : undefined}
                             className={`scatter-item${LEAF_WIND ? " scatter-item--wind" : ""}${
                               leaf.flip ? " scatter-item--flip" : ""
-                            }`}
+                            }${isArriving(leaf) ? " scatter-item--arriving" : ""}`}
                             style={{
                               left: `${leaf.xPct}%`,
                               top: `${leaf.yPct}%`,
@@ -624,7 +826,7 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                               src={leaf.url}
                               alt=""
                               draggable={false}
-                              loading="lazy"
+                              loading={isArriving(leaf) ? "eager" : "lazy"}
                             />
                           </div>
                         ))}
@@ -635,7 +837,7 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                       {mode === "contribute" && (
                         <button
                           type="button"
-                          className="zone tree-zone"
+                          className={`zone tree-zone zone--${TREE_HOTSPOT.level.toLowerCase()}`}
                           style={treeHotspotBox(t)}
                           disabled={t.status !== "open"}
                           onClick={() => navigate("/draw/tree")}
@@ -676,7 +878,7 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                 <button
                   type="button"
                   className="window-sound-button"
-                  onClick={() => setSoundOpen(true)}
+                  onClick={onOpenRadio}
                   aria-label="Something's playing in the window"
                   style={{
                     top: WINDOW_SOUND.top,
@@ -685,9 +887,7 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                     height: WINDOW_SOUND.height,
                   }}
                 >
-                  <span className="window-sound-dot" aria-hidden="true">
-                    🎵
-                  </span>
+                  <MiniBoomboxArt className="window-boombox" />
                 </button>
               )}
 
@@ -712,40 +912,78 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                 </button>
               )}
 
-              {/* Flower bed: every contributed flower scatters into it, same
-                 mechanism as the tree canopy above. */}
-              <div
-                className="scatter"
-                style={{
-                  top: stemZone.top,
-                  left: stemZone.left,
-                  width: stemZone.width,
-                  height: stemZone.height,
-                  "--item-w": STEM_WIDTH,
-                }}
-              >
-                {stemFlowers.map((item) => (
+              {/* Flower beds — see FLOWER_BEDS above. Each bed is its scattered
+                 flowers (same mechanism as the tree canopy) and, while
+                 contributing, its hotspot. */}
+              {beds.map((b, i) => (
+                <Fragment key={b.id}>
                   <div
-                    key={`stem-${item.key}`}
-                    className={`scatter-item scatter-item--rooted${STEM_WIND ? " scatter-item--wind" : ""}`}
-                    style={{
-                      left: `${item.xPct}%`,
-                      top: `${item.yPct}%`,
-                      "--item-rot": `${item.rot.toFixed(1)}deg`,
-                      // spread the sway so flowers don't move in lockstep
-                      animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
-                    }}
+                    className="scatter"
+                    style={{ ...bedBox(b), "--item-w": STEM_WIDTH, "--item-max-h": STEM_MAX_HEIGHT }}
                   >
-                    <img
-                      className="scatter-item-img"
-                      src={item.url}
-                      alt=""
-                      draggable={false}
-                      loading="lazy"
-                    />
+                    {b.flowers.map((item) => (
+                      <div
+                        key={`stem-${item.key}`}
+                        data-arrival={isArriving(item) ? "" : undefined}
+                        className={`scatter-item scatter-item--rooted${STEM_WIND ? " scatter-item--wind" : ""}${
+                          isArriving(item) ? " scatter-item--arriving" : ""
+                        }`}
+                        style={{
+                          left: `${item.xPct}%`,
+                          top: `${item.yPct}%`,
+                          "--item-rot": `${item.rot.toFixed(1)}deg`,
+                          // spread the sway so flowers don't move in lockstep
+                          animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
+                        }}
+                      >
+                        <img
+                          className="scatter-item-img"
+                          src={item.url}
+                          alt=""
+                          draggable={false}
+                          loading={isArriving(item) ? "eager" : "lazy"}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+
+                  {/* Hotspot — only while contributing. Only the open bed is
+                     tappable; full and locked beds just say so. */}
+                  {mode === "contribute" && (
+                    <button
+                      type="button"
+                      className={`zone zone--${FLOWER_HOTSPOT.level.toLowerCase()}`}
+                      style={bedBox(b)}
+                      disabled={b.status !== "open"}
+                      onClick={() => navigate("/draw/stem")}
+                      aria-label={
+                        b.status === "open"
+                          ? `${FLOWER_HOTSPOT.label} — ${FLOWER_HOTSPOT.level}`
+                          : `Flower bed ${i + 1} — ${b.status === "full" ? "full" : "locked"}`
+                      }
+                    >
+                      <span className="zone-label">
+                        {b.status === "open" ? (
+                          <>
+                            <span className="zone-label-text">{FLOWER_HOTSPOT.label}</span>
+                            <span className="zone-tag">
+                              <span className="zone-stars" aria-hidden="true">
+                                {"★".repeat(FLOWER_HOTSPOT.stars)}
+                                {"☆".repeat(3 - FLOWER_HOTSPOT.stars)}
+                              </span>
+                              {FLOWER_HOTSPOT.level}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="zone-label-text">
+                            {b.status === "full" ? "Full" : "🔒 Locked"}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  )}
+                </Fragment>
+              ))}
 
               {/* Road walk: every contributed character wanders around this
                  band instead of sitting still in the small "free" hotspot
@@ -759,22 +997,35 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                   width: FREE_ROAD_BOX.width,
                   height: FREE_ROAD_BOX.height,
                   "--item-w": FREE_WIDTH,
+                  // Feet placement already keeps them inside the box (see
+                  // FREE_INSET_TOP), so no height clamp — it only squashed them.
+                  "--item-max-h": "none",
                 }}
               >
                 {freeCharacters.map((item) => (
                   <div
                     key={`free-${item.key}`}
-                    className="scatter-item scatter-item--rooted scatter-item--walking"
+                    data-arrival={isArriving(item) ? "" : undefined}
+                    className={`scatter-item scatter-item--rooted scatter-item--walking${
+                      isArriving(item) ? " scatter-item--arriving" : ""
+                    }`}
                     style={{
                       left: `${item.xPct}%`,
                       top: `${item.yPct}%`,
                       "--item-rot": `${item.rot.toFixed(1)}deg`,
-                      // seeded per character so nobody paces in lockstep —
-                      // 15-30cqw of wander, a 5-9s stroll, a 2-4cqw hop, staggered starts
-                      "--walk-dist": `${(15 + seededUnit(item.key * 7 + 3) * 15).toFixed(1)}cqw`,
-                      "--walk-dur": `${(5 + seededUnit(item.key * 11 + 5) * 4).toFixed(1)}s`,
-                      "--walk-hop": `${(2 + seededUnit(item.key * 13 + 9) * 2).toFixed(1)}cqw`,
-                      animationDelay: `${-(((item.key * 0.71) % 5)).toFixed(2)}s`,
+                      // its stroll (see planWalks), a seeded WALK_HOP hop
+                      // about every HOP_SECONDS (a whole number per leg, so
+                      // hops land at the turns) and a staggered start so
+                      // nobody walks in lockstep
+                      "--walk-dist": `${toWalkBoxW(item.walkDist).toFixed(2)}cqw`,
+                      "--walk-dur": `${item.walkDur.toFixed(2)}s`,
+                      "--hop-dur": `${(
+                        item.walkDur / Math.max(1, Math.round(item.walkDur / HOP_SECONDS))
+                      ).toFixed(3)}s`,
+                      "--walk-hop": `${toWalkBoxW(
+                        WALK_HOP[0] + seededUnit(item.key * 13 + 9) * (WALK_HOP[1] - WALK_HOP[0]),
+                      ).toFixed(2)}cqw`,
+                      "--walk-delay": `${-(seededUnit(item.key * 11 + 5) * item.walkDur * 2).toFixed(2)}s`,
                     }}
                   >
                     <img
@@ -782,18 +1033,29 @@ export default function StreetScene({ showTour = false, onTourDone }) {
                       src={item.url}
                       alt=""
                       draggable={false}
-                      loading="lazy"
+                      loading={isArriving(item) ? "eager" : "lazy"}
                     />
                   </div>
                 ))}
               </div>
+
+              {/* Walk area guide — see SHOW_WALK_BOX. Characters stay inside
+                 it left to right. */}
+              {SHOW_WALK_BOX && (
+                <div className="walk-box" style={FREE_ROAD_BOX}>
+                  <span className="leaf-box-tag">
+                    walk area · top {FREE_ROAD_BOX.top} · left {FREE_ROAD_BOX.left} · width{" "}
+                    {FREE_ROAD_BOX.width} · height {FREE_ROAD_BOX.height}
+                  </span>
+                </div>
+              )}
 
               {/* Hotspots — only while contributing. */}
               {mode === "contribute" &&
                 ZONES.map((zone) => (
                   <button
                     key={`hot-${zone.id}`}
-                    className="zone"
+                    className={`zone zone--${zone.level.toLowerCase()}`}
                     style={{
                       top: zoneTop(zone),
                       left: zoneLeft(zone),
@@ -835,33 +1097,21 @@ export default function StreetScene({ showTour = false, onTourDone }) {
         </p>
       )}
 
-      {soundOpen && (
-        <div className="sound-modal-backdrop" onClick={() => setSoundOpen(false)}>
-          <div className="sound-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="sound-modal-close"
-              onClick={() => setSoundOpen(false)}
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <iframe
-              title="Melbourne playlist"
-              width="100%"
-              height="300"
-              scrolling="no"
-              frameBorder="no"
-              allow="autoplay; encrypted-media"
-              src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/playlists/soundcloud%253Aplaylists%253A2297287761&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true"
-            />
-          </div>
-        </div>
-      )}
-
       {/* First-visit kangaroo tour (see StreetTour) — the spotlight targets
          .scene-ground, .scene-cta and the open tree's data-tour="tree". */}
       {showTour && <StreetTour sceneRef={sceneRef} onDone={onTourDone} />}
+
+      {drawOverlay}
+
+      {/* A just-submitted drawing's entrance (see DrawingArrival). */}
+      {arrival && (
+        <DrawingArrival
+          key={arrival.key}
+          arrival={arrival}
+          sceneRef={sceneRef}
+          onDone={() => setArrival(null)}
+        />
+      )}
     </div>
   );
 }

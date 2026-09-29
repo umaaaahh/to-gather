@@ -10,6 +10,27 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Sunlight: a warm halo that breathes. It sits behind the drawing (z-index
+   -1 inside the button's own stacking context, which it gets from
+   .scene-cta's position + z-index) and is absolutely positioned, so it never
+   changes the button's box. */
+.sun-button::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  inset: -30%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 236, 160, 0.85) 0%,
+    rgba(255, 214, 110, 0.5) 30%,
+    rgba(255, 200, 90, 0.18) 50%,
+    rgba(255, 200, 90, 0) 70%
+  );
+  animation: sun-button-halo 3.2s ease-in-out infinite;
+}
+
 /* A slow "tap me" pulse — on the drawing and label rather than the button
    itself, so the button's box stays still (the tour spotlight measures it
    every frame and would chase the pulse otherwise). */
@@ -61,6 +82,18 @@
   }
 }
 
+@keyframes sun-button-halo {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 @keyframes sun-button-spin {
   to {
     transform: rotate(360deg);
@@ -70,7 +103,8 @@
 @media (prefers-reduced-motion: reduce) {
   .sun-button-art,
   .sun-button-label,
-  .sun-button-rays {
+  .sun-button-rays,
+  .sun-button::before {
     animation: none;
   }
 }

@@ -1,0 +1,358 @@
+/* Everything inside is laid out as a % of the box, and type is in cqw, so
+   the whole radio scales as one picture with the width it's given. */
+.boombox {
+  --ink: #2b2b2b;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 640 / 400;
+  container-type: inline-size;
+  font-family: "Gochi Hand", "Comic Sans MS", cursive;
+  color: var(--ink);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.boombox-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 50% 100%;
+}
+
+/* Speaker cones pulse while playing */
+.boombox-cone {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.boombox.playing .boombox-cone {
+  animation: boombox-thump 0.42s ease-in-out infinite alternate;
+}
+
+.boombox.playing .boombox-cone.right {
+  animation-delay: 0.21s;
+}
+
+/* Real audio levels available: JS drives the cones instead */
+.boombox.playing.reactive .boombox-cone {
+  animation: none;
+}
+
+.boombox.playing .boombox-body {
+  animation: boombox-bob 0.84s ease-in-out infinite;
+}
+
+@keyframes boombox-thump {
+  to {
+    transform: scale(1.09);
+  }
+}
+
+@keyframes boombox-bob {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-0.6deg) translateY(-0.4%);
+  }
+  75% {
+    transform: rotate(0.6deg) translateY(-0.4%);
+  }
+}
+
+/* ---- Tuner display ------------------------------------------------- */
+.boombox-display {
+  position: absolute;
+  left: 38.4%;
+  top: 26%;
+  width: 23.2%;
+  height: 17.5%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.2cqw 1.4cqw;
+  overflow: hidden;
+}
+
+.boombox-dial {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.9cqw;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.boombox-needle {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  height: 28%;
+  width: 0.6cqw;
+  margin-left: -0.3cqw;
+  background: #e0342a;
+  border-radius: 1cqw;
+  transition: left 0.5s cubic-bezier(0.5, 1.6, 0.5, 1);
+}
+
+.boombox-now-playing {
+  margin: 0;
+  font-size: 2cqw;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.boombox-now-playing a {
+  color: inherit;
+}
+
+/* ---- Station buttons ----------------------------------------------- */
+.boombox-stations {
+  position: absolute;
+  left: 38.75%;
+  top: 49%;
+  width: 22.5%;
+  height: 41%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.boombox-station {
+  height: 29%;
+  padding: 0;
+  border: 0.5cqw solid var(--ink);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background: var(--c);
+  font: inherit;
+  font-size: 2.8cqw;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0.5cqw 0.5cqw 0 var(--ink);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boombox-station:nth-child(1) {
+  transform: rotate(-1.5deg);
+}
+
+.boombox-station:nth-child(2) {
+  transform: rotate(1deg);
+}
+
+.boombox-station:nth-child(3) {
+  transform: rotate(-0.5deg);
+}
+
+.boombox-station:hover {
+  filter: brightness(1.08);
+}
+
+.boombox-station:focus-visible {
+  outline: 0.5cqw dashed var(--ink);
+  outline-offset: 0.6cqw;
+}
+
+.boombox-station.active {
+  box-shadow: 0.15cqw 0.15cqw 0 var(--ink);
+  translate: 0.35cqw 0.35cqw;
+}
+
+.boombox-station.active::before {
+  content: "\266A  ";
+}
+
+/* ---- Floating music notes ------------------------------------------ */
+.boombox-note {
+  position: absolute;
+  font-size: 5cqw;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boombox-note.n1 {
+  left: 16%;
+  top: 22%;
+  color: #2f6fd6;
+}
+
+.boombox-note.n2 {
+  left: 76%;
+  top: 20%;
+  color: #8a4fd8;
+}
+
+.boombox-note.n3 {
+  left: 86%;
+  top: 30%;
+  color: #2e9e52;
+}
+
+.boombox.playing .boombox-note {
+  animation: boombox-float 2.4s ease-out infinite;
+}
+
+.boombox.playing .boombox-note.n2 {
+  animation-delay: 0.8s;
+}
+
+.boombox.playing .boombox-note.n3 {
+  animation-delay: 1.6s;
+}
+
+@keyframes boombox-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(-10deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-9cqw) rotate(15deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boombox *,
+  .boombox-body {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---- Power + volume ------------------------------------------------ */
+.boombox-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.boombox-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.25rem;
+  font-family: "Gochi Hand", "Comic Sans MS", cursive;
+  color: #2b2b2b;
+}
+
+/* Chunky crayon key: grey when off, green when on — same wobbly border and
+   hard shadow as the station buttons, and pressed in while on. */
+.boombox-power {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 5.2rem;
+  min-height: 46px;
+  padding: 0.2rem 0.85rem;
+  border: 3px solid #2b2b2b;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background: #d9d4c7;
+  color: #2b2b2b;
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #2b2b2b;
+  transform: rotate(-1.5deg);
+  transition:
+    translate 0.1s,
+    box-shadow 0.1s,
+    background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boombox-power.on {
+  background: #6fd38a;
+  box-shadow: 1px 1px 0 #2b2b2b;
+  translate: 2px 2px;
+}
+
+.boombox-power:focus-visible {
+  outline: 3px dashed #2b2b2b;
+  outline-offset: 3px;
+}
+
+.boombox-power-icon {
+  font-size: 1.15rem;
+}
+
+/* Volume: a thick crayon track that fills in yellow up to the thumb
+   (--fill is set inline from the value), with a round red knob. */
+.boombox-volume {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 46px;
+}
+
+.boombox-volume-icon {
+  flex: none;
+  width: 1.6rem;
+  font-size: 1.3rem;
+  text-align: center;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.8));
+}
+
+.boombox-volume input {
+  flex: 1;
+  min-width: 0;
+  height: 44px; /* tap target; the drawn track is thinner */
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.boombox-volume input::-webkit-slider-runnable-track {
+  height: 14px;
+  border: 3px solid #2b2b2b;
+  border-radius: 12px 8px 14px 9px / 9px 14px 8px 12px;
+  background: linear-gradient(to right, #ffd23f var(--fill), #fff4c9 var(--fill));
+}
+
+.boombox-volume input::-moz-range-track {
+  height: 8px;
+  border: 3px solid #2b2b2b;
+  border-radius: 12px 8px 14px 9px / 9px 14px 8px 12px;
+  background: linear-gradient(to right, #ffd23f var(--fill), #fff4c9 var(--fill));
+}
+
+.boombox-volume input::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+  margin-top: -9px; /* centre on the 14px track (inside its 3px border) */
+  border: 3px solid #2b2b2b;
+  border-radius: 50%;
+  background: #ef5a4c;
+  box-shadow: 2px 2px 0 #2b2b2b;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.boombox-volume input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #2b2b2b;
+  border-radius: 50%;
+  background: #ef5a4c;
+  box-shadow: 2px 2px 0 #2b2b2b;
+}
+
+.boombox-volume input:focus-visible {
+  outline: 3px dashed #2b2b2b;
+  outline-offset: 2px;
+}

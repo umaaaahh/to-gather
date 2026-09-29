@@ -6,6 +6,7 @@ import NoticeBoard from "./pages/NoticeBoard";
 import CanvasTest from "./pages/CanvasTest";
 import Admin from "./pages/Admin";
 import SplashScreen from "./components/SplashScreen";
+import RadioLayer from "./components/RadioLayer";
 
 export default function App() {
   // First-visit intro, once per page load: the logo splash, then the
@@ -14,19 +15,36 @@ export default function App() {
   const startTour = useCallback(() => setIntro((i) => (i === "splash" ? "tour" : i)), []);
   const endTour = useCallback(() => setIntro("done"), []);
 
+  // The radio popup, app-wide so the music and the mini radio carry on
+  // across pages (see RadioLayer).
+  const [radioOpen, setRadioOpen] = useState(false);
+  const openRadio = useCallback(() => setRadioOpen(true), []);
+  const closeRadio = useCallback(() => setRadioOpen(false), []);
+
   return (
     <BrowserRouter>
       <SplashScreen onDone={startTour} />
       <Routes>
+        {/* The drawing canvas is a child route so it opens as an overlay on
+           top of the (blurred) street instead of replacing it — StreetScene
+           renders it through <Outlet>. */}
         <Route
           path="/"
-          element={<StreetScene showTour={intro === "tour"} onTourDone={endTour} />}
-        />
-        <Route path="/draw/:zoneId" element={<DrawZone />} />
+          element={
+            <StreetScene
+              showTour={intro === "tour"}
+              onTourDone={endTour}
+              onOpenRadio={openRadio}
+            />
+          }
+        >
+          <Route path="draw/:zoneId" element={<DrawZone />} />
+        </Route>
         <Route path="/notices" element={<NoticeBoard />} />
         <Route path="/canvas-test" element={<CanvasTest />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
+      <RadioLayer open={radioOpen} onOpen={openRadio} onClose={closeRadio} />
     </BrowserRouter>
   );
 }

@@ -96,10 +96,27 @@
   pointer-events: auto;
 }
 
+/* Full-frame layer the kangaroo is drawn in, so the notice board can be
+   masked out of it wherever it is on screen (see boardCutout). */
+.tour-kangaroo-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Same box as .tour-kangaroo-spot in the guide below, which is what keeps
+   the bubble's tail over its head. bottom is set inline (feet on the road). */
+.tour-kangaroo,
+.tour-kangaroo-spot {
+  width: var(--kangaroo-w);
+  aspect-ratio: 1172 / 1342; /* the kangaroo art */
+}
+
 /* Hops in from off the right edge along the road. The three hop arcs on the
    image below run over the same 1.5s. */
 .tour-kangaroo {
-  width: var(--kangaroo-w);
+  position: absolute;
+  right: 0.75rem; /* matches .tour-guide's inset */
   animation: tour-hop-in 1.5s linear both;
 }
 
