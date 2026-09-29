@@ -314,7 +314,7 @@ const treeHotspotBox = (t) => {
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above.
-const WINDOW_SOUND = { top: "81%", left: "63%", width: "10%", height: "14%" };
+const WINDOW_SOUND = { top: "86%", left: "32.7%", width: "8%", height: "14%" };
 
 // A second window surprise, same pattern as WINDOW_SOUND above — a different
 // window pane so the two don't compete for attention. Purely decorative for
@@ -471,6 +471,27 @@ function seededUnit(seed) {
 
 const asNum = (pctStr) => parseFloat(pctStr);
 
+// Where the n-th item in a box goes, as 0..1 across and down it. Plain
+// random spots clump (lots of overlap, bare patches), so this follows the
+// "R2" low-discrepancy sequence: each next point lands in the biggest gap
+// left by the ones before, so a box fills evenly — and earlier items never
+// move when a new one arrives. Each box starts the sequence at its own
+// seeded offset so boxes don't share one pattern, and every point gets a
+// small seeded wobble (a fraction of the spacing a full box would have) so
+// it reads as scattered rather than gridded.
+const R2_A1 = 0.7548776662466927; // 1/g, g = the plastic number 1.3247…
+const R2_A2 = 0.5698402909980532; // 1/g²
+const SPREAD_WOBBLE = 0.35;
+function spreadPoint(boxIdx, n, capacity, seed) {
+  const frac = (x) => x - Math.floor(x);
+  const u0 = frac(seededUnit(boxIdx * 5 + 101) + R2_A1 * (n + 1));
+  const v0 = frac(seededUnit(boxIdx * 5 + 103) + R2_A2 * (n + 1));
+  const cell = 1 / Math.sqrt(Math.max(1, capacity ?? 25));
+  const wobble = (s) => (seededUnit(s) - 0.5) * cell * SPREAD_WOBBLE;
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  return [clamp(u0 + wobble(seed * 2 + 1)), clamp(v0 + wobble(seed * 2 + 2))];
+}
+
 // Assign each contribution (by arrival order) to a box, then a scattered
 // position inside it — all expressed as a % of the container so items can
 // live directly in it and the boxes stay pure visual guides. `maxRotDeg`
@@ -500,8 +521,7 @@ function layoutScatter(
     const by = asNum(box.top);
     const bw = asNum(box.width);
     const bh = asNum(box.height);
-    const u = seededUnit(i * 2 + 1);
-    const v = seededUnit(i * 2 + 2);
+    const [u, v] = spreadPoint(boxIdx, countInBox - 1, box.capacity, i);
     const rot = maxRotDeg ? (seededUnit(i * 3 + 7) - 0.5) * maxRotDeg : 0;
 
     return {
