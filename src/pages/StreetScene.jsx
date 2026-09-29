@@ -313,7 +313,7 @@ const treeHotspotBox = (t) => {
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above.
-const WINDOW_SOUND = { top: "83.5%", left: "15%", width: "8%", height: "14%" };
+const WINDOW_SOUND = { top: "84.5%", left: "15%", width: "8%", height: "14%" };
 
 // A second window surprise, same pattern as WINDOW_SOUND above — a different
 // window pane so the two don't compete for attention. Opens the community
