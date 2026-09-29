@@ -10,6 +10,8 @@ const STATIONS = [
     name: "Triple R 102.7FM",
     src: "https://ondemand.rrr.org.au/getstream?id=wsmq",
     link: "https://www.rrr.org.au",
+    about:
+      "Melbourne's independent community station since 1976, broadcasting from Brunswick East. Triple R is kept on air by its subscribers and a big crew of volunteer presenters, and it's been the soundtrack to the city's live music scene for decades: local bands, record store finds and gig guides.",
     color: "#ff9f3f",
     pos: "14%",
   },
@@ -21,6 +23,8 @@ const STATIONS = [
     // don't play in every browser, MP3 does.
     src: "https://playerservices.streamtheworld.com/api/livestream-redirect/3SYN.mp3",
     link: "https://www.syn.org.au",
+    about:
+      "SYN is Melbourne's youth-run community station, on air across Naarm/Melbourne on 90.7FM. Every show is made by young people under 26, so for lots of Melbourne musicians, journalists and presenters, SYN was the first place they ever spoke into a mic.",
     color: "#6fd38a",
     pos: "50%",
   },
@@ -30,6 +34,8 @@ const STATIONS = [
     name: "Radio Fodder",
     src: "https://radio-fodder.radiocult.fm/stream",
     link: "https://radiofodder.live",
+    about:
+      "Radio Fodder is the University of Melbourne's student radio station, streaming online from the Parkville campus. It's run by students for students, and it's a small, scrappy corner of Melbourne radio where anyone can have a go at a show.",
     color: "#c9a4ff",
     pos: "86%",
   },
@@ -424,6 +430,18 @@ export default function Boombox({ onNowPlaying }) {
           />
         </label>
       </div>
+
+      {/* A little about whichever station the needle is on. */}
+      {current && (
+        <section className="boombox-about" style={{ "--c": current.color }}>
+          <h2 className="boombox-about-title">
+            <a href={current.link} target="_blank" rel="noopener noreferrer">
+              {current.name}
+            </a>
+          </h2>
+          <p>{current.about}</p>
+        </section>
+      )}
     </div>
   );
 }

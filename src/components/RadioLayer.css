@@ -33,8 +33,11 @@
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  /* safe: on short screens the (now taller) radio scrolls from the top
+     instead of being clipped above and below. */
+  align-items: safe center;
   justify-content: center;
+  overflow-y: auto;
   padding: 1rem 0.75rem;
   background: rgba(255, 248, 230, 0.28);
   -webkit-backdrop-filter: blur(7px) saturate(0.85);
