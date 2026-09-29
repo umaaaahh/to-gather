@@ -32,7 +32,6 @@ export const ASSETS = {
   streetLeft: url("building 56.svg"),
   streetRight: url("building 94.svg"),
   road: url("the road.svg"),
-  tree: url("Tree.svg"),
   crayonTree: crayonTreePng,
   leafOutline: leafOutlineSvg,
   stemOutline: stemOutlineSvg,

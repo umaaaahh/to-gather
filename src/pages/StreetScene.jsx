@@ -6,45 +6,13 @@ import "./StreetScene.css";
 
 // Zones are positioned as a % of the scene-ground box so they hold across phone
 // widths. `level`/`stars` drive the difficulty tag shown on the hotspot while
-// in contribute mode. `sceneArt` is fixed scene furniture (e.g. the tree you
-// colour) that's always visible; drawings then stack on top of it.
+// in contribute mode. The tree zone isn't here — its hotspots and leaves live
+// on the crayon trees (see CRAYON_TREES).
 //
-// By default the `sceneArt` image fills the zone box. The optional
-// `artTop`/`artLeft`/`artWidth`/`artHeight`/`artFit` fields override ONLY the
-// image's box — the tap hotspot and (for the tree) the leaf canopy stay pinned
-// to top/left/width/height. `artFit` sets CSS object-fit: "contain" (default)
-// keeps the art's aspect ratio; "fill" stretches it to the box, so a taller
-// `artHeight` with the same `artWidth` gives a taller tree that's no wider.
-//
-// `offsetX`/`offsetY` move the WHOLE zone — its art, its tap hotspot and its
-// scattered drawings (the tree's leaf canopy) — together, without touching
-// the numbers above or anything else in the scene. Positive x = right,
-// positive y = down, as a % of the scene-ground box.
+// `offsetX`/`offsetY` move a zone's tap hotspot without touching the numbers
+// above or anything else in the scene. Positive x = right, positive y = down,
+// as a % of the scene-ground box.
 const ZONES = [
-  {
-    id: "tree",
-    label: "Colour the tree",
-    level: "Easy",
-    stars: 1,
-    sceneArt: ASSETS.tree,
-    // Move the whole tree (art + hotspot + leaves) from here.
-    offsetX: "-10%",
-    offsetY: "0%",
-    top: "45%",
-    left: "10%",
-    width: "15%",
-    height: "60%",
-    // Tree art only — stretched taller than the zone box, same width.
-    artTop: "-40%",
-    artLeft: "10.7%",
-    artWidth: "13%",
-    artHeight: "240%",
-    artFit: "fill",
-    // Old tree — art only now, kept as a reference while the crayon trees'
-    // leaf boxes get mapped out (then it's deleted). Its leaves and hotspot
-    // moved to CRAYON_TREES, so no hotspot here.
-    hotspot: false,
-  },
   {
     id: "stem",
     label: "Draw a flower",
@@ -67,11 +35,10 @@ const ZONES = [
   },
 ];
 
-// A zone position (`top`/`artTop` or `left`/`artLeft`) shifted by the zone's
-// offsetY/offsetX, if it has one.
+// A zone's `top`/`left` shifted by its offsetY/offsetX, if it has one.
 const shifted = (value, offset) => (offset ? `calc(${value} + ${offset})` : value);
-const zoneTop = (zone, value = zone.top) => shifted(value, zone.offsetY);
-const zoneLeft = (zone, value = zone.left) => shifted(value, zone.offsetX);
+const zoneTop = (zone) => shifted(zone.top, zone.offsetY);
+const zoneLeft = (zone) => shifted(zone.left, zone.offsetX);
 
 // ---- Street artwork ---------------------------------------------------------
 // The street is split into separate building pieces so each can be moved on
@@ -208,7 +175,7 @@ const pieceImgStyle = ({ crop }) => ({
 });
 
 // ---- Notice board fixture --------------------------------------------------
-// Decorative scene furniture, positioned the same way as a zone's `sceneArt`
+// Decorative scene furniture, positioned the same way as the zones
 // (top/left/width/height as a % of the scene-ground box, so it pans with the
 // street and holds across phone widths). Not wired to a hotspot yet — once
 // it's placed, .notice-board-button gets moved/resized to sit on top of it.
@@ -604,26 +571,6 @@ export default function StreetScene() {
             {/* Everything placed on top of the street art. See .scene-overlay
                in the CSS for why it has its own vertical offset. */}
             <div className="scene-overlay">
-              {/* Fixed scene furniture (the tree you colour). Always visible; the
-                 drawings sit on top of it. */}
-              {ZONES.map((zone) =>
-                zone.sceneArt ? (
-                  <img
-                    key={`fixture-${zone.id}`}
-                    className="zone-fixture"
-                    src={zone.sceneArt}
-                    alt=""
-                    style={{
-                      top: zoneTop(zone, zone.artTop ?? zone.top),
-                      left: zoneLeft(zone, zone.artLeft ?? zone.left),
-                      width: zone.artWidth ?? zone.width,
-                      height: zone.artHeight ?? zone.height,
-                      objectFit: zone.artFit,
-                    }}
-                  />
-                ) : null,
-              )}
-
               {/* Crayon trees — see CRAYON_TREES above. Each tree is its art,
                  its canopy (leaf box guides, toggled by SHOW_LEAF_BOXES, plus
                  its scattered leaves) and, while contributing, its hotspot.
@@ -851,7 +798,7 @@ export default function StreetScene() {
 
               {/* Hotspots — only while contributing. */}
               {mode === "contribute" &&
-                ZONES.filter((zone) => zone.hotspot !== false).map((zone) => (
+                ZONES.map((zone) => (
                   <button
                     key={`hot-${zone.id}`}
                     className="zone"
