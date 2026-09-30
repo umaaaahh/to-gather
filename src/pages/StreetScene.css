@@ -121,6 +121,12 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  /* No scrollbar: the street pans by swiping/dragging. */
+  scrollbar-width: none;
+}
+
+.street-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* Everything that pans with the street — houses AND the road —
