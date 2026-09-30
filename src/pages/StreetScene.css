@@ -74,14 +74,6 @@
   --overlay-offset-y: -50%;
 }
 
-.scene-layer {
-  position: absolute;
-  width: 100%;
-  left: 0;
-  pointer-events: none;
-  user-select: none;
-}
-
 /* Cloud track: 2 tiles wide, drifting left forever. translateX(-50%)
    lands tile 2 exactly where tile 1 started, so the loop has no seam. */
 .clouds {
@@ -642,34 +634,77 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* The note is sized in cqw (a % of the board's width), so it always fits
+     the whiteboard however big the board is drawn. */
+  container-type: inline-size;
 }
 
 .notice-board-button:active .notice-board-badge {
   transform: scale(0.96);
 }
 
+/* A handwritten note pinned to the whiteboard, in the board's own brown
+   ink, with a warm glow that breathes so it still reads as tappable. */
 .notice-board-badge {
-  /* top/left come inline and mark the badge's centre; `translate` (not
+  /* top/left come inline and mark the note's centre; `translate` (not
      `transform`, which the :active press uses) pulls it back by half its
      own size so that point really is the middle. */
   position: absolute;
   translate: -50% -50%;
-  padding: 0.5em 1em;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #d9822b, #f2b155, #d9822b);
-  background-size: 200% 100%;
-  color: #fff;
-  font-weight: 500;
-  font-size: 0.60rem;
-  white-space: nowrap;
-  overflow: hidden;
-  animation: notice-shine 1.8s linear infinite;
+  rotate: -3deg;
+  box-sizing: border-box;
+  width: 56cqw; /* the whiteboard is ~68% of the board's width */
+  padding: 4.5cqw 2.5cqw 3.5cqw;
+  border: 2px solid #6b3517;
+  border-radius: 14px 6px 12px 5px / 5px 12px 6px 14px;
+  background: #fff4c9;
+  box-shadow: 2px 2px 0 #6b3517;
+  color: #6b3517;
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 8cqw; /* two lines: "What's on in / the community!" */
+  line-height: 1;
+  text-align: center;
+  text-wrap: balance;
+  animation: notice-glow 2.4s ease-in-out infinite;
 }
 
-@keyframes notice-shine {
-  0% { background-position: 200% 0; box-shadow: 0 0 4px rgba(242, 177, 85, 0.4); }
-  50% { box-shadow: 0 0 16px rgba(242, 177, 85, 0.95); }
-  100% { background-position: -200% 0; box-shadow: 0 0 4px rgba(242, 177, 85, 0.4); }
+/* Pushpin */
+.notice-board-badge::before {
+  content: "";
+  position: absolute;
+  top: -3cqw;
+  left: 50%;
+  width: 6.3cqw;
+  height: 6.3cqw;
+  translate: -50% 0;
+  border: 1.5px solid #6b3517;
+  border-radius: 50%;
+  background: #ef5a4c;
+}
+
+@keyframes notice-glow {
+  0%, 100% { box-shadow: 2px 2px 0 #6b3517, 0 0 4px rgba(242, 177, 85, 0.4); }
+  50% { box-shadow: 2px 2px 0 #6b3517, 0 0 16px rgba(242, 177, 85, 0.95); }
+}
+
+/* The whole board glows too, in time with the note, while it's tappable
+   (view mode — the button isn't there otherwise). drop-shadow follows the
+   board's own outline, posts and kangaroo included. */
+.street-scene[data-mode="view"] .notice-board-art {
+  animation: notice-board-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes notice-board-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 214, 120, 0.5)); }
+  50% { filter: drop-shadow(0 0 12px rgba(255, 214, 120, 1)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice-board-badge,
+  .street-scene[data-mode="view"] .notice-board-art {
+    animation: none;
+  }
 }
 
 /* ---- Hidden window "surprise" --------------------------------------------
@@ -687,25 +722,6 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-}
-
-.window-sound-dot {
-  display: block;
-  font-size: 1.4rem;
-  line-height: 1;
-  filter: drop-shadow(0 0 6px rgba(255, 85, 0, 0.85));
-  animation: window-sound-pulse 3s ease-in-out infinite;
-}
-
-@keyframes window-sound-pulse {
-  0%, 100% {
-    transform: scale(0.85);
-    filter: drop-shadow(0 0 4px rgba(255, 85, 0, 0.5));
-  }
-  50% {
-    transform: scale(1.15);
-    filter: drop-shadow(0 0 12px rgba(255, 85, 0, 0.95));
-  }
 }
 
 /* The crayon boombox picture (ASSETS.radio) sat in the music window in
@@ -753,7 +769,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .window-sound-dot,
   .window-boombox,
   .window-books {
     animation: none;

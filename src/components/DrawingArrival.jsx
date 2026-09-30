@@ -15,11 +15,16 @@ const MAX_LOADING_MS = 12000;
 const FADE_MS = 500;
 // The drawing sits at its drawn size on the street this long before flying.
 const HOLD_MS = 500;
-// Must match the transform transition on .arrival-clone[data-phase="fly"].
-const FLY_MS = 1000;
+// How long the drawing takes to shrink into its spot (passed to the CSS as
+// --fly-ms, so the transition always matches).
+const FLY_MS = 2000;
 // How long the glow stays up after landing, then how long it fades.
-const GLOW_MS = 1000;
-const GLOW_FADE_MS = 500;
+const GLOW_MS = 1500;
+const GLOW_FADE_MS = 700;
+// The glow is sized off the landed drawing, with a floor so a tiny leaf or
+// flower still gets a glow you can see.
+const GLOW_SCALE = 2.6;
+const GLOW_MIN_PX = 110;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -109,6 +114,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
         target.h / from.height
       })`
     : undefined;
+  const glowSize = target ? Math.max(Math.max(target.w, target.h) * GLOW_SCALE, GLOW_MIN_PX) : 0;
 
   return createPortal(
     <>
@@ -120,15 +126,38 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
           <span />
         </div>
       </div>
+      {/* The glow lives on its own at the landing spot rather than inside
+         the clone, so the clone shrinking down doesn't shrink it to nothing. */}
+      {target && phase !== "loading" && (
+        <span
+          className="arrival-glow"
+          data-phase={phase}
+          style={{
+            left: target.cx,
+            top: target.cy,
+            width: glowSize,
+            height: glowSize,
+            "--fly-ms": `${FLY_MS}ms`,
+            "--glow-fade-ms": `${GLOW_FADE_MS}ms`,
+          }}
+          aria-hidden="true"
+        />
+      )}
       {phase !== "loading" && (
         <div
           className="arrival-clone"
           data-phase={phase}
           data-landing={target ? "" : undefined}
-          style={{ left: from.left, top: from.top, width: from.width, height: from.height, transform }}
+          style={{
+            left: from.left,
+            top: from.top,
+            width: from.width,
+            height: from.height,
+            transform,
+            "--fly-ms": `${FLY_MS}ms`,
+          }}
           aria-hidden="true"
         >
-          <span className="arrival-glow" />
           <img className="arrival-img" src={arrival.imageUrl} alt="" draggable={false} />
         </div>
       )}

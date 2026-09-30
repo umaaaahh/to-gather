@@ -108,12 +108,6 @@ function startListening() {
   }
 }
 
-// Always an array (oldest contribution first), even for an untouched zone.
-export function getDrawings(zoneKey) {
-  startListening();
-  return cache[zoneKey] || [];
-}
-
 export function getAllDrawings() {
   startListening();
   return cache;

@@ -48,8 +48,9 @@
 .arrival-clone[data-phase="fly"],
 .arrival-clone[data-phase="glow"],
 .arrival-clone[data-phase="fading"] {
-  /* FLY_MS in DrawingArrival.jsx — a little overshoot as it settles. */
-  transition: transform 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+  /* --fly-ms is FLY_MS from DrawingArrival.jsx. Eases in gently and settles
+     with a little overshoot. */
+  transition: transform var(--fly-ms, 2s) cubic-bezier(0.3, 0.9, 0.35, 1.08);
 }
 
 /* Didn't find its spot in the scene: just fade away where it is. */
@@ -65,39 +66,48 @@
   height: 100%;
 }
 
-/* White glow behind the drawing: grows in as it lands, holds through the
-   glow phase, then fades (GLOW_FADE_MS). */
+/* Warm glow at the landing spot, behind the drawing (its own element, sized
+   and centred inline from the landed drawing, so the clone's shrink doesn't
+   shrink it too). Grows in over the second half of the flight, pulses
+   through the glow phase, then fades (--glow-fade-ms). */
 .arrival-glow {
-  position: absolute;
-  inset: -30%;
+  position: fixed;
+  z-index: 1000; /* just under the clone */
+  translate: -50% -50%;
   border-radius: 50%;
+  pointer-events: none;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.6) 35%,
-    rgba(255, 255, 255, 0) 70%
+    rgba(255, 252, 235, 1) 0%,
+    rgba(255, 236, 170, 0.85) 30%,
+    rgba(255, 214, 120, 0.4) 55%,
+    rgba(255, 214, 120, 0) 72%
   );
   opacity: 0;
-  transform: scale(0.6);
+  transform: scale(0.4);
   transition:
-    opacity 0.5s ease,
-    transform 0.5s ease;
+    opacity var(--glow-fade-ms, 0.7s) ease,
+    transform var(--glow-fade-ms, 0.7s) ease;
 }
 
-.arrival-clone[data-phase="fly"] .arrival-glow {
-  transition-delay: 0.6s; /* kicks in over the last part of the flight */
+.arrival-glow[data-phase="fly"] {
+  /* Kicks in over the second half of the flight. */
+  transition:
+    opacity calc(var(--fly-ms, 2s) / 2) ease calc(var(--fly-ms, 2s) / 2),
+    transform calc(var(--fly-ms, 2s) / 2) ease-out calc(var(--fly-ms, 2s) / 2);
 }
 
-.arrival-clone[data-phase="fly"] .arrival-glow,
-.arrival-clone[data-phase="glow"] .arrival-glow {
+.arrival-glow[data-phase="fly"],
+.arrival-glow[data-phase="glow"] {
   opacity: 1;
   transform: scale(1);
-  animation: arrival-glow-pulse 1s ease-in-out infinite alternate;
+  animation: arrival-glow-pulse 0.9s ease-in-out infinite alternate;
 }
 
 @keyframes arrival-glow-pulse {
   to {
-    filter: brightness(1.15);
+    filter: brightness(1.12);
+    scale: 1.08;
   }
 }
 

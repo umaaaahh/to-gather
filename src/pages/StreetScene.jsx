@@ -198,11 +198,11 @@ const NOTICE_BOARD = {
   height: `${NOTICE_BOARD_POS.height}%`,
 };
 
-// Where the orange "Notice Board" badge sits ON the board, as a % of the
+// Where the "What's on" note sits ON the board, as a % of the
 // board itself (so it moves with the board). This is the badge's centre point:
 //   top  — 0 = board's top edge, 50 = middle, 100 = the feet
 //   left — 0 = board's left edge, 50 = middle, 100 = right edge
-const NOTICE_BADGE_POS = { top: 43, left: 50 };
+const NOTICE_BADGE_POS = { top: 40, left: 50 };
 
 // Crayon trees — the "tree" zone's leaves live on these. Same % coordinates
 // as above, one box per tree. The image keeps its aspect ratio
@@ -750,7 +750,7 @@ export default function StreetScene({
               type="button"
               className="notice-board-button"
               onClick={() => navigate("/notices")}
-              aria-label="Community notice board"
+              aria-label="What's on in the community"
               style={{
                 bottom: NOTICE_BOARD.bottom,
                 left: NOTICE_BOARD.left,
@@ -762,7 +762,7 @@ export default function StreetScene({
                 className="notice-board-badge"
                 style={{ top: `${NOTICE_BADGE_POS.top}%`, left: `${NOTICE_BADGE_POS.left}%` }}
               >
-                Notice Board
+                What's on in the community!
               </span>
             </button>
           )}
