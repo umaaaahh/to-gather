@@ -16,7 +16,7 @@ export default function SplashScreen({ onDone }) {
   const [phase, setPhase] = useState("showing"); // showing -> fading -> done
 
   useEffect(() => {
-    // Warm the cache for the tour's kangaroo (a big PNG) while the logo is
+    // Warm the cache for the tour's kangaroo while the logo is
     // up, so it's there for its hop in rather than loading in mid-air.
     new Image().src = ASSETS.kangaroo;
 

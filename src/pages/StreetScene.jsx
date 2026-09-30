@@ -80,18 +80,20 @@ const STREET_PIECES = [
     src: ASSETS.streetLeft,
     left: "0%",
     scale: 1.1,
-    // building 56.svg: viewBox 210.65 × 157.99. Its embedded PNG is at
-    // 0.1029 units/px, so these are PNG pixel measurements converted.
-    crop: { vbWidth: 210.65, vbHeight: 157.99, x: 8.33, y: 33.9, width: 188.13, height: 77.21 },
-    roadThickness: 12.15,
+    // building-56.webp: 1833 × 755 px, already cropped from building 56.svg
+    // to this box plus a 2px safety margin on every side (clipped by
+    // .street-piece's overflow: hidden).
+    crop: { vbWidth: 1833, vbHeight: 755, x: 2.91, y: 2.37, width: 1827.26, height: 750.16 },
+    roadThickness: 118.05,
   },
   {
     id: "right",
     src: ASSETS.streetRight,
     left: "72.4%",
     scale: 1.1,
-    // building 94.svg: viewBox 2172 × 1512, 1:1 with its embedded PNG.
-    crop: { vbWidth: 2172, vbHeight: 1512, x: 184, y: 285, width: 1887, height: 763 },
+    // building-94.webp: 1891 × 767 px, already cropped from building 94.svg
+    // to this box plus a 2px safety margin on every side.
+    crop: { vbWidth: 1891, vbHeight: 767, x: 2, y: 2, width: 1887, height: 763 },
     roadThickness: 118,
   },
 ];
@@ -104,14 +106,15 @@ const STREET_PIECES = [
 //   false — a slice from the middle (where road and grass are even)
 //           repeated along the street; the road file's ends are rounded
 //           off and its grass fades out, so it can't tile end to end.
-// the road.svg: viewBox 2172 × 1512; road top at y 1048, grass ends ~1321,
-// road drawn from x ~187 to ~1989.
+// the-road.webp: 1812 × 277 px, cropped from the road.svg (2172 × 1512) to
+// the road + grass (x 184–1992, y 1048–1321) plus a 2px safety margin, so
+// both crops below sit inside it.
 const ROAD_WHOLE = true;
 const ROAD_STRIP = {
   src: ASSETS.road,
   crop: ROAD_WHOLE
-    ? { vbWidth: 2172, vbHeight: 1512, x: 184, y: 1048, width: 1808, height: 273 }
-    : { vbWidth: 2172, vbHeight: 1512, x: 500, y: 1048, width: 1200, height: 273 },
+    ? { vbWidth: 1812, vbHeight: 277, x: 2, y: 2, width: 1808, height: 273 }
+    : { vbWidth: 1812, vbHeight: 277, x: 318, y: 2, width: 1200, height: 273 },
   roadThickness: 118,
 };
 

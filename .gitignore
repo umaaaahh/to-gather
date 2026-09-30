@@ -29,3 +29,6 @@ dist-ssr
 
 # Firebase
 .firebase
+
+# Local image working files (originals + optimised exports; the live copies are in R2)
+src/assets/edits/

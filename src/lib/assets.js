@@ -16,29 +16,31 @@
 // full A4 artboard with the stem in one corner, wrong scale for a template.
 import leafOutlineSvg from "../assets/leaf-outline.svg";
 import stemOutlineSvg from "../assets/Stem.svg";
-// The left building is bundled too: it's the bucket's "building 56.svg" with
-// the sun that was painted into its sky erased — the Start button is the sun
-// now (see SunButton). Swap back to url("building 56.svg") if the bucket
-// copy is ever re-exported without it.
-import streetLeftSvg from "../assets/building-56.svg";
 
 const BASE =
   import.meta.env.VITE_ASSET_BASE_URL ||
   "https://pub-c3a1d03c8bed4e6d8bc732274ae6b7b2.r2.dev";
 
-const url = (name) => `${BASE}/${encodeURIComponent(name)}`;
+// Encodes each path segment, so "folder/file name.png" keeps its slash.
+const url = (name) => `${BASE}/${name.split("/").map(encodeURIComponent).join("/")}`;
+
+// Optimised copies of the scene art: WebP (or SVGO'd SVG), and the buildings
+// and road are pre-cropped to what StreetScene shows (+2px margin) — their
+// crop numbers in StreetScene.jsx are in these files' pixels. building-56 is
+// the copy with the sun erased (the Start button is the sun, see SunButton).
+const resized = (name) => url(`resized assests/${name}`);
 
 export const ASSETS = {
   logo: url("logo.svg"),
-  clouds: url("vector_clouds.svg"),
-  streetLeft: streetLeftSvg,
-  streetRight: url("building 94.svg"),
-  road: url("the road.svg"),
-  crayonTree: url("lighter tree.svg"),
+  clouds: resized("vector_clouds.svg"),
+  streetLeft: resized("building-56.webp"),
+  streetRight: resized("building-94.webp"),
+  road: resized("the-road.webp"),
+  crayonTree: resized("tree.webp"),
   leafOutline: leafOutlineSvg,
   stemOutline: stemOutlineSvg,
-  kangaroo: url("Kangaroo_Crayon Style.PNG"),
-  noticeBoard: url("noticeboard_try.png"),
+  kangaroo: resized("kangaroo.webp"),
+  noticeBoard: resized("noticeboard.webp"),
   // Crayon boombox in the street's music window (opens the radio).
   radio: url("Untitled - 30 September 2026 at 01.21.06 (1).png"),
   // Crayon book row in the street's bookshelf window (opens the Bookshelf).
