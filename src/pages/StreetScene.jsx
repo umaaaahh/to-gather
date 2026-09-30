@@ -231,7 +231,7 @@ const CRAYON_TREES = [
     top: "55%",
     left: "-5.5%",
     width: "15%",
-    height: "50%",
+    height: "51%",
     // Left third is off the start of the street — right side only.
     leafBoxes: [
       { id: "top-right", top: "-10%", left: "37.5%", width: "40%", height: "45%", capacity: 30, flip: true },
@@ -243,7 +243,7 @@ const CRAYON_TREES = [
     top: "57%",
     left: "67%",
     width: "12%",
-    height: "50%",
+    height: "51%",
     flip: true,
     leafBoxes: [
       { id: "top-left", top: "-5%", left: "10%", width: "75%", height: "45%", capacity: 78 },
@@ -256,7 +256,7 @@ const CRAYON_TREES = [
     top: "55%",
     left: "139%",
     width: "15%",
-    height: "50%",
+    height: "51%",
     flip: true,
     // Right third is past the end of the road — left side only. Last tree,
     // so its last box also takes the overflow buffer.
