@@ -2,13 +2,13 @@
    .street-scene frame, not the street, so it doesn't pan. translateY hides
    all but the top --show of it; the numbers match PEEK/OPEN in the JSX. */
 .notice-tab {
-  --show: 0.12;
+  --show: 0.15;
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 9; /* above the street and the sun (5), below the tour (30) */
-  width: 92%;
+  width: 100%;
   max-width: 440px;
   aspect-ratio: 600 / 900; /* the noticeboard art */
   margin: 0 auto;
@@ -24,7 +24,7 @@
 }
 
 .notice-tab[data-open] {
-  --show: .92;
+  --show: 1;
 }
 
 .notice-tab:focus-visible .notice-tab-art {

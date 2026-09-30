@@ -6,10 +6,10 @@ import "./NoticeTab.css";
 
 // How much of the board shows, as a fraction of its height from the top.
 // Closed = just the kangaroo's head peeking over the screen's bottom edge;
-// open = down to the bottom of the whiteboard, legs still tucked away.
-// Tuned to the noticeboard.webp art (600x900).
-const PEEK = 0.12;
-const OPEN = 0.92;
+// open = the whole board, legs and all, standing on the bottom edge.
+// Tuned to the 600x900 board art.
+const PEEK = 0.15;
+const OPEN = 1;
 // Pointer travel (px) under which a press counts as a tap, not a drag.
 const TAP_PX = 6;
 

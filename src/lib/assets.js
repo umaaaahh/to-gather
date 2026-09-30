@@ -40,7 +40,9 @@ export const ASSETS = {
   leafOutline: leafOutlineSvg,
   stemOutline: stemOutlineSvg,
   kangaroo: resized("kangaroo.webp"),
-  noticeBoard: resized("noticeboard.webp"),
+  // TEMP: the 600x900 board art as its original PNG, until its WebP copy
+  // replaces resized assests/noticeboard.webp (still the older 595x842 art).
+  noticeBoard: url("Untitled - 30 September 2026 at 15.33.06-2.png"),
   // Crayon boombox in the street's music window (opens the radio).
   radio: url("Untitled - 30 September 2026 at 01.21.06 (1).png"),
   // Crayon book row in the street's bookshelf window (opens the Bookshelf).
