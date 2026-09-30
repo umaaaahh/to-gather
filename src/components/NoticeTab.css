@@ -1,0 +1,180 @@
+/* The pull-up notice board (see NoticeTab.jsx). Pinned to the bottom of the
+   .street-scene frame, not the street, so it doesn't pan. translateY hides
+   all but the top --show of it; the numbers match PEEK/OPEN in the JSX. */
+.notice-tab {
+  --show: 0.12;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9; /* above the street and the sun (5), below the tour (30) */
+  width: 92%;
+  max-width: 440px;
+  aspect-ratio: 600 / 900; /* the noticeboard art */
+  margin: 0 auto;
+  transform: translateY(calc((1 - var(--show)) * 100%));
+  transition: transform 0.35s cubic-bezier(0.3, 1.3, 0.5, 1);
+  cursor: grab;
+  touch-action: none; /* vertical drags move the board, not the page */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  /* Everything inside is sized in cqw (a % of the board's width). */
+  container-type: inline-size;
+}
+
+.notice-tab[data-open] {
+  --show: .92;
+}
+
+.notice-tab:focus-visible .notice-tab-art {
+  filter: drop-shadow(0 0 6px #fff);
+}
+
+.notice-tab-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Crayon-outlined close button, same as .bookshelf-modal-close, in the
+   board's empty top-right corner (above the right post). */
+.notice-tab-close {
+  position: absolute;
+  top: 3%;
+  right: 3%;
+  z-index: 1;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 2.5px solid #6b3517;
+  border-radius: 18px 22px 16px 20px / 20px 16px 22px 18px;
+  background: #fffaeb;
+  color: #6b3517;
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #6b3517;
+  -webkit-tap-highlight-color: transparent;
+  animation: notice-tab-fade 0.3s ease both;
+}
+
+.notice-tab-close:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #6b3517;
+}
+
+/* A gentle bob while it's tucked away, so the kangaroo reads as tappable. */
+.notice-tab:not([data-open]) .notice-tab-art {
+  animation: notice-tab-bob 2.6s ease-in-out infinite;
+}
+
+@keyframes notice-tab-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1%); }
+}
+
+/* Blurs the street behind the raised board, same as the Bookshelf and radio
+   pop-ups; tapping it closes the board. */
+.notice-tab-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border: none;
+  padding: 0;
+  background: rgba(255, 248, 230, 0.28);
+  -webkit-backdrop-filter: blur(7px) saturate(0.85);
+  backdrop-filter: blur(7px) saturate(0.85);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: notice-tab-fade 0.3s ease both;
+}
+
+@keyframes notice-tab-fade {
+  from { opacity: 0; }
+}
+
+/* Notes written on the whiteboard: the drawn whiteboard is x 15–85%,
+   y 30–60% of the art; the list sits just inside that, clear of the
+   blue marker at the bottom. */
+.notice-tab-notes {
+  position: absolute;
+  left: 17%;
+  right: 17%;
+  top: 32.5%;
+  height: 24.5%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-weight: 700;
+  color: #2c5f9e; /* whiteboard marker blue */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  scrollbar-width: none;
+}
+
+.notice-tab-notes::-webkit-scrollbar {
+  display: none;
+}
+
+.notice-tab[data-open] .notice-tab-notes {
+  opacity: 1;
+}
+
+.notice-tab:not([data-open]) .notice-tab-notes {
+  pointer-events: none;
+}
+
+.notice-tab-note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 2.5cqw;
+  padding: 1.6cqw 0;
+  border-bottom: 1.5px dashed rgba(44, 95, 158, 0.3);
+  line-height: 1.05;
+}
+
+.notice-tab-date {
+  grid-row: span 2;
+  align-self: center;
+  color: #c0483a; /* red marker */
+  font-size: 4.2cqw;
+  white-space: nowrap;
+}
+
+.notice-tab-title {
+  font-size: 4.6cqw;
+}
+
+.notice-tab-meta {
+  font-size: 3.4cqw;
+  opacity: 0.75;
+}
+
+.notice-tab-all {
+  display: block;
+  margin: 1.8cqw 0 0 auto;
+  border: none;
+  padding: 0.5cqw 1cqw;
+  background: none;
+  color: #6b3517;
+  font: inherit;
+  font-size: 4.2cqw;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice-tab,
+  .notice-tab-art {
+    transition: none;
+    animation: none;
+  }
+}

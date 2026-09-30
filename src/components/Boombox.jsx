@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import LoadingLogo from "./LoadingLogo";
 import "./Boombox.css";
 
 // Local community radio, streamed live. `pos` is where the tuner needle sits
@@ -286,6 +287,11 @@ export default function Boombox({ onNowPlaying }) {
           .filter(Boolean)
           .join(" ")}
       >
+        {/* Stations can take a while to tune in: the logo flashes above the
+           boombox until the stream actually starts. */}
+        {status === "tuning" && (
+          <LoadingLogo className="boombox-tuning-logo" label="Tuning in" />
+        )}
         <svg className="boombox-body" viewBox="0 0 640 400" aria-hidden="true">
           <defs>
             {/* Wobbly lines plus waxy speckled coverage = crayon */}

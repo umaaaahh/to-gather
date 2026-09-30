@@ -1,0 +1,22 @@
+/* See LoadingLogo.jsx. Default size suits an inline "loading" spot;
+   callers override height/position via their own class — :where() keeps
+   these defaults at zero specificity so any class beats them. */
+:where(.loading-logo) {
+  display: block;
+  height: 3rem;
+  max-width: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  animation: loading-logo-flash 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes loading-logo-flash {
+  from { opacity: 0.25; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-logo {
+    animation: none;
+  }
+}

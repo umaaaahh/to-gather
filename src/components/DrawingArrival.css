@@ -101,7 +101,7 @@
 .arrival-glow[data-phase="glow"] {
   opacity: 1;
   transform: scale(1);
-  animation: arrival-glow-pulse 0.9s ease-in-out infinite alternate;
+  animation: arrival-glow-pulse 1.6s ease-in-out infinite alternate;
 }
 
 @keyframes arrival-glow-pulse {

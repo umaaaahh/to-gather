@@ -229,6 +229,17 @@
   }
 }
 
+/* LoadingLogo while a station tunes in (status "tuning"). It sits
+   just above the boombox, in the popup's top padding, centred so it's
+   clear of the close button in the corner. */
+.boombox-tuning-logo {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  translate: -50% -0.2rem;
+  height: 8rem;
+}
+
 /* ---- Power + volume ------------------------------------------------ */
 .boombox-wrap {
   display: flex;

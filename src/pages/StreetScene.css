@@ -365,12 +365,12 @@
   transform: none;
 }
 
-/* Notice board art (see NOTICE_BOARD in StreetScene.jsx). It sits in
-   .scene-track, anchored to the screen bottom; z-index 7 keeps it above
-   .scene-ground (2), and so above everything drawn inside it. */
+/* Notice board art, filling .notice-board-button (the board itself). */
 .notice-board-art {
   position: absolute;
-  z-index: 7;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   pointer-events: none;
 }
@@ -619,16 +619,15 @@
   font-size: 1.5rem;
 }
 
-/* Notice board button, integrated into the scene, with a
-   more prominent shine than the zone pulse per spec. */
-/* Tap target sitting exactly over .notice-board-art (same box, inline
-   style, so they pan together). The button itself is an invisible hit area
-   the size of the whole board; .notice-board-badge inside is the visible,
-   naturally-sized shiny label, placed by NOTICE_BADGE_POS (inline top/left)
-   so it isn't stretched into the board's own (portrait) proportions. */
+/* The notice board (see NOTICE_BOARD in StreetScene.jsx): a button holding
+   the art and, in view mode, .notice-board-badge — the naturally-sized
+   shiny note, placed by NOTICE_BADGE_POS (inline top/left) so it isn't
+   stretched into the board's own (portrait) proportions. It sits in
+   .scene-track, anchored to the screen bottom; z-index 7 keeps it above
+   .scene-ground (2), and so above everything drawn inside it. */
 .notice-board-button {
   position: absolute;
-  z-index: 8; /* above the art (7) so it's actually tappable, not covered */
+  z-index: 7;
   border: none;
   background: transparent;
   padding: 0;
@@ -637,6 +636,12 @@
   /* The note is sized in cqw (a % of the board's width), so it always fits
      the whiteboard however big the board is drawn. */
   container-type: inline-size;
+}
+
+/* Outside view mode it's just scenery: let taps fall through to whatever's
+   behind it, as the plain art used to. */
+.notice-board-button:disabled {
+  pointer-events: none;
 }
 
 .notice-board-button:active .notice-board-badge {

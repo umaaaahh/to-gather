@@ -7,6 +7,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { deleteDrawing, subscribeAdminDrawings } from "../lib/drawingsStore";
+import LoadingLogo from "../components/LoadingLogo";
 import "./Admin.css";
 
 function LoginForm({ onError }) {
@@ -120,7 +121,7 @@ function DrawingsList() {
     setBulkBusy(false);
   }
 
-  if (drawings === null) return <p className="admin-status">Loading drawings…</p>;
+  if (drawings === null) return <LoadingLogo className="admin-loading" label="Loading drawings" />;
   if (drawings.length === 0) return <p className="admin-status">No drawings yet.</p>;
 
   const allSelected = liveSelected.size === drawings.length;
@@ -197,7 +198,7 @@ export default function Admin() {
         )}
       </header>
 
-      {user === undefined && <p className="admin-status">Checking sign-in…</p>}
+      {user === undefined && <LoadingLogo className="admin-loading" label="Checking sign-in" />}
 
       {user === null && (
         <>

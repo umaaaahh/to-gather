@@ -39,7 +39,7 @@ const TOUR_STEPS = [
   },
   {
     text: "This is the notice board. Tap it any time to see what's on around the street!",
-    target: [".notice-board-art"],
+    target: [".notice-board-art", ".notice-tab"],
     hint: "tap",
     look: true,
   },

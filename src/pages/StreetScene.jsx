@@ -3,6 +3,7 @@ import { useNavigate, useOutlet } from "react-router-dom";
 import StreetTour from "../components/StreetTour";
 import SunButton from "../components/SunButton";
 import DrawingArrival from "../components/DrawingArrival";
+import NoticeTab from "../components/NoticeTab";
 import {
   getAllDrawings,
   subscribe,
@@ -176,10 +177,13 @@ const pieceImgStyle = ({ crop }) => ({
 });
 
 // ---- Notice board fixture --------------------------------------------------
-// Decorative scene furniture, positioned the same way as the zones
-// (top/left/width/height as a % of the scene-ground box, so it pans with the
-// street and holds across phone widths). Not wired to a hotspot yet — once
-// it's placed, .notice-board-button gets moved/resized to sit on top of it.
+// TRIAL: true swaps the board in the street for the pull-up tab (NoticeTab)
+// pinned to the screen's bottom edge. false = the board below, as before.
+const NOTICE_TAB = true;
+
+// Scene furniture that doubles as the link to /notices, positioned the same
+// way as the zones (a % of the scene-ground box, so it pans with the street
+// and holds across phone widths).
 //
 // It lives in .scene-track (not .scene-overlay), so it's anchored to the
 // bottom of the screen and ignores --scene-lift / --overlay-offset-y.
@@ -190,10 +194,10 @@ const pieceImgStyle = ({ crop }) => ({
 //   height — board size, grows upward from its feet; width follows automatically
 const NOTICE_BOARD_POS = { bottom: 0, left: 52, height: 40 };
 
-// Width = height x the art's 1728:2442 ratio, converted through the
+// Width = height x the art's 600:900 ratio, converted through the
 // scene-ground's 660:285 aspect, so the tap target hugs the board.
 const NOTICE_BOARD_WIDTH =
-  NOTICE_BOARD_POS.height * (1728 / 2442) * (285 / 660);
+  NOTICE_BOARD_POS.height * (600 / 900) * (285 / 660);
 const NOTICE_BOARD = {
   bottom: `${NOTICE_BOARD_POS.bottom}%`,
   left: `${NOTICE_BOARD_POS.left}%`,
@@ -648,6 +652,11 @@ export default function StreetScene({
   // so the entrance can measure it.
   const arrivingUrl = arrival?.thumbUrl ?? null;
   const isArriving = (item) => arrivingUrl !== null && item.url === arrivingUrl;
+  // The arriving item shows the local copy of the export (already in memory)
+  // rather than downloading its thumbnail, so the entrance can measure it the
+  // moment the save lands. Once the entrance hands over it switches to the
+  // thumbnail; the browser keeps showing the old image until that's loaded.
+  const itemSrc = (item) => (isArriving(item) ? arrival.imageUrl : item.url);
   useEffect(() => {
     if (!saveFailed) return undefined;
     const timer = setTimeout(() => setSaveFailed(false), 5000);
@@ -725,50 +734,37 @@ export default function StreetScene({
              the ground line (sized by --scene-lift). */}
           <div className="scene-road" style={{ width: `${STREET_LENGTH}%` }} />
 
-          {/* Notice board fixture — see NOTICE_BOARD above for its box.
-             A direct child of .scene-track (whose bottom edge is the screen
-             bottom), so `bottom` anchors it there. High z-index keeps it
-             above .scene-ground (2) and everything inside it. */}
-          <img
-            className="notice-board-art"
-            src={ASSETS.noticeBoard}
-            alt=""
+          {/* Notice board — see NOTICE_BOARD above for its box. One element:
+             the button is the board, with the art and the "What's on" note
+             inside it. A direct child of .scene-track (whose bottom edge is
+             the screen bottom), so `bottom` anchors it there. High z-index
+             keeps it above .scene-ground (2) and everything inside it.
+             Tappable in view mode only, same as the window surprise — once
+             Start reveals the zone hotspots it's just scenery (disabled, no
+             note), back once Return drops back to the clean view. */}
+          {!NOTICE_TAB && <button
+            type="button"
+            className="notice-board-button"
+            onClick={() => navigate("/notices")}
+            disabled={mode !== "view"}
+            aria-label="What's on in the community"
             style={{
               bottom: NOTICE_BOARD.bottom,
               left: NOTICE_BOARD.left,
               width: NOTICE_BOARD.width,
               height: NOTICE_BOARD.height,
             }}
-          />
-
-          {/* Tap target for the notice board — same box as the art above,
-             so it pans with it and lines up exactly. The hit area covers the
-             whole board; the visible shiny label badge inside is centred and
-             naturally sized so it doesn't get stretched into the board's own
-             (portrait) proportions. View mode only, same as the window
-             surprise — gone once Start reveals the zone hotspots, back once
-             Return drops back to the clean view. */}
-          {mode === "view" && (
-            <button
-              type="button"
-              className="notice-board-button"
-              onClick={() => navigate("/notices")}
-              aria-label="What's on in the community"
-              style={{
-                bottom: NOTICE_BOARD.bottom,
-                left: NOTICE_BOARD.left,
-                width: NOTICE_BOARD.width,
-                height: NOTICE_BOARD.height,
-              }}
-            >
+          >
+            <img className="notice-board-art" src={ASSETS.noticeBoard} alt="" />
+            {mode === "view" && (
               <span
                 className="notice-board-badge"
                 style={{ top: `${NOTICE_BADGE_POS.top}%`, left: `${NOTICE_BADGE_POS.left}%` }}
               >
                 What's on in the community!
               </span>
-            </button>
-          )}
+            )}
+          </button>}
 
           <div className="scene-ground">
             <div className="street-art">
@@ -850,7 +846,7 @@ export default function StreetScene({
                           >
                             <img
                               className="scatter-item-img"
-                              src={leaf.url}
+                              src={itemSrc(leaf)}
                               alt=""
                               draggable={false}
                               loading={isArriving(leaf) ? "eager" : "lazy"}
@@ -963,7 +959,7 @@ export default function StreetScene({
                       >
                         <img
                           className="scatter-item-img"
-                          src={item.url}
+                          src={itemSrc(item)}
                           alt=""
                           draggable={false}
                           loading={isArriving(item) ? "eager" : "lazy"}
@@ -1055,7 +1051,7 @@ export default function StreetScene({
                   >
                     <img
                       className="scatter-item-img"
-                      src={item.url}
+                      src={itemSrc(item)}
                       alt=""
                       draggable={false}
                       loading={isArriving(item) ? "eager" : "lazy"}
@@ -1115,6 +1111,10 @@ export default function StreetScene({
       >
         {mode === "view" ? "Start" : "Return"}
       </SunButton>
+
+      {/* Pull-up notice board (trial, see NOTICE_TAB) — view mode only, so
+         it's out of the way of the zone hotspots while contributing. */}
+      {NOTICE_TAB && mode === "view" && <NoticeTab />}
 
       {saveFailed && (
         <p role="alert" className="save-toast">

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import LoadingLogo from "./LoadingLogo";
 import "./Bookshelf.css";
 
 // Book details (search, covers, links) come from Google Books. Adding and
@@ -99,7 +100,7 @@ function Bookshelf() {
   // Books whose notes are open; the shelf only shows cover/title/author.
   const [openNotes, setOpenNotes] = useState(() => new Set());
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState(null); // null | "error" | "limited" | book[]
+  const [results, setResults] = useState(null); // null | "searching" | "error" | "limited" | book[]
   const [picked, setPicked] = useState(null);
   const [reason, setReason] = useState("");
   const [status, setStatus] = useState("");
@@ -142,6 +143,8 @@ function Bookshelf() {
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) return;
+    // Shows the loading logo until this search (after the debounce) lands.
+    setResults("searching");
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -269,6 +272,11 @@ function Bookshelf() {
         />
 
         <ul className="shelf-results" aria-live="polite">
+          {shownResults === "searching" && (
+            <li className="shelf-searching">
+              <LoadingLogo label="Searching" />
+            </li>
+          )}
           {shownResults === "limited" && (
             <li className="shelf-note">Lots of people are searching right now. Try again in a minute.</li>
           )}

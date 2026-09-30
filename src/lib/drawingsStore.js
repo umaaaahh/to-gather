@@ -61,6 +61,19 @@ const CACHE_CONTROL = "public, max-age=31536000, immutable";
 let cache = { tree: [], stem: [], free: [] }; // { zoneKey: [thumbUrl, ...] }, oldest first
 const zoneUnsubscribes = [];
 
+// Resolves once every zone's listener has delivered its first snapshot (or
+// failed), so the splash can hold until the street's drawings are known
+// rather than having them pop in after it lifts. See whenDrawingsLoaded.
+const zonesPending = new Set(Object.keys(ZONE_LIMITS));
+let resolveLoaded;
+const drawingsLoaded = new Promise((resolve) => {
+  resolveLoaded = resolve;
+});
+function zoneLoaded(zoneKey) {
+  zonesPending.delete(zoneKey);
+  if (zonesPending.size === 0) resolveLoaded(cache);
+}
+
 // "submitted" signal — fires once per successful saveDrawing(), after both
 // the Storage upload and the Firestore doc write have completed. This is the
 // intended hook point for future consumers that react to a fresh publish
@@ -90,20 +103,29 @@ function startListening() {
       limit(ZONE_LIMITS[zoneKey]),
     );
     zoneUnsubscribes.push(
-      onSnapshot(q, (snap) => {
-        // Newest-first queries come back newest-first (that's what limit()
-        // keeps); reverse to oldest-first so layoutScatter's index-based
-        // seeding stays as stable as possible while a zone is under its cap.
-        // Falls back to the full-res url for drawings uploaded before
-        // thumbnails existed, so pre-migration drawings don't just vanish
-        // from the scene.
-        const docs = snap.docs.map((d) => d.data());
-        const urls = (oldestFirst ? docs : docs.reverse())
-          .map((data) => data.thumbUrl || data.url)
-          .filter(Boolean);
-        cache = { ...cache, [zoneKey]: urls };
-        listeners.forEach((fn) => fn(cache));
-      }),
+      onSnapshot(
+        q,
+        (snap) => {
+          // Newest-first queries come back newest-first (that's what limit()
+          // keeps); reverse to oldest-first so layoutScatter's index-based
+          // seeding stays as stable as possible while a zone is under its cap.
+          // Falls back to the full-res url for drawings uploaded before
+          // thumbnails existed, so pre-migration drawings don't just vanish
+          // from the scene.
+          const docs = snap.docs.map((d) => d.data());
+          const urls = (oldestFirst ? docs : docs.reverse())
+            .map((data) => data.thumbUrl || data.url)
+            .filter(Boolean);
+          cache = { ...cache, [zoneKey]: urls };
+          listeners.forEach((fn) => fn(cache));
+          zoneLoaded(zoneKey);
+        },
+        // A failed listener shouldn't hold the splash up either.
+        (err) => {
+          console.warn(`Drawings listener failed (${zoneKey}):`, err);
+          zoneLoaded(zoneKey);
+        },
+      ),
     );
   }
 }
@@ -111,6 +133,12 @@ function startListening() {
 export function getAllDrawings() {
   startListening();
   return cache;
+}
+
+// Promise of the first full set of drawings (see drawingsLoaded above).
+export function whenDrawingsLoaded() {
+  startListening();
+  return drawingsLoaded;
 }
 
 export function subscribe(fn) {
@@ -146,19 +174,19 @@ export async function saveDrawing(zoneKey, pngBlob) {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const path = `drawings/${zoneKey}/${id}.png`;
   const thumbPath = `drawings/${zoneKey}/${id}-thumb.png`;
-  const thumbBlob = await makeThumbnail(pngBlob, THUMB_SIZE);
-
   const storageRef = ref(storage, path);
   const thumbStorageRef = ref(storage, thumbPath);
   const uploadOpts = { contentType: "image/png", cacheControl: CACHE_CONTROL };
 
-  await Promise.all([
-    uploadBytes(storageRef, pngBlob, uploadOpts),
-    uploadBytes(thumbStorageRef, thumbBlob, uploadOpts),
-  ]);
+  // Each file goes straight from upload to its download URL, and the
+  // full-size upload starts while the thumbnail is still being made — the
+  // new drawing's entrance waits on this whole save, so nothing waits on
+  // anything it doesn't need.
+  const uploadAndLink = (fileRef, blob) =>
+    uploadBytes(fileRef, blob, uploadOpts).then(() => getDownloadURL(fileRef));
   const [url, thumbUrl] = await Promise.all([
-    getDownloadURL(storageRef),
-    getDownloadURL(thumbStorageRef),
+    uploadAndLink(storageRef, pngBlob),
+    makeThumbnail(pngBlob, THUMB_SIZE).then((thumbBlob) => uploadAndLink(thumbStorageRef, thumbBlob)),
   ]);
 
   const docRef = await addDoc(collection(db, COLLECTION), {

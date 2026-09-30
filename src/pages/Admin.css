@@ -41,6 +41,11 @@
   margin-top: 2rem;
 }
 
+/* LoadingLogo while drawings or the sign-in check load. */
+.admin-loading {
+  margin: 3rem auto 0;
+}
+
 .admin-error {
   color: #b00020;
   text-align: center;

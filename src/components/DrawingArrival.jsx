@@ -14,13 +14,13 @@ const MAX_LOADING_MS = 12000;
 // Must match the .splash opacity transition (SplashScreen.css).
 const FADE_MS = 500;
 // The drawing sits at its drawn size on the street this long before flying.
-const HOLD_MS = 500;
+const HOLD_MS = 700;
 // How long the drawing takes to shrink into its spot (passed to the CSS as
 // --fly-ms, so the transition always matches).
-const FLY_MS = 2000;
+const FLY_MS = 2800;
 // How long the glow stays up after landing, then how long it fades.
-const GLOW_MS = 1500;
-const GLOW_FADE_MS = 700;
+const GLOW_MS = 2800;
+const GLOW_FADE_MS = 1000;
 // The glow is sized off the landed drawing, with a floor so a tiny leaf or
 // flower still gets a glow you can see.
 const GLOW_SCALE = 2.6;

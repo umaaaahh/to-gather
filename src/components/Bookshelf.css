@@ -460,3 +460,14 @@
     transition: none;
   }
 }
+
+/* LoadingLogo while a book search is in flight. */
+.shelf-searching {
+  display: flex;
+  justify-content: center;
+  padding: 0.4rem 0;
+}
+
+.shelf-searching .loading-logo {
+  height: 2.5rem;
+}
