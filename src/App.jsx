@@ -8,6 +8,7 @@ import Admin from "./pages/Admin";
 import SplashScreen from "./components/SplashScreen";
 import RadioLayer from "./components/RadioLayer";
 import BookshelfLayer from "./components/Bookshelf";
+import StreetHistoryLayer from "./components/StreetHistory";
 
 export default function App() {
   // First-visit intro, once per page load: the logo splash, then the
@@ -27,6 +28,11 @@ export default function App() {
   const openShelf = useCallback(() => setShelfOpen(true), []);
   const closeShelf = useCallback(() => setShelfOpen(false), []);
 
+  // The street's history popup, opened from the Cardigan St sign.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const openHistory = useCallback(() => setHistoryOpen(true), []);
+  const closeHistory = useCallback(() => setHistoryOpen(false), []);
+
   return (
     <BrowserRouter>
       <SplashScreen onDone={startTour} />
@@ -42,6 +48,7 @@ export default function App() {
               onTourDone={endTour}
               onOpenRadio={openRadio}
               onOpenBookshelf={openShelf}
+              onOpenStreetSign={openHistory}
             />
           }
         >
@@ -53,6 +60,7 @@ export default function App() {
       </Routes>
       <RadioLayer open={radioOpen} onOpen={openRadio} onClose={closeRadio} />
       <BookshelfLayer open={shelfOpen} onClose={closeShelf} />
+      <StreetHistoryLayer open={historyOpen} onClose={closeHistory} />
     </BrowserRouter>
   );
 }

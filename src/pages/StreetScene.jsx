@@ -83,7 +83,7 @@ const STREET_ROAD_THICKNESS = 8.5 * STREET_SCALE;
 const STREET_BUILDING_SIZE = 3.9 * STREET_SCALE;
 // Empty road before the first building, between buildings, and after the
 // last one, as a % of the scene-ground width. As tuned: 4 / 6 / 4.
-const STREET_START_PADDING = 20 * STREET_SCALE;
+const STREET_START_PADDING = 27 * STREET_SCALE;
 const STREET_GAP = 10 * STREET_SCALE;
 const STREET_END_PADDING = 4 * STREET_SCALE;
 
@@ -369,11 +369,11 @@ const WINDOW_SOUND = anchored({ top: "84.5%", anchor: "left", left: "11%", width
 // radio.
 const WINDOW_BOOK = anchored({ top: "86.5%", anchor: "left", left: "29.5%", width: "6%", height: "14%" });
 
-// Street sign — a third tappable surprise, same glow as the window ones,
-// standing on the footpath between the first tree and the left building.
+// Street sign — a third tappable surprise, same glow as the window ones;
+// opens the street's history (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
 // `left` is from the left building's edge (negative = before it). Height is
 // the knob for its size; width follows the art.
-const STREET_SIGN_POS = { anchor: "left", left: -9.5, bottom: 106, height: 40 };
+const STREET_SIGN_POS = { anchor: "left", left: -13.5, bottom: 106, height: 40 };
 // Where the sign sits in its 595x842 file (the rest is empty page).
 const STREET_SIGN_CROP = { vbWidth: 595, vbHeight: 842, x: 135, y: 35, width: 387, height: 757 };
 const STREET_SIGN = {
@@ -382,6 +382,18 @@ const STREET_SIGN = {
   // height is a % of the scene-ground height; width a % of its width (660:285).
   width: `${(STREET_SIGN_POS.height * STREET_SIGN_CROP.width * 285) / (STREET_SIGN_CROP.height * 660)}%`,
   height: `${STREET_SIGN_POS.height}%`,
+};
+
+// The kangaroo, standing on the footpath between the street sign and the
+// left building. Same knobs as the sign: `left` from the left building's
+// edge, feet at `bottom`, `height` sets its size and width follows the art
+// (1172 x 1342).
+const STREET_KANGAROO_POS = { anchor: "left", left: -8.5, bottom: 106, height: 22 };
+const STREET_KANGAROO = {
+  top: `${STREET_KANGAROO_POS.bottom - STREET_KANGAROO_POS.height}%`,
+  left: `${streetX(STREET_KANGAROO_POS.anchor, STREET_KANGAROO_POS.left)}%`,
+  width: `${(STREET_KANGAROO_POS.height * 1172 * 285) / (1342 * 660)}%`,
+  height: `${STREET_KANGAROO_POS.height}%`,
 };
 
 // ---- Scattered zone contributions -----------------------------------------
@@ -1055,7 +1067,7 @@ export default function StreetScene({
                   type="button"
                   className="window-sound-button"
                   onClick={onOpenStreetSign}
-                  aria-label="Cardigan St street sign"
+                  aria-label="Read the history of Cardigan St"
                   style={STREET_SIGN}
                 >
                   <span className="street-sign">
@@ -1068,6 +1080,18 @@ export default function StreetScene({
                     />
                   </span>
                 </button>
+              )}
+
+              {/* The kangaroo by the sign — just scenery. Hidden while the
+                 tour runs, since the tour's kangaroo is the one talking. */}
+              {!showTour && (
+                <img
+                  className="street-kangaroo"
+                  src={ASSETS.kangaroo}
+                  alt=""
+                  draggable="false"
+                  style={STREET_KANGAROO}
+                />
               )}
 
               {/* Flower beds — see FLOWER_BEDS above. Each bed is its scattered

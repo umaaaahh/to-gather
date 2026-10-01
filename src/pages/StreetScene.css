@@ -799,6 +799,18 @@
   animation: window-boombox-pulse 3s ease-in-out infinite;
 }
 
+/* The kangaroo standing by the street sign (STREET_KANGAROO). */
+.street-kangaroo {
+  position: absolute;
+  z-index: 8;
+  display: block;
+  object-fit: contain;
+  object-position: 50% 100%;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.25));
+}
+
 .window-sound-button:active .window-boombox,
 .window-sound-button:active .window-books,
 .window-sound-button:active .street-sign {
