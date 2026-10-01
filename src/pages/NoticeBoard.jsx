@@ -116,10 +116,10 @@ export default function NoticeBoard() {
                   </span>
                 </div>
                 <div className="nb-event-body">
-                  <span className="nb-event-tag">{event.tag}</span>
+                  <span className="nb-event-tag">{event.genre}</span>
                   <span className="nb-event-title">{event.title}</span>
                   <span className="nb-event-meta">
-                    🕑 {event.time} · 📍 {event.location}
+                    {event.timeLabel} · {event.location}
                   </span>
                 </div>
               </li>

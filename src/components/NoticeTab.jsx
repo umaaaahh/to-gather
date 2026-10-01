@@ -1,7 +1,13 @@
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useRef, useState } from "react";
 import { ASSETS } from "../lib/assets";
-import { EVENTS, MONTH_NAMES } from "../lib/events";
+import {
+  EVENTS,
+  genreColor,
+  isUpcoming,
+  sameDay,
+  shortDate,
+} from "../lib/events";
+import EventsPopout from "./EventsPopout";
 import "./NoticeTab.css";
 
 // How much of the board shows, as a fraction of its height from the top.
@@ -13,18 +19,17 @@ const OPEN = 1;
 // Pointer travel (px) under which a press counts as a tap, not a drag.
 const TAP_PX = 6;
 
-// Mock data is all in the past, so show every event for now — Phase 2's
-// real feed should only show upcoming ones.
-const NOTES = [...EVENTS].sort((a, b) => a.date - b.date);
-
 // The notice board as a pull-up tab pinned to the bottom of the screen.
-// Tap or drag the kangaroo up to raise it; the notices are written on the
-// whiteboard. Tap outside, tap the board again or drag it down to put it away.
+// Tap or drag the kangaroo up to raise it; the whiteboard then shows the
+// notes (see Whiteboard below). Tapping a note pops the full what's-on view
+// out over the street. Tap outside, tap the board again or drag it down to
+// put it away.
 export default function NoticeTab() {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   // Live translateY (px) while dragging, null otherwise.
   const [dragY, setDragY] = useState(null);
+  // What the pop-out opens on ({ genre?, day?, showKey? }), null when shut.
+  const [popout, setPopout] = useState(null);
   const boardRef = useRef(null);
   const drag = useRef(null);
 
@@ -35,8 +40,9 @@ export default function NoticeTab() {
   };
 
   const onPointerDown = (e) => {
-    // The notes scroll on their own; don't turn that into a board drag.
-    if (e.target.closest(".notice-tab-notes, .notice-tab-close")) return;
+    // The whiteboard scrolls and swipes on its own; don't turn that into a
+    // board drag.
+    if (e.target.closest(".notice-tab-board, .notice-tab-close")) return;
     drag.current = { startY: e.clientY, baseY: restY(open), moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -65,6 +71,8 @@ export default function NoticeTab() {
     setDragY(null);
   };
 
+  const closePopout = useCallback(() => setPopout(null), []);
+
   const style =
     dragY === null ? undefined : { transform: `translateY(${dragY}px)`, transition: "none" };
 
@@ -92,7 +100,7 @@ export default function NoticeTab() {
         aria-expanded={open}
         aria-label={open ? "Put the notice board away" : "What's on in the community"}
         onKeyDown={(e) => {
-          // Keys on the buttons inside (close, See all) are theirs.
+          // Keys on the buttons inside (close, notes, dots) are theirs.
           if (e.target !== e.currentTarget) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -101,6 +109,23 @@ export default function NoticeTab() {
         }}
       >
         <img className="notice-tab-art" src={ASSETS.noticeBoard} alt="" draggable={false} />
+        {open && (
+          // Arched title over the kangaroo's ears: the text follows a
+          // shallow curve drawn across the board's width.
+          <svg
+            className="notice-tab-banner"
+            viewBox="0 0 600 150"
+            role="img"
+            aria-label="IRL Community events!"
+          >
+            <path id="notice-tab-arc" d="M 20 135 Q 300 5 580 135" fill="none" />
+            <text textAnchor="middle">
+              <textPath href="#notice-tab-arc" startOffset="50%">
+                IRL Community events!
+              </textPath>
+            </text>
+          </svg>
+        )}
         {open && (
           <button
             type="button"
@@ -111,30 +136,66 @@ export default function NoticeTab() {
             ×
           </button>
         )}
-        <ul className="notice-tab-notes" aria-hidden={!open}>
-          {NOTES.map((n) => (
-            <li key={n.id} className="notice-tab-note">
-              <span className="notice-tab-date">
-                {n.date.getDate()} {MONTH_NAMES[n.date.getMonth()].slice(0, 3)}
-              </span>
-              <span className="notice-tab-title">{n.title}</span>
-              <span className="notice-tab-meta">
-                {n.time} · {n.location}
-              </span>
+        {/* Mounted only while open, so the notes are fresh each time. */}
+        {open && <Whiteboard onPick={setPopout} />}
+      </div>
+
+      {popout && <EventsPopout initial={popout} onClose={closePopout} />}
+    </>
+  );
+}
+
+// The day the board highlights: today, or if nothing's left on today, the
+// next day with something on. Returns that day and its events still to come.
+function pickDay(now) {
+  const next = EVENTS.find((e) => isUpcoming(e, now));
+  if (!next) return { day: null, events: [] };
+  return {
+    day: next.date,
+    events: EVENTS.filter((e) => sameDay(e.date, next.date) && isUpcoming(e, now)),
+  };
+}
+
+// The notes on the whiteboard: every event on the highlighted day, each in
+// its genre's colour, and a link to the full calendar. onPick gets what the
+// pop-out should open on.
+function Whiteboard({ onPick }) {
+  const [{ day, events, isToday }] = useState(() => {
+    const now = new Date();
+    const picked = pickDay(now);
+    return { ...picked, isToday: !!picked.day && sameDay(picked.day, now) };
+  });
+
+  return (
+    <div className="notice-tab-board">
+      <h3 className="notice-tab-heading">
+        {day ? (isToday ? "On today" : `Next up: ${shortDate(day)}`) : "What's on"}
+      </h3>
+      {events.length === 0 ? (
+        <p className="notice-tab-empty">Nothing coming up yet.</p>
+      ) : (
+        <ul className="notice-tab-notes">
+          {events.map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                className="notice-tab-note"
+                style={{ "--genre": genreColor(e.genre) }}
+                onClick={() => onPick({ day, showKey: e.showKey })}
+              >
+                <span className="notice-tab-date">{e.startLabel}</span>
+                <span className="notice-tab-title">{e.title}</span>
+                <span className="notice-tab-meta">
+                  {e.genre} · {e.location}
+                </span>
+              </button>
             </li>
           ))}
-          <li>
-            <button
-              type="button"
-              className="notice-tab-all"
-              tabIndex={open ? 0 : -1}
-              onClick={() => navigate("/notices")}
-            >
-              See all ›
-            </button>
-          </li>
         </ul>
-      </div>
-    </>
+      )}
+      <button type="button" className="notice-tab-all" onClick={() => onPick({})}>
+        Full calendar ›
+      </button>
+    </div>
   );
 }
