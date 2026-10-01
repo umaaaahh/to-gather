@@ -27,7 +27,7 @@
      Colour matches the crayon grass (its pale green at ~45% opacity over
      the bottom of the sky gradient). */
   --ground-color: #98b169;
-  --ground-height: 26%;
+  --ground-height: 28.3%;
   --road-line-color: transparent; /* centre lane dashes; set a colour to show */
 
   /* ---- Road box -----------------------------------------------------
@@ -94,7 +94,7 @@
   flex: 0 0 70%;
   width: 70%;
   /* gentle vertical bob, offset the 2nd tile so they don't bob in unison */
-  animation: clouds-bob 10s ease-in-out infinite;
+  animation: clouds-bob 7s ease-in-out infinite;
 }
 
 .cloud-tile:nth-child(2) {
@@ -103,7 +103,7 @@
 
 @keyframes clouds-drift {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to { transform: translateX(-90%); }
 }
 
 @keyframes clouds-bob {
@@ -844,7 +844,7 @@
    itself stays still on the sill. Width is the knob for its size. */
 .window-boombox {
   display: block;
-  width: 55%;
+  width: 90%;
   height: auto;
   transform-origin: 50% 100%;
   pointer-events: none;
@@ -867,7 +867,7 @@
    takes most of its WINDOW_BOOK box's width. */
 .window-books {
   display: block;
-  width: 90%;
+  width: 120%;
   height: auto;
   transform-origin: 50% 100%;
   pointer-events: none;

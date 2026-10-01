@@ -27,11 +27,11 @@ const ZONES = [
     label: "Draw a character",
     level: "Hard",
     stars: 3,
-    top: "105.5%", // on the road
+    top: "101.3%", // on the road
     anchor: "left", // see STREET_ANCHORS
     left: "21%",
     width: "30%",
-    height: "16%",
+    height: "17.5%",
   },
 ];
 
@@ -79,7 +79,7 @@ const zoneLeft = (zone) => shifted(`${fromStreetStart(zone.anchor, zone.left)}%`
 // is how thick the file draws the road — used only for scale. Only
 // re-measure them if the file is re-exported.
 const STREET_SCALE = 1;
-const STREET_ROAD_THICKNESS = 8.5 * STREET_SCALE;
+const STREET_ROAD_THICKNESS = 9.3 * STREET_SCALE;
 const STREET_BUILDING_SIZE = 3.9 * STREET_SCALE;
 // Empty road before the first building, between buildings, and after the
 // last one, as a % of the scene-ground width.
@@ -91,7 +91,7 @@ const STREET_BUILDINGS = [
   {
     id: "left",
     src: ASSETS.streetLeft,
-    scale: 1.1,
+    scale: 1.2,
     // building-56.webp: 1833 × 755 px, already cropped from building 56.svg
     // to this box plus a 2px safety margin on every side (clipped by
     // .street-building's overflow: hidden).
@@ -101,7 +101,7 @@ const STREET_BUILDINGS = [
   {
     id: "right",
     src: ASSETS.streetRight,
-    scale: 1.1,
+    scale: 1.2,
     // building-94.webp: 1891 × 767 px, already cropped from building 94.svg
     // to this box plus a 2px safety margin on every side.
     crop: { fileWidth: 1891, fileHeight: 767, x: 2, y: 2, width: 1887, height: 763 },
@@ -393,13 +393,13 @@ const treeHotspotBox = (t) => {
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above; `left` is from the left building's edge so it stays on its window.
-const WINDOW_RADIO = resolveAnchor({ top: "84.5%", anchor: "left", left: "11%", width: "8%", height: "14%" });
+const WINDOW_RADIO = resolveAnchor({ top: "83%", anchor: "left", left: "2.4%", width: "8%", height: "14%" });
 
 // A second window surprise, same pattern as WINDOW_RADIO above — a different
 // window pane so the two don't compete for attention. Opens the community
 // bookshelf popup (see Bookshelf.jsx), the same way the boombox opens the
 // radio.
-const WINDOW_BOOK = resolveAnchor({ top: "86.5%", anchor: "left", left: "29.5%", width: "6%", height: "14%" });
+const WINDOW_BOOK = resolveAnchor({ top: "75%", anchor: "left", left: "98%", width: "6%", height: "14%" });
 
 // Street sign — a third tappable surprise, same glow as the window ones;
 // opens the street's history (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
@@ -494,7 +494,7 @@ const CHARACTER_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", hei
 // The whole road, bar the last 2% — its width follows the street length.
 // Edit these numbers to move/resize where characters walk (same %
 // coordinates as ZONES — of the scene-ground box).
-const WALK_BOX = { top: "105.5%", left: "0%", width: `${STREET_LENGTH - 2}%`, height: "18%" };
+const WALK_BOX = { top: "101.3%", left: "0%", width: `${STREET_LENGTH - 2}%`, height: "19.7%" };
 
 // Flip SHOW_WALK_BOX on to see WALK_BOX on the street (dashed outline +
 // its numbers) while you position it, then set it back to false.
@@ -510,7 +510,7 @@ const SHOW_WALK_BOX = false;
 // ([min, max], seeded per character): 1 = end to end. They all walk at
 // WALK_SPEED (% of the scene width per second), bobbing a WALK_HOP-high hop
 // about every HOP_SECONDS.
-const CHARACTER_SIZE = 6;
+const CHARACTER_SIZE = 7;
 const WALK_REACH = [0.5, 1];
 const WALK_SPEED = 2.5;
 const WALK_HOP = [0.5, 1];

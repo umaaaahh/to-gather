@@ -113,11 +113,12 @@ function Bookshelf() {
     const ctrl = new AbortController();
     SAMPLE_BOOKS.forEach(async (sample) => {
       try {
-        const [found] = await searchBooks(
-          `intitle:"${sample.title}" inauthor:"${sample.authors}"`,
-          1,
-          ctrl.signal,
-        );
+        // Plain search: Google Books currently returns nothing for
+        // intitle:/inauthor: queries. Pick the first result that is the same
+        // book, preferring one with a cover.
+        const results = await searchBooks(`${sample.title} ${sample.authors}`, 10, ctrl.signal);
+        const matches = results.filter((r) => sameBookKey(r) === sameBookKey(sample));
+        const found = matches.find((r) => safeCover(r.cover)) || matches[0];
         if (!found) return;
         setShelfBooks((books) =>
           books.some((b) => b.id === found.id)
