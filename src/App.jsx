@@ -9,6 +9,7 @@ import SplashScreen from "./components/SplashScreen";
 import RadioLayer from "./components/RadioLayer";
 import BookshelfLayer from "./components/Bookshelf";
 import StreetHistoryLayer from "./components/StreetHistory";
+import StreetStatsLayer from "./components/StreetStats";
 
 export default function App() {
   // First-visit intro, once per page load: the logo splash, then the
@@ -35,6 +36,11 @@ export default function App() {
   const openHistory = useCallback(() => setHistoryOpen(true), []);
   const closeHistory = useCallback(() => setHistoryOpen(false), []);
 
+  // The street stats popup, opened from the neon poster on the shopfront.
+  const [statsOpen, setStatsOpen] = useState(false);
+  const openStats = useCallback(() => setStatsOpen(true), []);
+  const closeStats = useCallback(() => setStatsOpen(false), []);
+
   return (
     <BrowserRouter>
       <SplashScreen onDone={startTour} />
@@ -52,6 +58,7 @@ export default function App() {
               onOpenRadio={openRadio}
               onOpenBookshelf={openShelf}
               onOpenStreetSign={openHistory}
+              onOpenStreetStats={openStats}
             />
           }
         >
@@ -64,6 +71,7 @@ export default function App() {
       <RadioLayer open={radioOpen} onOpen={openRadio} onClose={closeRadio} />
       <BookshelfLayer open={shelfOpen} onClose={closeShelf} />
       <StreetHistoryLayer open={historyOpen} onClose={closeHistory} />
+      <StreetStatsLayer open={statsOpen} onClose={closeStats} />
     </BrowserRouter>
   );
 }

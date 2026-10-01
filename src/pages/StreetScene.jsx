@@ -417,6 +417,18 @@ const STREET_SIGN = {
   height: `${STREET_SIGN_POS.height}%`,
 };
 
+// Neon "Street stats!" poster, pasted on the bare brick of the left
+// building's orange shopfront (right of its upper windows). Another view-mode
+// surprise: opens the street stats popup (see StreetStats.jsx). Height is the
+// knob for its size; width follows the art (427 x 586).
+const STREET_POSTER_POS = { anchor: "left", left: 57.25, top: 82.2, height: 12 };
+const STREET_POSTER = {
+  top: `${STREET_POSTER_POS.top}%`,
+  left: `${fromStreetStart(STREET_POSTER_POS.anchor, STREET_POSTER_POS.left)}%`,
+  width: `${(STREET_POSTER_POS.height * 427 * 285) / (586 * 660)}%`,
+  height: `${STREET_POSTER_POS.height}%`,
+};
+
 // The kangaroo, standing on the footpath between the street sign and the
 // left building. Same knobs as the sign: `left` from the left building's
 // edge, feet at `bottom`, `height` sets its size and width follows the art
@@ -788,6 +800,7 @@ export default function StreetScene({
   onOpenRadio,
   onOpenBookshelf,
   onOpenStreetSign,
+  onOpenStreetStats,
 }) {
   const navigate = useNavigate();
   // The /draw/:zoneId child route (DrawZone). While it's open the street
@@ -1146,6 +1159,20 @@ export default function StreetScene({
                       style={cropImgStyle({ crop: STREET_SIGN_CROP })}
                     />
                   </span>
+                </button>
+              )}
+
+              {/* Neon stats poster on the shopfront — same view-mode-only
+                 pattern; opens the street stats. */}
+              {mode === "view" && (
+                <button
+                  type="button"
+                  className="street-surprise-button"
+                  onClick={onOpenStreetStats}
+                  aria-label="See the street's stats"
+                  style={STREET_POSTER}
+                >
+                  <img className="street-poster" src={ASSETS.streetStats} alt="" draggable="false" />
                 </button>
               )}
 

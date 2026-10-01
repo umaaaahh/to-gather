@@ -230,14 +230,14 @@
 }
 
 /* LoadingLogo while a station tunes in (status "tuning"). It sits
-   just above the boombox, in the popup's top padding, centred so it's
-   clear of the close button in the corner. */
+   just above the boombox, tucked under the popup's arched title
+   (.radio-modal-banner), so it's small enough to fit beneath the curve. */
 .boombox-tuning-logo {
   position: absolute;
   bottom: 100%;
   left: 50%;
-  translate: -50% -0.2rem;
-  height: 8rem;
+  translate: -50% -0.1rem;
+  height: 4.5rem;
 }
 
 /* ---- Power + volume ------------------------------------------------ */

@@ -111,17 +111,17 @@ export default function NoticeTab() {
         <img className="notice-tab-art" src={ASSETS.noticeBoard} alt="" draggable={false} />
         {open && (
           // Arched title over the kangaroo's ears: the text follows a
-          // shallow curve drawn across the board's width.
+          // rainbow curve drawn across the board's width.
           <svg
             className="notice-tab-banner"
-            viewBox="0 0 600 150"
+            viewBox="0 0 600 230"
             role="img"
-            aria-label="IRL Community events!"
+            aria-label="COMMUNITY EVENTS!"
           >
-            <path id="notice-tab-arc" d="M 20 135 Q 300 5 580 135" fill="none" />
+            <path id="notice-tab-arc" d="M 20 215 Q 300 -115 580 215" fill="none" />
             <text textAnchor="middle">
               <textPath href="#notice-tab-arc" startOffset="50%">
-                IRL Community events!
+                COMMUNITY EVENTS!
               </textPath>
             </text>
           </svg>

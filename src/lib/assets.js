@@ -51,4 +51,7 @@ export const ASSETS = {
   // building. A 595x842 page with the sign in the middle — StreetScene crops
   // it (STREET_SIGN_CROP).
   streetSign: url("Untitled design (2).svg"),
+  // Crayon neon "Street stats!" poster on the left building (opens the
+  // street stats popup).
+  streetStats: url("street stats.png"),
 };

@@ -39,12 +39,12 @@
   filter: drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.2));
 }
 
-/* Arched "IRL Community events!" title floating just above the kangaroo's
+/* Arched "COMMUNITY EVENTS!" title floating just above the kangaroo's
    ears while the board is up. Board brown with a cream outline so it reads
    over the blurred street. */
 .notice-tab-banner {
   position: absolute;
-  bottom: 99%;
+  bottom: 82%;
   left: 0;
   width: 100%;
   overflow: visible;
@@ -59,7 +59,7 @@
   stroke-linejoin: round;
   paint-order: stroke;
   font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 54px;
+  font-size: 44px;
   font-weight: 700;
   letter-spacing: 1px;
 }

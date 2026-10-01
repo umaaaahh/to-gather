@@ -1,0 +1,501 @@
+/* ---- Street stats popup -----------------------------------------------
+   Same layer and blurred backdrop as the history popup (see
+   StreetHistory.css), but the card is neon: green and orange glow on dark
+   graph paper. Carlton is always orange, Victoria always green. */
+.stats-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.stats-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.75rem;
+  background: rgba(4, 8, 6, 0.35);
+  -webkit-backdrop-filter: blur(7px) saturate(0.85);
+  backdrop-filter: blur(7px) saturate(0.85);
+  animation: stats-fade 0.25s ease both;
+}
+
+.stats-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  max-height: 100%;
+  box-sizing: border-box;
+  background-color: #08100b;
+  background-image:
+    linear-gradient(rgba(93, 255, 138, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(93, 255, 138, 0.09) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 2.5px solid #5dff8a;
+  border-radius: 22px 8px 26px 10px;
+  box-shadow:
+    6px 6px 0 #ff7a1a,
+    0 0 22px rgba(93, 255, 138, 0.55),
+    inset 0 0 28px rgba(93, 255, 138, 0.12);
+  overflow: hidden;
+  color: #eafff0;
+  font-family: system-ui, -apple-system, sans-serif;
+  animation: stats-rise 0.3s cubic-bezier(0.3, 1.3, 0.5, 1) both;
+}
+
+@keyframes stats-fade {
+  from { opacity: 0; }
+}
+
+@keyframes stats-rise {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+}
+
+.stats-modal :where(button) {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stats-modal :where(button):focus-visible {
+  outline: 3px solid #ff7a1a;
+  outline-offset: 2px;
+}
+
+.stats-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 20px 16px 22px;
+}
+
+.stats-glow {
+  text-shadow: 0 0 6px rgba(93, 255, 138, 0.9), 0 0 18px rgba(93, 255, 138, 0.6);
+}
+
+.stats-close {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #5dff8a;
+  border-radius: 18px 22px 16px 20px / 20px 16px 22px 18px;
+  background: #0e1a13;
+  color: #5dff8a;
+  box-shadow: 0 0 10px rgba(93, 255, 138, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-close:active {
+  transform: translateY(2px);
+}
+
+/* ---- Header ---- */
+.stats-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 52px;
+  overflow: hidden;
+}
+
+.stats-kicker {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5dff8a;
+}
+
+.stats-title {
+  margin: 4px 0 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  transform: rotate(-1.5deg);
+}
+
+.stats-title span {
+  padding: 0 4px;
+  color: #fff;
+  text-shadow: 0 0 4px #fff, 0 0 12px #5dff8a, 0 0 28px #5dff8a, 3px 3px 0 #ff7a1a;
+}
+
+.stats-intro {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+/* The retro grid floor, rolling towards you. Shared with the poster. */
+.stats-floor {
+  height: 46px;
+  margin: 8px -68px -18px -16px;
+  background-image:
+    linear-gradient(rgba(255, 122, 26, 0.9) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, rgba(93, 255, 138, 0.9) 1.5px, transparent 1.5px);
+  background-size: 100% 14px, 26px 100%;
+  transform: perspective(140px) rotateX(58deg);
+  transform-origin: 50% 0;
+  -webkit-mask-image: linear-gradient(#000, transparent);
+  mask-image: linear-gradient(#000, transparent);
+  animation: stats-drive 0.9s linear infinite;
+}
+
+@keyframes stats-drive {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 0 14px, 0 0; }
+}
+
+/* ---- Bars, shared by the tiles, legend and charts ---- */
+.stats-bar {
+  display: block;
+  height: 7px;
+  border-radius: 0 4px 4px 0;
+}
+
+.stats-bar--carlton {
+  background: #ff7a1a;
+  box-shadow: 0 0 8px rgba(255, 122, 26, 0.75);
+}
+
+.stats-bar--vic {
+  background: #5dff8a;
+  box-shadow: 0 0 8px rgba(93, 255, 138, 0.75);
+}
+
+.stats-legend {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  font-family: "Orbitron", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stats-legend span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.stats-swatch {
+  width: 16px;
+  height: 10px;
+  border-radius: 0 3px 3px 0;
+}
+
+.stats-swatch--carlton {
+  background: #ff7a1a;
+  box-shadow: 0 0 8px rgba(255, 122, 26, 0.75);
+}
+
+.stats-swatch--vic {
+  background: #5dff8a;
+  box-shadow: 0 0 8px rgba(93, 255, 138, 0.75);
+}
+
+/* ---- Headline tiles ---- */
+.stats-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stats-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 12px;
+  background: #0e1a13;
+  border: 2px solid rgba(93, 255, 138, 0.75);
+  border-radius: 12px 4px 14px 6px;
+}
+
+.stats-tile-label {
+  min-height: 32px;
+  font-size: 12.5px;
+  line-height: 1.25;
+}
+
+.stats-tile-values {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stats-tile-c {
+  font-family: "Orbitron", sans-serif;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stats-tile-v,
+.stats-fig-no,
+.stats-age-axis,
+.stats-age-ticks,
+.stats-age-caption,
+.stats-row-v {
+  font-family: "Orbitron", sans-serif;
+  color: #94c9a6;
+}
+
+.stats-tile-v {
+  font-size: 12px;
+}
+
+.stats-tile-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ---- Charts ---- */
+.stats-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.stats-tab {
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 2px solid rgba(93, 255, 138, 0.75);
+  border-radius: 10px 4px 12px 5px;
+  background: #0e1a13;
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.stats-tab[aria-selected="true"] {
+  background: #8a3a08;
+}
+
+.stats-fig {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px 12px;
+  background: #0e1a13;
+  border: 2px solid rgba(93, 255, 138, 0.75);
+  border-radius: 14px 5px 16px 6px;
+}
+
+.stats-fig-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-fig-no {
+  font-size: 11px;
+}
+
+.stats-fig-title {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+}
+
+.stats-fig-finding {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* Fig. 1: paired columns per age band, on a 5% grid. */
+.stats-age {
+  display: flex;
+  gap: 6px;
+}
+
+.stats-age-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 26px;
+  height: 160px;
+  font-size: 10px;
+  text-align: right;
+}
+
+.stats-age-main {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-age-plot,
+.stats-age-ticks {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(0, 1fr));
+}
+
+.stats-age-plot {
+  height: 160px;
+  align-items: end;
+  border-left: 1.5px solid rgba(93, 255, 138, 0.75);
+  border-bottom: 1.5px solid rgba(93, 255, 138, 0.75);
+  background-image: linear-gradient(rgba(93, 255, 138, 0.14) 1px, transparent 1px);
+  background-size: 100% 32px;
+}
+
+.stats-age-col {
+  display: flex;
+  gap: 1px;
+  align-items: flex-end;
+  justify-content: center;
+  height: 160px;
+  padding: 0 1px;
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.stats-age-col[data-on="true"],
+.stats-row[data-on="true"] {
+  background: rgba(255, 122, 26, 0.25);
+}
+
+.stats-col {
+  display: block;
+  width: 45%;
+  border-radius: 3px 3px 0 0;
+}
+
+.stats-age-ticks {
+  font-size: 10px;
+}
+
+.stats-age-ticks span {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stats-age-caption {
+  font-size: 10px;
+  text-align: center;
+}
+
+/* Figs. 2 and 3: a label and a pair of bars per row. */
+.stats-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stats-row-label {
+  font-size: 12.5px;
+  line-height: 1.2;
+}
+
+.stats-row-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stats-row-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-row-line .stats-bar {
+  height: 10px;
+}
+
+.stats-row-c,
+.stats-row-v {
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+}
+
+.stats-row-c {
+  font-weight: 700;
+}
+
+.stats-readout {
+  padding-top: 8px;
+  border-top: 1.5px dashed rgba(93, 255, 138, 0.75);
+  font-family: "Orbitron", sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.stats-note {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #94c9a6;
+}
+
+.stats-hint {
+  font-family: "Gaegu", "Comic Sans MS", cursive;
+  font-size: 16px;
+  text-align: center;
+  color: #ff7a1a;
+  text-shadow: 0 0 8px rgba(255, 122, 26, 0.8);
+}
+
+.stats-source {
+  padding-top: 10px;
+  border-top: 1.5px solid rgba(93, 255, 138, 0.75);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #94c9a6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-backdrop,
+  .stats-modal,
+  .stats-floor {
+    animation: none;
+  }
+}

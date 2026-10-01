@@ -908,9 +908,22 @@
   filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.25));
 }
 
+/* The crayon "Street stats!" poster (STREET_POSTER) that opens the stats
+   popup — same glow-only pulse as the boombox. */
+.street-poster {
+  display: block;
+  width: 85%;
+  height: 90%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  animation: window-boombox-pulse 3s ease-in-out infinite;
+}
+
 .street-surprise-button:active .window-boombox,
 .street-surprise-button:active .window-books,
 .street-surprise-button:active .street-sign,
+.street-surprise-button:active .street-poster,
 .street-kangaroo-button:enabled:active .street-kangaroo {
   animation: none;
   transform: scale(0.9);
@@ -919,7 +932,8 @@
 @media (prefers-reduced-motion: reduce) {
   .window-boombox,
   .window-books,
-  .street-sign {
+  .street-sign,
+  .street-poster {
     animation: none;
   }
 }

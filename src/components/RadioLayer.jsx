@@ -50,6 +50,20 @@ export default function RadioLayer({ open, onOpen, onClose }) {
           >
             ×
           </button>
+          {/* Arched title over the boombox, like the notice board's. */}
+          <svg
+            className="radio-modal-banner"
+            viewBox="0 20 600 170"
+            role="img"
+            aria-label="COMMUNITY RADIO STATIONS"
+          >
+            <path id="radio-modal-arc" d="M 20 175 Q 300 -35 580 175" fill="none" />
+            <text textAnchor="middle">
+              <textPath href="#radio-modal-arc" startOffset="50%">
+                COMMUNITY RADIO STATIONS
+              </textPath>
+            </text>
+          </svg>
           <Boombox onNowPlaying={handleNowPlaying} />
         </div>
       </div>
