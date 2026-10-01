@@ -1,6 +1,6 @@
 /* The pull-up notice board (see NoticeTab.jsx). Pinned to the bottom of the
    .street-scene frame, not the street, so it doesn't pan. translateY hides
-   all but the top --show of it; the numbers match PEEK/OPEN in the JSX. */
+   all but the top --show of it; the numbers match CLOSED_SHOWING/OPEN in the JSX. */
 .notice-tab {
   --show: 0.15;
   position: absolute;

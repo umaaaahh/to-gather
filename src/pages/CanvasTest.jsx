@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DrawingCanvas from "../components/DrawingCanvas";
 import { ZONE_CONFIG } from "../lib/zones";
 
-// Standalone harness for Phase 1 — no Firebase. Pick a zone, draw, hit Done,
+// Dev-only harness for DrawingCanvas — no Firebase. Pick a zone, draw, hit Done,
 // and the exported PNG blob is logged and previewed below.
 export default function CanvasTest() {
   const [zoneKey, setZoneKey] = useState("tree");
@@ -58,7 +58,6 @@ export default function CanvasTest() {
 
       <DrawingCanvas
         key={zoneKey}
-        zone={zoneKey}
         palette={zone.palette}
         backgroundTemplate={zone.backgroundTemplate}
         exportSize={zone.exportSize}

@@ -3,8 +3,8 @@ import { useId } from "react";
 /**
  * The pocket-sized boombox drawing: the full Boombox artwork minus the fine
  * detail (hatching, dial, keys) that turns to mush at small sizes, with
- * chunkier strokes so it still reads. Shared by the mini radio widget
- * (MiniRadio) and the street's window button.
+ * chunkier strokes so it still reads. Used by the mini radio widget
+ * (MiniRadio).
  *
  * Cones carry `mini-boombox-cone left|right` so the caller's CSS can make
  * them thump.
@@ -45,12 +45,12 @@ export default function MiniBoomboxArt({ accent = "#ff9f3f", className = "" }) {
         <rect x="20" y="76" width="600" height="302" rx="40" fill="#ef5a4c" stroke="#2b2b2b" strokeWidth="16" />
 
         {/* Speakers */}
-        {[140, 500].map((cx, i) => (
-          <g key={cx}>
-            <circle cx={cx} cy="236" r="100" fill="#2f6fd6" stroke="#2b2b2b" strokeWidth="14" />
+        {[140, 500].map((centerX, i) => (
+          <g key={centerX}>
+            <circle cx={centerX} cy="236" r="100" fill="#2f6fd6" stroke="#2b2b2b" strokeWidth="14" />
             <g className={`mini-boombox-cone ${i === 0 ? "left" : "right"}`}>
-              <circle cx={cx} cy="236" r="62" fill="#ffd23f" stroke="#2b2b2b" strokeWidth="12" />
-              <circle cx={cx} cy="236" r="24" fill="#2b2b2b" />
+              <circle cx={centerX} cy="236" r="62" fill="#ffd23f" stroke="#2b2b2b" strokeWidth="12" />
+              <circle cx={centerX} cy="236" r="24" fill="#2b2b2b" />
             </g>
           </g>
         ))}

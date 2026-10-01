@@ -29,7 +29,7 @@ const ZONES = [
     stars: 3,
     top: "105.5%", // on the road
     anchor: "left", // see STREET_ANCHORS
-    left: "41%",
+    left: "21%",
     width: "30%",
     height: "16%",
   },
@@ -38,7 +38,7 @@ const ZONES = [
 // A zone's `top`/`left` shifted by its offsetY/offsetX, if it has one.
 const shifted = (value, offset) => (offset ? `calc(${value} + ${offset})` : value);
 const zoneTop = (zone) => shifted(zone.top, zone.offsetY);
-const zoneLeft = (zone) => shifted(`${streetX(zone.anchor, zone.left)}%`, zone.offsetX);
+const zoneLeft = (zone) => shifted(`${fromStreetStart(zone.anchor, zone.left)}%`, zone.offsetX);
 
 // ---- Street artwork ---------------------------------------------------------
 // LAYOUT KNOBS — what to reach for when trying out the street's shape:
@@ -47,7 +47,7 @@ const zoneLeft = (zone) => shifted(`${streetX(zone.anchor, zone.left)}%`, zone.o
 //       grow or shrink together.
 //   STREET_START_PADDING / STREET_GAP / STREET_END_PADDING (below) — road
 //       before, between and after the buildings. Everything placed on the
-//       street is anchored (see STREET_ANCHORS) so it follows: the end
+//       street is resolveAnchor (see STREET_ANCHORS) so it follows: the end
 //       trees stay at the ends of the street, tree 2 stays in the gap, the
 //       window buttons stay on their windows.
 //
@@ -74,7 +74,7 @@ const zoneLeft = (zone) => shifted(`${streetX(zone.anchor, zone.left)}%`, zone.o
 // re-balance road vs buildings; use STREET_SCALE to resize everything.
 //
 // All other numbers are measurements of the file, in its own viewBox units:
-// `crop` is the region shown (the SVGs have transparent padding around the
+// `crop` is the region shown (the files have transparent padding around the
 // art; the bottom edge is the top of the file's own road), `roadThickness`
 // is how thick the file draws the road — used only for scale. Only
 // re-measure them if the file is re-exported.
@@ -82,20 +82,20 @@ const STREET_SCALE = 1;
 const STREET_ROAD_THICKNESS = 8.5 * STREET_SCALE;
 const STREET_BUILDING_SIZE = 3.9 * STREET_SCALE;
 // Empty road before the first building, between buildings, and after the
-// last one, as a % of the scene-ground width. As tuned: 4 / 6 / 4.
+// last one, as a % of the scene-ground width.
 const STREET_START_PADDING = 27 * STREET_SCALE;
 const STREET_GAP = 10 * STREET_SCALE;
 const STREET_END_PADDING = 4 * STREET_SCALE;
 
-const STREET_PIECES = [
+const STREET_BUILDINGS = [
   {
     id: "left",
     src: ASSETS.streetLeft,
     scale: 1.1,
     // building-56.webp: 1833 × 755 px, already cropped from building 56.svg
     // to this box plus a 2px safety margin on every side (clipped by
-    // .street-piece's overflow: hidden).
-    crop: { vbWidth: 1833, vbHeight: 755, x: 2.91, y: 2.37, width: 1827.26, height: 750.16 },
+    // .street-building's overflow: hidden).
+    crop: { fileWidth: 1833, fileHeight: 755, x: 2.91, y: 2.37, width: 1827.26, height: 750.16 },
     roadThickness: 118.05,
   },
   {
@@ -104,7 +104,7 @@ const STREET_PIECES = [
     scale: 1.1,
     // building-94.webp: 1891 × 767 px, already cropped from building 94.svg
     // to this box plus a 2px safety margin on every side.
-    crop: { vbWidth: 1891, vbHeight: 767, x: 2, y: 2, width: 1887, height: 763 },
+    crop: { fileWidth: 1891, fileHeight: 767, x: 2, y: 2, width: 1887, height: 763 },
     roadThickness: 118,
   },
 ];
@@ -124,21 +124,21 @@ const ROAD_WHOLE = true;
 const ROAD_STRIP = {
   src: ASSETS.road,
   crop: ROAD_WHOLE
-    ? { vbWidth: 1812, vbHeight: 277, x: 2, y: 2, width: 1808, height: 273 }
-    : { vbWidth: 1812, vbHeight: 277, x: 318, y: 2, width: 1200, height: 273 },
+    ? { fileWidth: 1812, fileHeight: 277, x: 2, y: 2, width: 1808, height: 273 }
+    : { fileWidth: 1812, fileHeight: 277, x: 318, y: 2, width: 1200, height: 273 },
   roadThickness: 118,
 };
 
 // Width of a piece of art at a given size knob, as a % of the scene-ground
 // width.
 const artWidth = ({ crop, roadThickness }, size) => (size * crop.width) / roadThickness;
-const pieceWidth = (piece) => artWidth(piece, STREET_BUILDING_SIZE * (piece.scale ?? 1));
+const buildingWidth = (piece) => artWidth(piece, STREET_BUILDING_SIZE * (piece.scale ?? 1));
 // Each piece starts where the one before it ends, plus the gap.
-const PIECE_LEFTS = STREET_PIECES.reduce(
-  (lefts, p, i) => [...lefts, i === 0 ? STREET_START_PADDING : lefts[i - 1] + pieceWidth(STREET_PIECES[i - 1]) + STREET_GAP],
+const BUILDING_LEFTS = STREET_BUILDINGS.reduce(
+  (lefts, p, i) => [...lefts, i === 0 ? STREET_START_PADDING : lefts[i - 1] + buildingWidth(STREET_BUILDINGS[i - 1]) + STREET_GAP],
   [],
 );
-const pieceLeft = (piece) => PIECE_LEFTS[STREET_PIECES.indexOf(piece)];
+const buildingLeft = (piece) => BUILDING_LEFTS[STREET_BUILDINGS.indexOf(piece)];
 const ROAD_TILE_WIDTH = artWidth(ROAD_STRIP, STREET_ROAD_THICKNESS);
 
 // Height of the road strip (road + grass), as a % of the scene-ground WIDTH.
@@ -149,7 +149,7 @@ const ROAD_STRIP_HEIGHT = (ROAD_TILE_WIDTH * ROAD_STRIP.crop.height) / ROAD_STRI
 // padding.
 const STREET_LENGTH = Math.max(
   100,
-  ...STREET_PIECES.map((p) => pieceLeft(p) + pieceWidth(p) + STREET_END_PADDING),
+  ...STREET_BUILDINGS.map((p) => buildingLeft(p) + buildingWidth(p) + STREET_END_PADDING),
 );
 
 // Points along the street that things placed on it hang off, as a % of the
@@ -161,22 +161,22 @@ const STREET_LENGTH = Math.max(
 //   gap   — the middle of the gap between the buildings
 //   right — the right building's left edge
 //   end   — the end of the road
-const [LEFT_PIECE, RIGHT_PIECE] = STREET_PIECES;
+const [LEFT_BUILDING, RIGHT_BUILDING] = STREET_BUILDINGS;
 const STREET_ANCHORS = {
   start: 0,
-  left: pieceLeft(LEFT_PIECE),
-  gap: (pieceLeft(LEFT_PIECE) + pieceWidth(LEFT_PIECE) + pieceLeft(RIGHT_PIECE)) / 2,
-  right: pieceLeft(RIGHT_PIECE),
+  left: buildingLeft(LEFT_BUILDING),
+  gap: (buildingLeft(LEFT_BUILDING) + buildingWidth(LEFT_BUILDING) + buildingLeft(RIGHT_BUILDING)) / 2,
+  right: buildingLeft(RIGHT_BUILDING),
   end: STREET_LENGTH,
 };
-const streetX = (anchor = "start", left = 0) => STREET_ANCHORS[anchor] + parseFloat(left);
+const fromStreetStart = (anchor = "start", left = 0) => STREET_ANCHORS[anchor] + parseFloat(left);
 // An item with its `left` resolved to a plain % of the scene-ground box.
-const anchored = (item) => ({ ...item, left: `${streetX(item.anchor, item.left)}%` });
+const resolveAnchor = (item) => ({ ...item, left: `${fromStreetStart(item.anchor, item.left)}%` });
 const ROAD_TILE_COUNT = ROAD_WHOLE ? 1 : Math.ceil(STREET_LENGTH / ROAD_TILE_WIDTH);
 
-const pieceBoxStyle = (piece) => ({
-  left: `${pieceLeft(piece)}%`,
-  width: `${pieceWidth(piece)}%`,
+const buildingBoxStyle = (piece) => ({
+  left: `${buildingLeft(piece)}%`,
+  width: `${buildingWidth(piece)}%`,
   aspectRatio: `${piece.crop.width} / ${piece.crop.height}`,
   // Stand the building on top of the road strip. A % margin resolves
   // against the containing block's WIDTH, which is what the strip height is
@@ -206,8 +206,8 @@ const roadTileStyle = {
   }),
 };
 
-const pieceImgStyle = ({ crop }) => ({
-  width: `${(crop.vbWidth / crop.width) * 100}%`,
+const cropImgStyle = ({ crop }) => ({
+  width: `${(crop.fileWidth / crop.width) * 100}%`,
   left: `${(-crop.x / crop.width) * 100}%`,
   top: `${(-crop.y / crop.height) * 100}%`,
 });
@@ -221,14 +221,14 @@ const NOTICE_TAB = true;
 // way as the zones (a % of the scene-ground box, so it pans with the street
 // and holds across phone widths).
 //
-// It lives in .scene-track (not .scene-overlay), so it's anchored to the
+// It lives in .scene-track (not .scene-overlay), so it's resolveAnchor to the
 // bottom of the screen and ignores --scene-lift / --overlay-offset-y.
 // To move/resize it, edit only these three numbers (all % of the street):
 //   bottom — gap between the board's feet and the screen bottom (0 = on the edge,
 //            bigger = higher, negative = sinks below the edge)
 //   left   — the board's left edge, from the left building's edge (bigger = further right)
 //   height — board size, grows upward from its feet; width follows automatically
-const NOTICE_BOARD_POS = { bottom: 0, left: streetX("left", 48), height: 40 };
+const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("left", 48), height: 40 };
 
 // Width = height x the art's 600:900 ratio, converted through the
 // scene-ground's 660:285 aspect, so the tap target hugs the board.
@@ -260,21 +260,45 @@ const NOTICE_BADGE_POS = { top: 40, left: 50 };
 //
 // `leafBoxes` are that tree's canopy boxes, as a % of the TREE's own box.
 // Leaves fill tree 1's boxes in order, then tree 2's, and so on (see
-// layoutScatter). Tree 2 gets a full canopy (78 / 28 / 43 = 149, the old
+// placeDrawings). Tree 2 gets a full canopy (78 / 28 / 43 = 149, the old
 // tree's split); trees 1 and 3 are half off-screen, so they only get two
 // boxes over the part that shows, at half capacity (75 each).
 // Capacities sum to 299 — keep drawingsStore.js's ZONE_LIMITS.tree at that
 // plus its overflow buffer.
 // `left` is measured from the tree's `anchor` (see STREET_ANCHORS): the end
 // trees hang off the ends of the road, tree 2 off the middle of the gap.
+//
+// `inFront: true` stands a tree on the grass in front of the road: it (and
+// its leaves) draw over the walking characters, and its tap box follows its
+// own box instead of the shared TREE_HOTSPOT lines. `hidesWalkers` is the
+// part of it (a % of the tree's own box, across) that hides a character
+// walking behind — they walk through it but never turn around in there (see
+// planCharacterWalks). SHOW_WALK_BOX shows it on the street.
+//
+// `scale` resizes one tree (1 = the box as written). It grows from the
+// middle of the box's bottom edge, so the trunk stays where it is planted;
+// its leaf boxes, tap box and `hidesWalkers` grow with it.
+const scaleTree = (t) => {
+  const s = t.scale ?? 1;
+  const width = parseFloat(t.width);
+  const height = parseFloat(t.height);
+  return {
+    ...t,
+    top: `${parseFloat(t.top) - height * (s - 1)}%`,
+    left: `${parseFloat(t.left) - (width * (s - 1)) / 2}%`,
+    width: `${width * s}%`,
+    height: `${height * s}%`,
+  };
+};
 const CRAYON_TREES = [
   {
     id: "tree-1",
-    top: "55%",
+    top: "50%",
     anchor: "start",
     left: "-5.5%",
     width: "15%",
-    height: "51%",
+    height: "56%",
+    scale: 1.3,
     // Left third is off the start of the street — right side only.
     leafBoxes: [
       { id: "top-right", top: "-10%", left: "37.5%", width: "40%", height: "45%", capacity: 30, flip: true },
@@ -283,12 +307,15 @@ const CRAYON_TREES = [
   },
   {
     id: "tree-2",
-    top: "57%",
+    top: "60%",
     anchor: "gap",
-    left: "-6.4%",
-    width: "12%",
-    height: "51%",
+    left: "-7%",
+    width: "15%",
+    height: "90%",
+    scale: 1.3,
     flip: true,
+    inFront: true,
+    hidesWalkers: { left: "25%", width: "50%" },
     leafBoxes: [
       { id: "top-left", top: "-5%", left: "10%", width: "75%", height: "45%", capacity: 78 },
       { id: "top-right", top: "3%", left: "75%", width: "40%", height: "35%", capacity: 28, flip: true },
@@ -310,7 +337,9 @@ const CRAYON_TREES = [
       { id: "low-left", top: "25%", left: "2%", width: "45%", height: "40%", capacity: 30 },
     ],
   },
-].map(anchored);
+]
+  .map(resolveAnchor)
+  .map(scaleTree);
 
 // The label on whichever tree is open.
 const TREE_HOTSPOT = { label: "Colour the tree", level: "Easy", stars: 1 };
@@ -318,10 +347,11 @@ const TREE_HOTSPOT = { label: "Colour the tree", level: "Easy", stars: 1 };
 // Every tree's tap box runs between the same two lines, whatever each tree's
 // own box is — TREE_HOTSPOT_TOP down to TREE_HOTSPOT_BOTTOM, as a % of the
 // scene-ground box (like the trees' `top`). Widths follow each tree.
+// `inFront` trees are the exception: their tap box is their own box.
 const TREE_HOTSPOT_TOP = 45;
 const TREE_HOTSPOT_BOTTOM = 105;
 
-// Every tree's leaf boxes chained left to right, so layoutScatter fills
+// Every tree's leaf boxes chained left to right, so placeDrawings fills
 // tree 1, then tree 2, ... Box ids become "tree-1/top-left" etc.
 const TREE_LEAF_BOXES = CRAYON_TREES.flatMap((t) =>
   t.leafBoxes.map((box) => ({ ...box, id: `${t.id}/${box.id}` })),
@@ -347,10 +377,12 @@ const treeHotspotBox = (t) => {
   const right = left + parseFloat(t.width);
   const hiddenLeft = Math.max(0, -left);
   const hiddenRight = Math.max(0, right - STREET_LENGTH);
+  const top = t.inFront ? parseFloat(t.top) : TREE_HOTSPOT_TOP;
+  const bottom = t.inFront ? top + parseFloat(t.height) : TREE_HOTSPOT_BOTTOM;
   return {
     ...crayonTreeBox(t),
-    top: `${TREE_HOTSPOT_TOP}%`,
-    height: `${TREE_HOTSPOT_BOTTOM - TREE_HOTSPOT_TOP}%`,
+    top: `${top}%`,
+    height: `${bottom - top}%`,
     paddingLeft: `${(hiddenLeft * 100) / STREET_LENGTH}%`,
     paddingRight: `${(hiddenRight * 100) / STREET_LENGTH}%`,
   };
@@ -361,13 +393,13 @@ const treeHotspotBox = (t) => {
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above; `left` is from the left building's edge so it stays on its window.
-const WINDOW_SOUND = anchored({ top: "84.5%", anchor: "left", left: "11%", width: "8%", height: "14%" });
+const WINDOW_RADIO = resolveAnchor({ top: "84.5%", anchor: "left", left: "11%", width: "8%", height: "14%" });
 
-// A second window surprise, same pattern as WINDOW_SOUND above — a different
+// A second window surprise, same pattern as WINDOW_RADIO above — a different
 // window pane so the two don't compete for attention. Opens the community
 // bookshelf popup (see Bookshelf.jsx), the same way the boombox opens the
 // radio.
-const WINDOW_BOOK = anchored({ top: "86.5%", anchor: "left", left: "29.5%", width: "6%", height: "14%" });
+const WINDOW_BOOK = resolveAnchor({ top: "86.5%", anchor: "left", left: "29.5%", width: "6%", height: "14%" });
 
 // Street sign — a third tappable surprise, same glow as the window ones;
 // opens the street's history (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
@@ -375,10 +407,10 @@ const WINDOW_BOOK = anchored({ top: "86.5%", anchor: "left", left: "29.5%", widt
 // the knob for its size; width follows the art.
 const STREET_SIGN_POS = { anchor: "left", left: -13.5, bottom: 106, height: 40 };
 // Where the sign sits in its 595x842 file (the rest is empty page).
-const STREET_SIGN_CROP = { vbWidth: 595, vbHeight: 842, x: 135, y: 35, width: 387, height: 757 };
+const STREET_SIGN_CROP = { fileWidth: 595, fileHeight: 842, x: 135, y: 35, width: 387, height: 757 };
 const STREET_SIGN = {
   top: `${STREET_SIGN_POS.bottom - STREET_SIGN_POS.height}%`,
-  left: `${streetX(STREET_SIGN_POS.anchor, STREET_SIGN_POS.left)}%`,
+  left: `${fromStreetStart(STREET_SIGN_POS.anchor, STREET_SIGN_POS.left)}%`,
   // height is a % of the scene-ground height; width a % of its width (660:285).
   width: `${(STREET_SIGN_POS.height * STREET_SIGN_CROP.width * 285) / (STREET_SIGN_CROP.height * 660)}%`,
   height: `${STREET_SIGN_POS.height}%`,
@@ -391,36 +423,30 @@ const STREET_SIGN = {
 const STREET_KANGAROO_POS = { anchor: "left", left: -8.5, bottom: 106, height: 22 };
 const STREET_KANGAROO = {
   top: `${STREET_KANGAROO_POS.bottom - STREET_KANGAROO_POS.height}%`,
-  left: `${streetX(STREET_KANGAROO_POS.anchor, STREET_KANGAROO_POS.left)}%`,
+  left: `${fromStreetStart(STREET_KANGAROO_POS.anchor, STREET_KANGAROO_POS.left)}%`,
   width: `${(STREET_KANGAROO_POS.height * 1172 * 285) / (1342 * 660)}%`,
   height: `${STREET_KANGAROO_POS.height}%`,
 };
 
 // ---- Scattered zone contributions -----------------------------------------
 // Every zone's contributions pile up over time instead of only showing the
-// most recent — each new drawing drops into a box (the tree's canopy has
-// several, to cluster leaves naturally; each flower bed and the character yard
-// just use one spanning the whole zone) at a scattered position. Boxes
-// are positioned as a % of the OWNING ZONE's own box (top/left/width/height
-// on ZONES above).
+// most recent — each new drawing drops into a box (each tree's canopy has
+// several, to cluster leaves naturally; each flower bed and the walk area
+// just use one) at a scattered position. Boxes are positioned as a % of the
+// thing they belong to (a tree, a bed, or the walk box). Leaves fill box 0 up
+// to its `capacity`, then box 1, and so on; extras past the last box's
+// capacity pile into the last box rather than disappearing.
 //
 // Flip SHOW_LEAF_BOXES on to see the crayon trees' canopy boxes (dashed
 // outline + a live fill count) while you position them, then set it back to
 // false.
 const SHOW_LEAF_BOXES = false;
 
-// The trees' canopy boxes live on CRAYON_TREES (`leafBoxes`). Leaves fill box
-// 0 up to its `capacity`, then box 1, and so on. Nudge a capacity up for a
-// fuller cluster, down for a sparser one. Extra leaves past the last box's
-// capacity still land (they pile into the last box) rather than
-// disappearing. `flip: true` mirrors that box's leaves horizontally (the
-// wind sway direction is unaffected).
-
 // Flower beds on the grass — the "stem" zone, split into beds the way the
 // tree zone is split into trees. Same % coordinates as ZONES (of the
 // scene-ground box). The road runs ≈ 104.5–124% down and the visible grass
-// ≈ 124–140%, so beds sit in that band. The notice board covers ≈ 52–64%
-// across and is drawn over the whole scene, so keep beds clear of that gap.
+// ≈ 124–140%, so beds sit in that band. Keep them clear of tree 2, which
+// stands on the grass in the gap: bed 1 is before it, bed 2 after it.
 //
 // Every bed is its own tap target, but only one is open at a time: they fill
 // left to right, and a bed stays locked (in contribute mode) until the one
@@ -430,10 +456,9 @@ const SHOW_LEAF_BOXES = false;
 // plus its overflow buffer (the last bed takes the overflow).
 // `left` is from each bed's `anchor` (see STREET_ANCHORS).
 const FLOWER_BEDS = [
-  { id: "bed-1", top: "127%", anchor: "left", left: "1%", width: "35%", height: "10%", capacity: 20 },
-  { id: "bed-2", top: "127%", anchor: "gap", left: "-13.4%", width: "35%", height: "10%", capacity: 20 },
-  { id: "bed-3", top: "127%", anchor: "right", left: "33.6%", width: "35%", height: "10%", capacity: 20 },
-].map(anchored);
+  { id: "bed-1", top: "127%", anchor: "left", left: "1%", width: "35%", height: "10%", capacity: 30 },
+  { id: "bed-2", top: "127%", anchor: "right", left: "33.6%", width: "35%", height: "10%", capacity: 30 },
+].map(resolveAnchor);
 
 // The label on whichever bed is open.
 const FLOWER_HOTSPOT = { label: "Draw a flower", level: "Medium", stars: 2 };
@@ -446,9 +471,9 @@ const SHOW_BED_BOXES = false;
 // One scatter box per bed, covering the bottom half of it — a flower is
 // planted at its root and grows upward, so keeping roots low keeps the
 // (big) flowers sitting down on the grass. Flowers don't need the
-// tree's multi-box clustering. Chained left to right so layoutScatter fills
+// tree's multi-box clustering. Chained left to right so placeDrawings fills
 // bed 1, then bed 2, ...
-const STEM_BOXES = FLOWER_BEDS.map((b) => ({
+const FLOWER_BOXES = FLOWER_BEDS.map((b) => ({
   id: b.id,
   top: "50%",
   left: "0%",
@@ -464,24 +489,24 @@ const bedBox = (b) => ({ top: b.top, left: b.left, width: b.width, height: b.hei
 // of road, not the whole scrollable street) that the scatter/walk uses
 // instead of ZONES' `free` entry, which stays only as the tap target.
 // `capacity` documents the free zone's query cap (ZONE_LIMITS); a no-op here
-// since it is the only/last box (see layoutScatter).
-const FREE_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 114 }];
+// since it is the only/last box (see placeDrawings).
+const CHARACTER_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 114 }];
 // The whole road, bar the last 2% — its width follows the street length.
 // Edit these numbers to move/resize where characters walk (same %
 // coordinates as ZONES — of the scene-ground box).
-const FREE_ROAD_BOX = { top: "105.5%", left: "0%", width: `${STREET_LENGTH - 2}%`, height: "18%" };
+const WALK_BOX = { top: "105.5%", left: "0%", width: `${STREET_LENGTH - 2}%`, height: "18%" };
 
-// Flip SHOW_WALK_BOX on to see FREE_ROAD_BOX on the street (dashed outline +
+// Flip SHOW_WALK_BOX on to see WALK_BOX on the street (dashed outline +
 // its numbers) while you position it, then set it back to false.
 const SHOW_WALK_BOX = false;
 
 // Characters' size and movement, as a % of the scene-ground WIDTH — fixed,
-// whatever shape FREE_ROAD_BOX is, so resizing the box only changes how much
+// whatever shape WALK_BOX is, so resizing the box only changes how much
 // room they have. Drawings are square, so CHARACTER_SIZE is both width and
 // height.
 //
 // Each character strolls back and forth along the walk box (see
-// planWalks). WALK_REACH is how much of the box's length one stroll covers
+// planCharacterWalks). WALK_REACH is how much of the box's length one stroll covers
 // ([min, max], seeded per character): 1 = end to end. They all walk at
 // WALK_SPEED (% of the scene width per second), bobbing a WALK_HOP-high hop
 // about every HOP_SECONDS.
@@ -491,19 +516,31 @@ const WALK_SPEED = 2.5;
 const WALK_HOP = [0.5, 1];
 const HOP_SECONDS = 0.45;
 
+// Stretches of road where a walking character would be hidden, as
+// [from, to] in % of the scene width: the part of each `inFront` tree that
+// covers the road (its `hidesWalkers` box), plus the notice board when it's
+// standing in the street (not in the pull-up tab trial).
+const WALK_HIDING_SPOTS = [
+  ...CRAYON_TREES.filter((t) => t.hidesWalkers).map((t) => {
+    const from = parseFloat(t.left) + (parseFloat(t.hidesWalkers.left) / 100) * parseFloat(t.width);
+    return [from, from + (parseFloat(t.hidesWalkers.width) / 100) * parseFloat(t.width)];
+  }),
+  ...(NOTICE_TAB ? [] : [[NOTICE_BOARD_POS.left, NOTICE_BOARD_POS.left + NOTICE_BOARD_WIDTH]]),
+];
+
 // The same in the walk box's own units (the scatter's cqw / % of its box).
 // The scene-ground is 660:285, so its height is 285/660 of its width.
-const WALK_BOX_W = parseFloat(FREE_ROAD_BOX.width);
-const WALK_BOX_H = (parseFloat(FREE_ROAD_BOX.height) * 285) / 660;
-const toWalkBoxW = (v) => (v / WALK_BOX_W) * 100;
-const toWalkBoxH = (v) => (v / WALK_BOX_H) * 100;
+const WALK_BOX_WIDTH = parseFloat(WALK_BOX.width);
+const WALK_BOX_HEIGHT = (parseFloat(WALK_BOX.height) * 285) / 660;
+const toWalkBoxWidth = (v) => (v / WALK_BOX_WIDTH) * 100;
+const toWalkBoxHeight = (v) => (v / WALK_BOX_HEIGHT) * 100;
 
-// The box is a hard limit. Left/right is handled by planWalks. Top/bottom:
+// The box is a hard limit. Left/right is handled by planCharacterWalks. Top/bottom:
 // feet stay low enough for the whole character plus its highest hop to fit
 // above them, and a touch up from the bottom edge. (If the box is shorter
 // than a character, feet just sit on its bottom edge.)
-const FREE_INSET_BOTTOM = 3;
-const FREE_INSET_TOP = Math.min(toWalkBoxH(CHARACTER_SIZE + WALK_HOP[1]), 100 - FREE_INSET_BOTTOM);
+const WALK_INSET_BOTTOM = 3;
+const WALK_INSET_TOP = Math.min(toWalkBoxHeight(CHARACTER_SIZE + WALK_HOP[1]), 100 - WALK_INSET_BOTTOM);
 
 // Every item in a scatter renders at this width (of its container's width,
 // via a container query unit). Height follows the artwork's own aspect
@@ -518,42 +555,40 @@ const FREE_INSET_TOP = Math.min(toWalkBoxH(CHARACTER_SIZE + WALK_HOP[1]), 100 - 
 const LEAF_WIDTH = "24cqw";
 // LEAF_WIDTH was tuned on the old tree zone's 15%-wide box. Each crayon tree
 // is a different width, so scale it per tree to keep every leaf that size.
-const LEAF_WIDTH_REF = 15;
-const treeLeafWidth = (t) => `calc(${LEAF_WIDTH} * ${LEAF_WIDTH_REF / parseFloat(t.width)})`;
-const STEM_WIDTH = "44cqw";
-// Same trick for flowers: STEM_WIDTH was tuned on a 15%-wide bed, so scale it
+const LEAF_TUNED_TREE_WIDTH = 15;
+const treeLeafWidth = (t) => `calc(${LEAF_WIDTH} * ${LEAF_TUNED_TREE_WIDTH / parseFloat(t.width)})`;
+const FLOWER_WIDTH = "44cqw";
+// Same trick for flowers: FLOWER_WIDTH was tuned on a 15%-wide bed, so scale it
 // per bed to keep every flower that size however wide its bed is.
-const STEM_WIDTH_REF = 15;
-const bedStemWidth = (b) => `calc(${STEM_WIDTH} * ${STEM_WIDTH_REF / parseFloat(b.width)})`;
+const FLOWER_TUNED_BED_WIDTH = 15;
+const bedFlowerWidth = (b) => `calc(${FLOWER_WIDTH} * ${FLOWER_TUNED_BED_WIDTH / parseFloat(b.width)})`;
 // Flowers stand on their root point and grow upward, so they may rise past
 // the top of their (short) bed — this replaces the default 92cqh clamp.
-const STEM_MAX_HEIGHT = "170cqh";
-const FREE_WIDTH = `${toWalkBoxW(CHARACTER_SIZE)}cqw`;
+const FLOWER_MAX_HEIGHT = "170cqh";
+const CHARACTER_WIDTH = `${toWalkBoxWidth(CHARACTER_SIZE)}cqw`;
 
 // How far inside a box an item's centre is kept, as a % of the box, so its
 // bulk doesn't spill past the box edge.
 const LEAF_INSET = 14;
-const STEM_INSET = 12;
+const FLOWER_INSET = 12;
 // Flower beds pad their ends less than their top/bottom, so the flowers
 // reach further along the bed.
-const STEM_INSET_X = 2;
+const FLOWER_INSET_X = 2;
 
 // Gentle "wind" sway applied to every item (see .scatter-item--wind in the
 // CSS — it animates the image around a top pivot). The tree's leaves and the
 // flowers sway; the standing characters stay put.
 const LEAF_WIND = true;
-const STEM_WIND = true;
+const FLOWER_WIND = true;
 
 // Deterministic 0..1 from an integer seed. Same item index -> same spot on
 // every render, so adding item N never reshuffles items 0..N-1.
-function seededUnit(seed) {
+function stableRandom(seed) {
   let x = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b);
   x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
   x ^= x >>> 16;
   return (x >>> 0) / 4294967296;
 }
-
-const asNum = (pctStr) => parseFloat(pctStr);
 
 // Where the n-th item in a box goes, as 0..1 across and down it. Plain
 // random spots clump (lots of overlap, bare patches), so this follows the
@@ -563,15 +598,15 @@ const asNum = (pctStr) => parseFloat(pctStr);
 // seeded offset so boxes don't share one pattern, and every point gets a
 // small seeded wobble (a fraction of the spacing a full box would have) so
 // it reads as scattered rather than gridded.
-const R2_A1 = 0.7548776662466927; // 1/g, g = the plastic number 1.3247…
-const R2_A2 = 0.5698402909980532; // 1/g²
+const EVEN_SPREAD_STEP_X = 0.7548776662466927; // 1/g, g = the plastic number 1.3247…
+const EVEN_SPREAD_STEP_Y = 0.5698402909980532; // 1/g²
 const SPREAD_WOBBLE = 0.35;
-function spreadPoint(boxIdx, n, capacity, seed) {
+function scatterSpot(boxIdx, n, capacity, seed) {
   const frac = (x) => x - Math.floor(x);
-  const u0 = frac(seededUnit(boxIdx * 5 + 101) + R2_A1 * (n + 1));
-  const v0 = frac(seededUnit(boxIdx * 5 + 103) + R2_A2 * (n + 1));
+  const u0 = frac(stableRandom(boxIdx * 5 + 101) + EVEN_SPREAD_STEP_X * (n + 1));
+  const v0 = frac(stableRandom(boxIdx * 5 + 103) + EVEN_SPREAD_STEP_Y * (n + 1));
   const cell = 1 / Math.sqrt(Math.max(1, capacity ?? 25));
-  const wobble = (s) => (seededUnit(s) - 0.5) * cell * SPREAD_WOBBLE;
+  const wobble = (s) => (stableRandom(s) - 0.5) * cell * SPREAD_WOBBLE;
   const clamp = (x) => Math.min(1, Math.max(0, x));
   return [clamp(u0 + wobble(seed * 2 + 1)), clamp(v0 + wobble(seed * 2 + 2))];
 }
@@ -584,9 +619,9 @@ function spreadPoint(boxIdx, n, capacity, seed) {
 // side slots alternate between a back and a front row for depth, with a
 // small seeded wobble (a fraction of one slot) so it isn't a grid.
 const ROW_WOBBLE = 0.2;
-const rowOrders = new Map();
-function rowSlotOrder(capacity) {
-  if (rowOrders.has(capacity)) return rowOrders.get(capacity);
+const rowFillOrderCache = new Map();
+function rowFillOrder(capacity) {
+  if (rowFillOrderCache.has(capacity)) return rowFillOrderCache.get(capacity);
   const order = [];
   const taken = new Array(capacity).fill(false);
   for (let n = 0; n < capacity; n++) {
@@ -606,13 +641,13 @@ function rowSlotOrder(capacity) {
     taken[best] = true;
     order.push(best);
   }
-  rowOrders.set(capacity, order);
+  rowFillOrderCache.set(capacity, order);
   return order;
 }
-function rowPoint(n, capacity, seed) {
+function rowSpot(n, capacity, seed) {
   const cap = Math.max(1, capacity ?? 20);
-  const slot = rowSlotOrder(cap)[n % cap];
-  const wobble = (s) => (seededUnit(s) - 0.5) * ROW_WOBBLE;
+  const slot = rowFillOrder(cap)[n % cap];
+  const wobble = (s) => (stableRandom(s) - 0.5) * ROW_WOBBLE;
   const u = (slot + 0.5 + wobble(seed * 2 + 1)) / cap;
   const row = slot % 2 === 0 ? 0.2 : 0.8; // back row, front row
   const v = row + wobble(seed * 2 + 2);
@@ -627,7 +662,7 @@ function rowPoint(n, capacity, seed) {
 // standing characters). `rows` swaps the area-filling spread for the row
 // spread above (the flower beds).
 // `insetX` / `insetTop` / `insetBottom` override `inset` for those edges.
-function layoutScatter(
+function placeDrawings(
   urls,
   boxes,
   { inset = 14, insetX = inset, insetTop = inset, insetBottom = inset, maxRotDeg = 22, rows = false } = {},
@@ -646,14 +681,14 @@ function layoutScatter(
     const box = boxes[boxIdx];
     countInBox += 1;
 
-    const bx = asNum(box.left);
-    const by = asNum(box.top);
-    const bw = asNum(box.width);
-    const bh = asNum(box.height);
+    const bx = parseFloat(box.left);
+    const by = parseFloat(box.top);
+    const bw = parseFloat(box.width);
+    const bh = parseFloat(box.height);
     const [u, v] = rows
-      ? rowPoint(countInBox - 1, box.capacity, i)
-      : spreadPoint(boxIdx, countInBox - 1, box.capacity, i);
-    const rot = maxRotDeg ? (seededUnit(i * 3 + 7) - 0.5) * maxRotDeg : 0;
+      ? rowSpot(countInBox - 1, box.capacity, i)
+      : scatterSpot(boxIdx, countInBox - 1, box.capacity, i);
+    const rot = maxRotDeg ? (stableRandom(i * 3 + 7) - 0.5) * maxRotDeg : 0;
 
     return {
       key: i,
@@ -678,46 +713,71 @@ function layoutScatter(
 // stroll — so they stay spread out — and it strolls WALK_REACH of the whole
 // road, shifted if need be to stay on it.
 //
-// Walking past the notice board (drawn over the whole scene) is fine, but
-// nobody should hang about behind it: a stroll that would turn around behind
-// the board has that end pushed out past the board's far side, so they walk
-// straight through (or, if there's no road past it, pulled back short of
-// the board's near side).
-function planWalks(items) {
+// Walking behind something in front of the road (WALK_HIDING_SPOTS) is fine,
+// but nobody should hang about hidden there: a stroll that would turn around
+// in a hiding spot has that end pushed out past its far side, so they walk
+// straight through (or, if there's no road past it, pulled back short of its
+// near side).
+function planCharacterWalks(items) {
   const half = CHARACTER_SIZE / 2;
-  const boxLeft = parseFloat(FREE_ROAD_BOX.left);
+  const boxLeft = parseFloat(WALK_BOX.left);
   const lo = boxLeft + half;
-  const hi = boxLeft + WALK_BOX_W - half;
+  const hi = boxLeft + WALK_BOX_WIDTH - half;
   if (hi <= lo) return items.map((item) => ({ ...item, walkDist: 0, walkDur: 1 }));
 
-  // Anywhere the character is even partly behind the board.
-  const boardLo = NOTICE_BOARD_POS.left - half;
-  const boardHi = NOTICE_BOARD_POS.left + NOTICE_BOARD_WIDTH + half;
-  const behindBoard = (x) => x > boardLo && x < boardHi;
-  // Move a turnaround point out from behind the board — past it in the
-  // direction of travel if that's still on the road, else back before it.
-  const clearOfBoard = (x, outward) => {
-    if (!behindBoard(x)) return x;
-    if (outward > 0) return boardHi <= hi ? boardHi : boardLo;
-    return boardLo >= lo ? boardLo : boardHi;
+  // Anywhere the character is even partly hidden.
+  const hiding = WALK_HIDING_SPOTS.map(([from, to]) => [from - half, to + half]);
+  // Move a turnaround point out of a hiding spot — past it in the direction
+  // of travel if that's still on the road, else back before it.
+  const clearOfHiding = (x, outward) => {
+    for (const [from, to] of hiding) {
+      if (x <= from || x >= to) continue;
+      if (outward > 0) return to <= hi ? to : from;
+      return from >= lo ? from : to;
+    }
+    return x;
   };
 
   return items.map((item) => {
     const spot = lo + (item.xPct / 100) * (hi - lo);
-    const reach = WALK_REACH[0] + seededUnit(item.key * 7 + 3) * (WALK_REACH[1] - WALK_REACH[0]);
+    const reach = WALK_REACH[0] + stableRandom(item.key * 7 + 3) * (WALK_REACH[1] - WALK_REACH[0]);
     const dist = ((hi - lo) * reach) / 2;
     const centre = Math.min(Math.max(spot, lo + dist), hi - dist);
-    const left = clearOfBoard(centre - dist, -1);
-    const right = clearOfBoard(centre + dist, 1);
+    const left = clearOfHiding(centre - dist, -1);
+    const right = clearOfHiding(centre + dist, 1);
     const walkDist = Math.max(0, (right - left) / 2);
     const walkDur = Math.max((2 * walkDist) / WALK_SPEED, 2 * HOP_SECONDS);
     return {
       ...item,
-      xPct: (((left + right) / 2 - boxLeft) / WALK_BOX_W) * 100,
+      xPct: (((left + right) / 2 - boxLeft) / WALK_BOX_WIDTH) * 100,
       walkDist,
       walkDur,
     };
   });
+}
+
+// Hand-drawn padlock for locked trees and beds, in the label's own colour.
+function LockIcon() {
+  return (
+    <svg className="zone-lock-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M7.5 10.5V8.2C7.4 5.6 9.4 3.6 12 3.6s4.7 2.1 4.5 4.7v2.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.2 11.3c4.5-.6 9-.5 13.6.1.5 2.8.4 5.6-.2 8.4-4.4.6-8.8.6-13.2-.1-.6-2.8-.7-5.6-.2-8.4z"
+        fill="currentColor"
+        fillOpacity="0.18"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <path d="M12 14.6v2.4" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 export default function StreetScene({
@@ -734,11 +794,11 @@ export default function StreetScene({
   // says "Start") and plays its entrance (see DrawingArrival) via
   // onSubmitted; cancelling leaves contribute mode on.
   const [mode, setMode] = useState("view"); // "view" | "contribute"
-  // The just-submitted drawing's entrance: { key, zone, imageUrl, fromRect,
+  // The just-submitted drawing's entrance: { key, zone, imageUrl, paperRect,
   // thumbUrl } — thumbUrl arrives once the save lands, and marks which
   // scene item is the new one (hidden until the entrance hands over).
   const [arrival, setArrival] = useState(null);
-  const drawOverlay = useOutlet({
+  const drawingCanvasOverlay = useOutlet({
     // `entrance` is null if the paper couldn't be measured — skip it then.
     onSubmitted: (entrance) => {
       setMode("view");
@@ -792,7 +852,7 @@ export default function StreetScene({
   // Each crayon tree with its own leaves and a status: "full", "open" (the
   // first tree that isn't full) or "locked" (every tree after that).
   const trees = useMemo(() => {
-    const leaves = layoutScatter(drawings.tree ?? [], TREE_LEAF_BOXES, {
+    const leaves = placeDrawings(drawings.tree ?? [], TREE_LEAF_BOXES, {
       inset: LEAF_INSET,
       maxRotDeg: 22,
     });
@@ -809,9 +869,9 @@ export default function StreetScene({
   // Each flower bed with its own flowers and a status, same rules as the
   // trees: "full", "open" (the first bed that isn't full) or "locked".
   const beds = useMemo(() => {
-    const flowers = layoutScatter(drawings.stem ?? [], STEM_BOXES, {
-      inset: STEM_INSET,
-      insetX: STEM_INSET_X,
+    const flowers = placeDrawings(drawings.stem ?? [], FLOWER_BOXES, {
+      inset: FLOWER_INSET,
+      insetX: FLOWER_INSET_X,
       maxRotDeg: 8,
       rows: true,
     });
@@ -825,13 +885,13 @@ export default function StreetScene({
       status: b.full ? "full" : i === openIdx ? "open" : "locked",
     }));
   }, [drawings.stem]);
-  const freeCharacters = useMemo(
+  const characters = useMemo(
     () =>
-      planWalks(
-        layoutScatter(drawings.free ?? [], FREE_BOXES, {
+      planCharacterWalks(
+        placeDrawings(drawings.free ?? [], CHARACTER_BOXES, {
           insetX: 0,
-          insetTop: FREE_INSET_TOP,
-          insetBottom: FREE_INSET_BOTTOM,
+          insetTop: WALK_INSET_TOP,
+          insetBottom: WALK_INSET_BOTTOM,
           maxRotDeg: 0,
         }),
       ),
@@ -842,7 +902,7 @@ export default function StreetScene({
     <div
       className="street-scene"
       data-mode={mode}
-      data-drawing={drawOverlay ? "" : undefined}
+      data-drawing={drawingCanvasOverlay ? "" : undefined}
       ref={sceneRef}
     >
       {/* Two tiles side by side so the drift loop is seamless. */}
@@ -900,13 +960,13 @@ export default function StreetScene({
               <div className="street-road-strip" style={{ width: `${STREET_LENGTH}%` }}>
                 {Array.from({ length: ROAD_TILE_COUNT }, (_, i) => (
                   <div key={i} className="street-road-tile" style={roadTileStyle}>
-                    <img className="house-img" src={ROAD_STRIP.src} alt="" style={pieceImgStyle(ROAD_STRIP)} />
+                    <img className="cropped-img" src={ROAD_STRIP.src} alt="" style={cropImgStyle(ROAD_STRIP)} />
                   </div>
                 ))}
               </div>
-              {STREET_PIECES.map((piece) => (
-                <div key={piece.id} className="street-piece" style={pieceBoxStyle(piece)}>
-                  <img className="house-img" src={piece.src} alt="Street view" style={pieceImgStyle(piece)} />
+              {STREET_BUILDINGS.map((piece) => (
+                <div key={piece.id} className="street-building" style={buildingBoxStyle(piece)}>
+                  <img className="cropped-img" src={piece.src} alt="Street view" style={cropImgStyle(piece)} />
                 </div>
               ))}
             </div>
@@ -926,14 +986,19 @@ export default function StreetScene({
                   return (
                     <Fragment key={t.id}>
                       <img
-                        className={`zone-fixture crayon-tree${locked ? " crayon-tree--locked" : ""}`}
+                        className={`zone-fixture crayon-tree${t.inFront ? " crayon-tree--front" : ""}${
+                          locked ? " crayon-tree--locked" : ""
+                        }`}
                         data-tour={t.status === "open" ? "tree" : undefined}
                         src={ASSETS.crayonTree}
                         alt=""
                         style={{ ...box, transform: t.flip ? "scaleX(-1)" : undefined }}
                       />
 
-                      <div className="scatter" style={{ ...box, "--item-w": treeLeafWidth(t) }}>
+                      <div
+                        className={`scatter${t.inFront ? " scatter--front" : ""}`}
+                        style={{ ...box, "--item-w": treeLeafWidth(t) }}
+                      >
                         {SHOW_LEAF_BOXES &&
                           t.leafBoxes.map((leafBox) => {
                             const fill = t.leaves.filter(
@@ -942,7 +1007,7 @@ export default function StreetScene({
                             return (
                               <div
                                 key={`box-${leafBox.id}`}
-                                className="leaf-box"
+                                className="guide-box"
                                 style={{
                                   top: leafBox.top,
                                   left: leafBox.left,
@@ -950,7 +1015,7 @@ export default function StreetScene({
                                   height: leafBox.height,
                                 }}
                               >
-                                <span className="leaf-box-tag">
+                                <span className="guide-box-tag">
                                   {t.id} · {leafBox.id} · {fill}/{leafBox.capacity}
                                 </span>
                               </div>
@@ -988,7 +1053,7 @@ export default function StreetScene({
                       {mode === "contribute" && (
                         <button
                           type="button"
-                          className={`zone tree-zone zone--${TREE_HOTSPOT.level.toLowerCase()}`}
+                          className={`zone zone--label-only tree-zone zone--${TREE_HOTSPOT.level.toLowerCase()}`}
                           style={treeHotspotBox(t)}
                           disabled={t.status !== "open"}
                           onClick={() => navigate("/draw/tree")}
@@ -1012,7 +1077,7 @@ export default function StreetScene({
                               </>
                             ) : (
                               <span className="zone-label-text">
-                                {t.status === "full" ? "Full" : "🔒 Locked"}
+                                {t.status === "full" ? "Full" : <><LockIcon /> Locked</>}
                               </span>
                             )}
                           </span>
@@ -1028,14 +1093,14 @@ export default function StreetScene({
               {mode === "view" && (
                 <button
                   type="button"
-                  className="window-sound-button"
+                  className="street-surprise-button"
                   onClick={onOpenRadio}
                   aria-label="Something's playing in the window"
                   style={{
-                    top: WINDOW_SOUND.top,
-                    left: WINDOW_SOUND.left,
-                    width: WINDOW_SOUND.width,
-                    height: WINDOW_SOUND.height,
+                    top: WINDOW_RADIO.top,
+                    left: WINDOW_RADIO.left,
+                    width: WINDOW_RADIO.width,
+                    height: WINDOW_RADIO.height,
                   }}
                 >
                   <img className="window-boombox" src={ASSETS.radio} alt="" draggable="false" />
@@ -1047,7 +1112,7 @@ export default function StreetScene({
               {mode === "view" && (
                 <button
                   type="button"
-                  className="window-sound-button"
+                  className="street-surprise-button"
                   onClick={onOpenBookshelf}
                   aria-label="Open the community bookshelf"
                   style={{
@@ -1065,18 +1130,18 @@ export default function StreetScene({
               {mode === "view" && (
                 <button
                   type="button"
-                  className="window-sound-button"
+                  className="street-surprise-button"
                   onClick={onOpenStreetSign}
                   aria-label="Read the history of Cardigan St"
                   style={STREET_SIGN}
                 >
                   <span className="street-sign">
                     <img
-                      className="house-img"
+                      className="cropped-img"
                       src={ASSETS.streetSign}
                       alt=""
                       draggable="false"
-                      style={pieceImgStyle({ crop: STREET_SIGN_CROP })}
+                      style={cropImgStyle({ crop: STREET_SIGN_CROP })}
                     />
                   </span>
                 </button>
@@ -1101,23 +1166,28 @@ export default function StreetScene({
                 <Fragment key={b.id}>
                   <div
                     className="scatter"
-                    style={{ ...bedBox(b), "--item-w": bedStemWidth(b),"--item-max-h": STEM_MAX_HEIGHT }}
+                    style={{ ...bedBox(b), "--item-w": bedFlowerWidth(b),"--item-max-h": FLOWER_MAX_HEIGHT }}
                   >
+                    {/* The bed's patch while contributing — first in the
+                       scatter so it sits behind the flowers. */}
+                    {mode === "contribute" && (
+                      <div className="bed-patch" data-status={b.status} aria-hidden="true" />
+                    )}
                     {SHOW_BED_BOXES && (
                       <>
-                        <div className="leaf-box" style={{ top: 0, left: 0, width: "100%", height: "100%" }}>
-                          <span className="leaf-box-tag">
+                        <div className="guide-box" style={{ top: 0, left: 0, width: "100%", height: "100%" }}>
+                          <span className="guide-box-tag">
                             {b.id} · {b.flowers.length}/{b.capacity}
                           </span>
                         </div>
-                        <div className="leaf-box bed-root-box" style={bedBox(STEM_BOXES[i])} />
+                        <div className="guide-box bed-root-box" style={bedBox(FLOWER_BOXES[i])} />
                       </>
                     )}
                     {b.flowers.map((item) => (
                       <div
-                        key={`stem-${item.key}`}
+                        key={`flower-${item.key}`}
                         data-arrival={isArriving(item) ? "" : undefined}
-                        className={`scatter-item scatter-item--rooted${STEM_WIND ? " scatter-item--wind" : ""}${
+                        className={`scatter-item scatter-item--rooted${FLOWER_WIND ? " scatter-item--wind" : ""}${
                           isArriving(item) ? " scatter-item--arriving" : ""
                         }`}
                         style={{
@@ -1146,7 +1216,7 @@ export default function StreetScene({
                   {mode === "contribute" && (
                     <button
                       type="button"
-                      className={`zone zone--${FLOWER_HOTSPOT.level.toLowerCase()}`}
+                      className={`zone zone--bed zone--${FLOWER_HOTSPOT.level.toLowerCase()}`}
                       style={bedBox(b)}
                       disabled={b.status !== "open"}
                       onClick={() => navigate("/draw/stem")}
@@ -1170,7 +1240,7 @@ export default function StreetScene({
                           </>
                         ) : (
                           <span className="zone-label-text">
-                            {b.status === "full" ? "Full" : "🔒 Locked"}
+                            {b.status === "full" ? "Full" : <><LockIcon /> Locked</>}
                           </span>
                         )}
                       </span>
@@ -1186,19 +1256,19 @@ export default function StreetScene({
               <div
                 className="scatter"
                 style={{
-                  top: FREE_ROAD_BOX.top,
-                  left: FREE_ROAD_BOX.left,
-                  width: FREE_ROAD_BOX.width,
-                  height: FREE_ROAD_BOX.height,
-                  "--item-w": FREE_WIDTH,
+                  top: WALK_BOX.top,
+                  left: WALK_BOX.left,
+                  width: WALK_BOX.width,
+                  height: WALK_BOX.height,
+                  "--item-w": CHARACTER_WIDTH,
                   // Feet placement already keeps them inside the box (see
-                  // FREE_INSET_TOP), so no height clamp — it only squashed them.
+                  // WALK_INSET_TOP), so no height clamp — it only squashed them.
                   "--item-max-h": "none",
                 }}
               >
-                {freeCharacters.map((item) => (
+                {characters.map((item) => (
                   <div
-                    key={`free-${item.key}`}
+                    key={`character-${item.key}`}
                     data-arrival={isArriving(item) ? "" : undefined}
                     className={`scatter-item scatter-item--rooted scatter-item--walking${
                       isArriving(item) ? " scatter-item--arriving" : ""
@@ -1207,19 +1277,19 @@ export default function StreetScene({
                       left: `${item.xPct}%`,
                       top: `${item.yPct}%`,
                       "--item-rot": `${item.rot.toFixed(1)}deg`,
-                      // its stroll (see planWalks), a seeded WALK_HOP hop
+                      // its stroll (see planCharacterWalks), a seeded WALK_HOP hop
                       // about every HOP_SECONDS (a whole number per leg, so
                       // hops land at the turns) and a staggered start so
                       // nobody walks in lockstep
-                      "--walk-dist": `${toWalkBoxW(item.walkDist).toFixed(2)}cqw`,
+                      "--walk-dist": `${toWalkBoxWidth(item.walkDist).toFixed(2)}cqw`,
                       "--walk-dur": `${item.walkDur.toFixed(2)}s`,
                       "--hop-dur": `${(
                         item.walkDur / Math.max(1, Math.round(item.walkDur / HOP_SECONDS))
                       ).toFixed(3)}s`,
-                      "--walk-hop": `${toWalkBoxW(
-                        WALK_HOP[0] + seededUnit(item.key * 13 + 9) * (WALK_HOP[1] - WALK_HOP[0]),
+                      "--walk-hop": `${toWalkBoxWidth(
+                        WALK_HOP[0] + stableRandom(item.key * 13 + 9) * (WALK_HOP[1] - WALK_HOP[0]),
                       ).toFixed(2)}cqw`,
-                      "--walk-delay": `${-(seededUnit(item.key * 11 + 5) * item.walkDur * 2).toFixed(2)}s`,
+                      "--walk-delay": `${-(stableRandom(item.key * 11 + 5) * item.walkDur * 2).toFixed(2)}s`,
                     }}
                   >
                     <img
@@ -1236,20 +1306,30 @@ export default function StreetScene({
               {/* Walk area guide — see SHOW_WALK_BOX. Characters stay inside
                  it left to right. */}
               {SHOW_WALK_BOX && (
-                <div className="walk-box" style={FREE_ROAD_BOX}>
-                  <span className="leaf-box-tag">
-                    walk area · top {FREE_ROAD_BOX.top} · left {FREE_ROAD_BOX.left} · width{" "}
-                    {FREE_ROAD_BOX.width} · height {FREE_ROAD_BOX.height}
+                <div className="walk-box" style={WALK_BOX}>
+                  <span className="guide-box-tag">
+                    walk area · top {WALK_BOX.top} · left {WALK_BOX.left} · width{" "}
+                    {WALK_BOX.width} · height {WALK_BOX.height}
                   </span>
                 </div>
               )}
+              {SHOW_WALK_BOX &&
+                WALK_HIDING_SPOTS.map(([from, to]) => (
+                  <div
+                    key={`hide-${from}`}
+                    className="walk-box walk-box--hiding"
+                    style={{ top: WALK_BOX.top, height: WALK_BOX.height, left: `${from}%`, width: `${to - from}%` }}
+                  >
+                    <span className="guide-box-tag">no stopping here</span>
+                  </div>
+                ))}
 
               {/* Hotspots — only while contributing. */}
               {mode === "contribute" &&
                 ZONES.map((zone) => (
                   <button
                     key={`hot-${zone.id}`}
-                    className={`zone zone--${zone.level.toLowerCase()}`}
+                    className={`zone zone--label-only zone--${zone.level.toLowerCase()}`}
                     style={{
                       top: zoneTop(zone),
                       left: zoneLeft(zone),
@@ -1299,7 +1379,7 @@ export default function StreetScene({
          .scene-ground, .scene-cta and the open tree's data-tour="tree". */}
       {showTour && <StreetTour sceneRef={sceneRef} onDone={onTourDone} />}
 
-      {drawOverlay}
+      {drawingCanvasOverlay}
 
       {/* A just-submitted drawing's entrance (see DrawingArrival). */}
       {arrival && (

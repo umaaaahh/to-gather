@@ -11,7 +11,7 @@ const SWIPE_PX = 40;
 const SPOT_PAD = 8;
 // How far down the grey road (0 = its top edge, 1 = its bottom) the
 // kangaroo's feet land.
-const ROAD_FEET = 0.75;
+const FEET_DOWN_ROAD = 0.75;
 // Must match the tour-hop-out animation in StreetTour.css.
 const LEAVE_MS = 900;
 // How far (px) the street has to pan before the swipe step counts as done.
@@ -71,7 +71,7 @@ function findTarget(scene, selectors) {
 // el's box relative to the scene frame, padded and clipped to the frame (the
 // street pans, so a target can hang off either side). null if none of it is
 // on screen.
-function spotRect(sceneBox, el, padTop = 0) {
+function spotlightRect(sceneBox, el, padTop = 0) {
   const r = el.getBoundingClientRect();
   const left = Math.max(r.left - sceneBox.left - SPOT_PAD, 0);
   const top = Math.max(r.top - sceneBox.top - SPOT_PAD - padTop, 0);
@@ -82,14 +82,14 @@ function spotRect(sceneBox, el, padTop = 0) {
 }
 
 // Everything the overlay positions, measured from the live scene.
-function measure(scene, step) {
+function measureTourLayout(scene, step) {
   const sceneBox = scene.getBoundingClientRect();
   const el = findTarget(scene, step.target);
-  const spot = el ? spotRect(sceneBox, el, step.padTop) : null;
+  const spot = el ? spotlightRect(sceneBox, el, step.padTop) : null;
 
   const road = scene.querySelector(".street-road-box")?.getBoundingClientRect();
   const feetY = road
-    ? road.top - sceneBox.top + road.height * ROAD_FEET
+    ? road.top - sceneBox.top + road.height * FEET_DOWN_ROAD
     : sceneBox.height * 0.85;
 
   let pointer = null;
@@ -116,7 +116,7 @@ function measure(scene, step) {
     }
   }
 
-  return { spot, pointer, board, feetBottom: sceneBox.height - feetY };
+  return { spot, pointer, board, kangarooBottom: sceneBox.height - feetY };
 }
 
 // The board stands at the front of the street, so the kangaroo should hop
@@ -124,7 +124,7 @@ function measure(scene, step) {
 // street. So its layer is masked: everything visible except the board's
 // silhouette, where the real board (dimmed or lit like the rest of the
 // scene) shows through from underneath.
-function boardCutout(board) {
+function behindBoardMask(board) {
   if (!board) return undefined;
   const image = `linear-gradient(#000, #000), url(${noticeBoardMask})`;
   const position = `0 0, ${board.left}px ${board.top}px`;
@@ -161,14 +161,14 @@ export default function StreetTour({ sceneRef, onDone }) {
   const current = TOUR_STEPS[step];
   const isLast = step === TOUR_STEPS.length - 1;
 
-  // Re-measure every frame: the street art loads in late, the user can
+  // Re-measureTourLayout every frame: the street art loads in late, the user can
   // resize or rotate, and the street may be panning towards the target.
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return undefined;
     let raf;
     const tick = () => {
-      const next = measure(scene, current);
+      const next = measureTourLayout(scene, current);
       setLayout((prev) => (sameLayout(prev, next) ? prev : next));
       raf = requestAnimationFrame(tick);
     };
@@ -336,8 +336,8 @@ export default function StreetTour({ sceneRef, onDone }) {
       )}
 
       {layout && (
-        <div className="tour-kangaroo-layer" style={boardCutout(layout.board)}>
-          <div className="tour-kangaroo" style={{ bottom: layout.feetBottom }}>
+        <div className="tour-kangaroo-layer" style={behindBoardMask(layout.board)}>
+          <div className="tour-kangaroo" style={{ bottom: layout.kangarooBottom }}>
             <img
               className="tour-kangaroo-img"
               src={ASSETS.kangaroo}
@@ -349,7 +349,7 @@ export default function StreetTour({ sceneRef, onDone }) {
       )}
 
       {layout && (
-        <div className="tour-guide" style={{ bottom: layout.feetBottom }}>
+        <div className="tour-guide" style={{ bottom: layout.kangarooBottom }}>
           {/* Keyed on the step so each new bubble remounts and animates in. */}
           <div key={step} className="tour-bubble" data-dir={dir} aria-live="polite">
             <p className="tour-step">{current.text}</p>

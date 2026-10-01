@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  buildMonthGrid,
   DAY_NAMES,
   EVENTS,
   GENRES,
@@ -13,16 +14,6 @@ import {
 } from "../lib/events";
 import "./EventsPopout.css";
 
-function buildMonthGrid(year, month) {
-  const startOffset = new Date(year, month, 1).getDay(); // 0 = Sunday
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
 // Most genre dots a calendar day shows.
 const MAX_DOTS = 4;
 
@@ -33,15 +24,15 @@ const mapsLink = (address) =>
 // board. Nothing here leaves the app except the event and map links, which
 // open in a new tab.
 //
-// initial: { genre?, day?, showKey? } — what the board was showing when it
+// initial: { genre?, day?, showId? } — what the board was showing when it
 // was tapped: a genre filter, a day, or one show to open up and scroll to.
 export default function EventsPopout({ initial, onClose }) {
   const now = useMemo(() => new Date(), []);
   const today = startOfDay(now);
   const [genre, setGenre] = useState(initial.genre ?? null);
   const [day, setDay] = useState(initial.day ?? null);
-  const [openKey, setOpenKey] = useState(initial.showKey ?? null);
-  const [cursor, setCursor] = useState(() => {
+  const [openKey, setOpenKey] = useState(initial.showId ?? null);
+  const [shownMonth, setShownMonth] = useState(() => {
     const d = initial.day ?? today;
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
@@ -57,11 +48,11 @@ export default function EventsPopout({ initial, onClose }) {
 
   // Bring the show the board was tapped on into view.
   useEffect(() => {
-    if (!initial.showKey) return;
+    if (!initial.showId) return;
     listRef.current
-      ?.querySelector(`[data-key="${CSS.escape(initial.showKey)}"]`)
+      ?.querySelector(`[data-key="${CSS.escape(initial.showId)}"]`)
       ?.scrollIntoView({ block: "center" });
-  }, [initial.showKey]);
+  }, [initial.showId]);
 
   const filtered = useMemo(
     () => (genre ? EVENTS.filter((e) => e.genre === genre) : EVENTS),
@@ -78,13 +69,13 @@ export default function EventsPopout({ initial, onClose }) {
     return days;
   }, [filtered]);
   const cells = useMemo(
-    () => buildMonthGrid(cursor.getFullYear(), cursor.getMonth()),
-    [cursor],
+    () => buildMonthGrid(shownMonth.getFullYear(), shownMonth.getMonth()),
+    [shownMonth],
   );
   const shows = useMemo(() => upcomingShows(now, genre), [now, genre]);
   // Every upcoming show, for the "other dates" in an opened day-view card.
   const showsByKey = useMemo(
-    () => new Map(upcomingShows(now).map((s) => [s.key, s])),
+    () => new Map(upcomingShows(now).map((s) => [s.showId, s])),
     [now],
   );
   const daySessions = useMemo(
@@ -93,13 +84,13 @@ export default function EventsPopout({ initial, onClose }) {
   );
 
   const goMonth = (delta) =>
-    setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
+    setShownMonth((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
   const toggle = (key) => setOpenKey((k) => (k === key ? null : key));
 
   // With a day picked, list that day's sessions; otherwise every upcoming
   // show once, by its next session.
   const items = day
-    ? daySessions.map((e) => ({ session: e, show: showsByKey.get(e.showKey) ?? { ...e, sessions: [] } }))
+    ? daySessions.map((e) => ({ session: e, show: showsByKey.get(e.showId) ?? { ...e, sessions: [] } }))
     : shows.map((s) => ({ session: s.sessions[0], show: s }));
 
   let heading;
@@ -159,7 +150,7 @@ export default function EventsPopout({ initial, onClose }) {
                 ‹
               </button>
               <span className="ep-cal-month">
-                {MONTH_NAMES[cursor.getMonth()]} {cursor.getFullYear()}
+                {MONTH_NAMES[shownMonth.getMonth()]} {shownMonth.getFullYear()}
               </span>
               <button type="button" className="ep-cal-nav" onClick={() => goMonth(1)} aria-label="Next month">
                 ›
@@ -217,13 +208,13 @@ export default function EventsPopout({ initial, onClose }) {
 
           <ul className="ep-list">
             {items.map(({ session, show }) => {
-              const expanded = openKey === session.showKey;
+              const expanded = openKey === session.showId;
               const nextDates = show.sessions.filter((s) => s.id !== session.id && isUpcoming(s, now));
               return (
                 <li
                   key={session.id}
                   className="ep-card"
-                  data-key={session.showKey}
+                  data-key={session.showId}
                   data-open={expanded ? "" : undefined}
                   style={{ "--genre": genreColor(session.genre) }}
                 >
@@ -231,7 +222,7 @@ export default function EventsPopout({ initial, onClose }) {
                     type="button"
                     className="ep-card-head"
                     aria-expanded={expanded}
-                    onClick={() => toggle(session.showKey)}
+                    onClick={() => toggle(session.showId)}
                   >
                     <span className="ep-card-date">
                       {day ? (

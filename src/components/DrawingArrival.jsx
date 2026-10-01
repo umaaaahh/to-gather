@@ -29,7 +29,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 //   loading — the logo, with loading dots, while the save lands and the new
 //             drawing turns up in the scene (hidden, see scatter-item--arriving)
 //   reveal  — the logo fades; the drawing sits over the street at the size
-//             and spot it was drawn at (fromRect, the drawing paper's box)
+//             and spot it was drawn at (paperRect, the drawing paper's box)
 //   fly     — it shrinks and moves into its real spot in the scene
 //   glow    — the clone hands over to the real scene item, which glows: the
 //             glow is the item's own ::before, so it sits behind the
@@ -39,7 +39,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // If the drawing never turns up (zone full / slow save) it just fades out.
 export default function DrawingArrival({ arrival, sceneRef, onDone }) {
   const [phase, setPhase] = useState("loading");
-  const [target, setTarget] = useState(null); // landing box, see measure()
+  const [target, setTarget] = useState(null); // landing box, see measureLandingSpot()
   const startRef = useRef(Date.now());
   const savedAtRef = useRef(null);
   const onDoneRef = useRef(onDone);
@@ -54,7 +54,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
   useEffect(() => {
     let cancelled = false;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    let slot = null;
+    let sceneItem = null;
 
     async function run() {
       let img = null;
@@ -75,7 +75,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
 
       if (img) {
         scrollIntoCentre(sceneRef.current, img);
-        setTarget(measure(img));
+        setTarget(measureLandingSpot(img));
       }
       setPhase("reveal");
       await wait(FADE_MS + HOLD_MS);
@@ -89,12 +89,12 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
       if (img) {
         // Shows the real item in the clone's place and lights its glow (see
         // DrawingArrival.css).
-        slot = img.closest(".scatter-item");
-        slot.dataset.glow = "on";
+        sceneItem = img.closest(".scatter-item");
+        sceneItem.dataset.glow = "on";
         setPhase("glow");
         await wait(GLOW_MS);
         if (cancelled) return;
-        slot.dataset.glow = "off";
+        sceneItem.dataset.glow = "off";
       }
       setPhase("fading");
       await wait(GLOW_FADE_MS);
@@ -104,25 +104,25 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
     run();
     return () => {
       cancelled = true;
-      if (slot) delete slot.dataset.glow;
+      if (sceneItem) delete sceneItem.dataset.glow;
     };
     // One run per arrival (StreetScene keys this component by it).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const from = arrival.fromRect;
+  const from = arrival.paperRect;
   const landed = target && phase !== "loading" && phase !== "reveal";
   // Drawn size/spot -> scene size/spot, as one transform from the paper box
   // so the transition can animate it.
   const transform = landed
-    ? `translate(${target.cx - (from.left + from.width / 2)}px, ${
-        target.cy - (from.top + from.height / 2)
+    ? `translate(${target.centerX - (from.left + from.width / 2)}px, ${
+        target.centerY - (from.top + from.height / 2)
       }px) rotate(${target.rot}deg) scale(${(target.w / from.width) * (target.flip ? -1 : 1)}, ${
         target.h / from.height
       })`
     : undefined;
   // Once it's landed the real scene item takes over, so the clone goes.
-  const handedOver = target && (phase === "glow" || phase === "fading");
+  const realItemShowing = target && (phase === "glow" || phase === "fading");
 
   return createPortal(
     <>
@@ -134,7 +134,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
           <span />
         </div>
       </div>
-      {phase !== "loading" && !handedOver && (
+      {phase !== "loading" && !realItemShowing && (
         <div
           className="arrival-clone"
           data-phase={phase}
@@ -179,18 +179,18 @@ function scrollIntoCentre(scene, img) {
 
 // The scene item's centre on screen (its bounding box's centre holds even
 // when it's rotated), its un-rotated size, rotation and mirror.
-function measure(img) {
-  const slot = img.closest(".scatter-item");
-  const style = getComputedStyle(slot);
+function measureLandingSpot(img) {
+  const sceneItem = img.closest(".scatter-item");
+  const style = getComputedStyle(sceneItem);
   const r = img.getBoundingClientRect();
   return {
-    cx: r.left + r.width / 2,
-    cy: r.top + r.height / 2,
+    centerX: r.left + r.width / 2,
+    centerY: r.top + r.height / 2,
     w: img.offsetWidth,
     h: img.offsetHeight || img.offsetWidth,
     // The live `rotate` (the wind sway rocks it, paused mid-rock), else the
     // resting tilt.
     rot: parseFloat(style.rotate) || parseFloat(style.getPropertyValue("--item-rot")) || 0,
-    flip: slot.classList.contains("scatter-item--flip"),
+    flip: sceneItem.classList.contains("scatter-item--flip"),
   };
 }

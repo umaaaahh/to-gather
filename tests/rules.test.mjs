@@ -2,9 +2,9 @@
 // only (never production). Invoke via `npm run test:rules`, which wraps this
 // in `firebase emulators:exec`.
 //
-// Covers Task Brief #2's acceptance criteria: reads stay public, creates stay
-// public (existing validation untouched), and delete now requires an
-// authenticated user for both Firestore docs and Storage objects.
+// Checks that reads stay public, creates stay public (with validation), and
+// delete requires an authenticated user for both Firestore docs and Storage
+// objects.
 
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";

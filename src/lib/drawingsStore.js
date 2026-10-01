@@ -1,19 +1,18 @@
-// Phase 2: real backing store. Every finished drawing uploads two PNGs to
-// Firebase Storage — the full-resolution export at drawings/{zone}/{id}.png
-// and a 150x150 thumbnail at drawings/{zone}/{id}-thumb.png — with a matching
-// Firestore doc in the "drawings" collection ({ zone, url, path, thumbUrl,
-// thumbPath, createdAt }) so the street scene can subscribe to live updates
-// and order contributions by arrival time. Each zone's listener is capped to
-// N drawings (see ZONE_LIMITS) rather than the whole collection — the N most
-// recent, or for the tree the N oldest (see OLDEST_FIRST_ZONES). Shape returned to callers stays what earlier phases already
-// used — an array of (thumbnail) URLs per zone, oldest first.
+// Every finished drawing uploads two PNGs to Firebase Storage — the
+// full-resolution export at drawings/{zone}/{id}.png and a 150x150 thumbnail
+// at drawings/{zone}/{id}-thumb.png — with a matching Firestore doc in the
+// "drawings" collection ({ zone, url, path, thumbUrl, thumbPath, createdAt })
+// so the street scene can subscribe to live updates and order contributions
+// by arrival time. Each zone's listener is capped to N drawings (see
+// ZONE_LIMITS) rather than the whole collection — the N most recent, or for
+// the trees and flower beds the N oldest (see OLDEST_FIRST_ZONES). Callers get
+// an array of (thumbnail) URLs per zone, oldest first.
 
 import { db, storage } from "./firebase";
 import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -29,20 +28,19 @@ const listeners = new Set();
 
 // Hard per-zone read cap: each zone's scene listener only ever fetches its N
 // most recent drawings (orderBy createdAt desc + limit), instead of the whole
-// unfiltered collection. Sized from DISCOVERIES.md's per-zone capacity pass —
-// keep LEAF_BOXES/STEM_BOXES/FREE_BOXES in StreetScene.jsx summing to match
-// these so visual clustering capacity and actual fetched-data capacity agree.
+// unfiltered collection. Keep these in step with the capacities in
+// StreetScene.jsx (CRAYON_TREES, FLOWER_BEDS, CHARACTER_BOXES).
 // Anything older than the Nth drawing simply falls outside the query — it
 // stays in Firestore/Storage untouched ("hide, don't delete"), so no
 // retirement job is needed.
 //
 // tree: the three crayon trees' leaf boxes (CRAYON_TREES in StreetScene.jsx)
 // sum to 299 (75 + 149 + 75), plus a 10-leaf buffer so people who were
-// mid-drawing when the last tree filled still land — layoutScatter piles
+// mid-drawing when the last tree filled still land — placeDrawings piles
 // the extras into the last box.
 //
-// stem: the three flower beds (FLOWER_BEDS in StreetScene.jsx) sum to 60
-// (20 each), plus the same 10-flower buffer.
+// stem: the two flower beds (FLOWER_BEDS in StreetScene.jsx) sum to 60
+// (30 each), plus the same 10-flower buffer.
 const ZONE_LIMITS = { tree: 309, stem: 70, free: 114 };
 
 // Zones that keep their N OLDEST drawings instead of the newest: once the
@@ -64,32 +62,24 @@ const zoneUnsubscribes = [];
 // Resolves once every zone's listener has delivered its first snapshot (or
 // failed), so the splash can hold until the street's drawings are known
 // rather than having them pop in after it lifts. See whenDrawingsLoaded.
-const zonesPending = new Set(Object.keys(ZONE_LIMITS));
-let resolveLoaded;
+const zonesNotLoaded = new Set(Object.keys(ZONE_LIMITS));
+let markDrawingsLoaded;
 const drawingsLoaded = new Promise((resolve) => {
-  resolveLoaded = resolve;
+  markDrawingsLoaded = resolve;
 });
 function zoneLoaded(zoneKey) {
-  zonesPending.delete(zoneKey);
-  if (zonesPending.size === 0) resolveLoaded(cache);
+  zonesNotLoaded.delete(zoneKey);
+  if (zonesNotLoaded.size === 0) markDrawingsLoaded(cache);
 }
 
 // "submitted" signal — fires once per successful saveDrawing(), after both
-// the Storage upload and the Firestore doc write have completed. This is the
-// intended hook point for future consumers that react to a fresh publish
-// (e.g. an entry animation or the kangaroo's post-drawing reaction) without
-// touching the submit path in DrawZone/DrawingCanvas at all.
+// the Storage upload and the Firestore doc write have completed. StreetScene
+// listens so a new drawing's entrance knows which scene item is the new one.
 const submissionListeners = new Set();
-let lastSubmission = null; // { zone, id, url, path, thumbUrl, thumbPath, createdAt } | null
 
 export function subscribeToSubmissions(fn) {
   submissionListeners.add(fn);
   return () => submissionListeners.delete(fn);
-}
-
-// Most recent successful publish (or null if none yet this session).
-export function getLastSubmission() {
-  return lastSubmission;
 }
 
 function startListening() {
@@ -107,7 +97,7 @@ function startListening() {
         q,
         (snap) => {
           // Newest-first queries come back newest-first (that's what limit()
-          // keeps); reverse to oldest-first so layoutScatter's index-based
+          // keeps); reverse to oldest-first so placeDrawings's index-based
           // seeding stays as stable as possible while a zone is under its cap.
           // Falls back to the full-res url for drawings uploaded before
           // thumbnails existed, so pre-migration drawings don't just vanish
@@ -170,7 +160,7 @@ async function makeThumbnail(pngBlob, size) {
 // both the full-resolution original and a generated thumbnail — then record
 // it in Firestore. Firestore's onSnapshot listeners above pick the new doc
 // up and push it out to every subscriber.
-export async function saveDrawing(zoneKey, pngBlob) {
+async function saveDrawing(zoneKey, pngBlob) {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const path = `drawings/${zoneKey}/${id}.png`;
   const thumbPath = `drawings/${zoneKey}/${id}-thumb.png`;
@@ -199,9 +189,7 @@ export async function saveDrawing(zoneKey, pngBlob) {
   });
 
   const submission = { zone: zoneKey, id: docRef.id, url, path, thumbUrl, thumbPath, createdAt: Date.now() };
-  lastSubmission = submission;
   submissionListeners.forEach((fn) => fn(submission));
-  return submission;
 }
 
 // "save failed" signal — DrawZone hands the save off and goes straight back
@@ -251,20 +239,4 @@ async function deleteStorageObject(path) {
 export async function deleteDrawing(id, path, thumbPath) {
   await deleteDoc(doc(db, COLLECTION, id));
   await Promise.all([deleteStorageObject(path), deleteStorageObject(thumbPath)]);
-}
-
-// Wipe a zone's contributions (handy while tuning the scene). No-arg clears
-// all. Deletes both the Firestore docs and both Storage objects each.
-export async function clearDrawings(zoneKey) {
-  const base = collection(db, COLLECTION);
-  const q = zoneKey ? query(base, where("zone", "==", zoneKey)) : query(base);
-  const snap = await getDocs(q);
-
-  await Promise.all(
-    snap.docs.map(async (docSnap) => {
-      const { path, thumbPath } = docSnap.data();
-      await deleteDoc(docSnap.ref);
-      await Promise.all([deleteStorageObject(path), deleteStorageObject(thumbPath)]);
-    }),
-  );
 }

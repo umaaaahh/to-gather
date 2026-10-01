@@ -3,8 +3,8 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Values from Firebase Console > Project Settings > General > Your apps > SDK setup
-// apiKey and appId still need to be filled in from your Firebase project settings.
+// Values from Firebase Console > Project Settings > General > Your apps > SDK setup.
+// apiKey and appId come from .env.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "to-gather-54dd7.firebaseapp.com",
@@ -19,4 +19,3 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const auth = getAuth(app);
-export default app;

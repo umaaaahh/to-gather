@@ -48,13 +48,13 @@ const SAMPLE_BOOKS = [
 // Same book, different edition: Google Books gives each edition its own id,
 // so books also match on title (minus subtitle and leading article) + first
 // author, ignoring case and punctuation.
-const normalise = (s) =>
+const simplifyText = (s) =>
   s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-const bookKey = (book) =>
-  `${normalise(book.title.split(":")[0]).replace(/^(the|a|an) /, "")}|${normalise(book.authors.split(",")[0] || "")}`;
+const sameBookKey = (book) =>
+  `${simplifyText(book.title.split(":")[0]).replace(/^(the|a|an) /, "")}|${simplifyText(book.authors.split(",")[0] || "")}`;
 const findOnShelf = (books, book) =>
   books.find((b) => b.id === book.id) ||
-  books.find((b) => bookKey(b) === bookKey(book));
+  books.find((b) => sameBookKey(b) === sameBookKey(book));
 
 const safeCover = (url) =>
   typeof url === "string" && url.startsWith("https://books.google") ? url : null;

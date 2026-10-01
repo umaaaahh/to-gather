@@ -97,7 +97,7 @@
 }
 
 /* Full-frame layer the kangaroo is drawn in, so the notice board can be
-   masked out of it wherever it is on screen (see boardCutout). */
+   masked out of it wherever it is on screen (see behindBoardMask). */
 .tour-kangaroo-layer {
   position: absolute;
   inset: 0;

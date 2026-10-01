@@ -7,8 +7,7 @@ import { ASSETS } from "./assets";
 // and exportSize: the exported PNG is always exportSize x exportSize, the
 // full square drawing area, so nothing drawn on it is ever cropped.
 //
-// Route zoneIds are "tree" | "stem" | "free". "flower" is accepted as an
-// alias for "stem" so the component API in the brief still works verbatim.
+// Route zoneIds are "tree" | "stem" (flowers) | "free" (characters).
 //
 // backgroundTemplate is still null for free — it gets its own template once
 // that artwork is ready.
@@ -67,8 +66,7 @@ export const ZONE_CONFIG = {
   },
 };
 
-// Normalise a route zoneId to a config key.
+// Normalise a route zoneId to a config key (unknown ids fall back to "free").
 export function resolveZone(zoneId) {
-  if (zoneId === "flower") return "stem";
   return ZONE_CONFIG[zoneId] ? zoneId : "free";
 }

@@ -1,8 +1,7 @@
 // Events for the notice board, read from src/data/events.csv (exported from
 // the events spreadsheet — replace the file to update the listings).
 // Columns: id,title,date,start_time,end_time,location,genre,description,
-// link,link_label,address. Phase 2 may move this to a Firestore "events"
-// collection with the same shape.
+// link,link_label,address.
 import csv from "../data/events.csv?raw";
 
 export const MONTH_NAMES = [
@@ -132,7 +131,7 @@ function toEvent(r) {
     link: cleanLink(r.link),
     linkLabel: r.link_label || "More info",
     // Repeat sessions of the same show share a key.
-    showKey: `${r.title}|${r.location}`,
+    showId: `${r.title}|${r.location}`,
   };
 }
 
@@ -155,6 +154,18 @@ export const sameDay = (a, b) =>
 
 export const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
+// A month as calendar cells, Sunday first: null for the blanks before the 1st
+// and after the last day, so every row is a full week.
+export function buildMonthGrid(year, month) {
+  const startOffset = new Date(year, month, 1).getDay(); // 0 = Sunday
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
 // Still on or yet to come. Events with no end time count until 2h after
 // they start.
 export const isUpcoming = (e, now) =>
@@ -168,10 +179,10 @@ export function upcomingShows(now, genre = null) {
   for (const e of EVENTS) {
     if (genre && e.genre !== genre) continue;
     if (!isUpcoming(e, now)) continue;
-    let show = shows.get(e.showKey);
+    let show = shows.get(e.showId);
     if (!show) {
-      show = { ...e, key: e.showKey, sessions: [] };
-      shows.set(e.showKey, show);
+      show = { ...e, sessions: [] };
+      shows.set(e.showId, show);
     }
     if (!show.description && e.description) show.description = e.description;
     show.sessions.push(e);

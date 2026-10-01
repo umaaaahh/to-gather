@@ -183,7 +183,7 @@
 /* Crop window onto the drawn part of one street piece — left/width/
    aspect-ratio/margin come inline from STREET_PIECES in StreetScene.jsx.
    The file's transparent padding is clipped off. */
-.street-piece {
+.street-building {
   position: absolute;
   bottom: 0;
   overflow: hidden;
@@ -232,7 +232,7 @@
 
 /* The full artwork file, scaled and offset (inline, from the piece's
    `crop`) so only the cropped region shows through the box above. */
-.house-img {
+.cropped-img {
   position: absolute;
   display: block;
   max-width: none;
@@ -277,7 +277,7 @@
    without relying on :hover, which doesn't exist on touch. */
 .zone {
   position: absolute;
-  z-index: 6; /* above .zone-art (5) so the hotspot stays tappable over it */
+  z-index: 7; /* above the trees and scattered drawings, so it stays tappable */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -354,6 +354,14 @@
   opacity: 0.5;
 }
 
+/* A tree standing on the grass in front of the road (`inFront` in
+   StreetScene.jsx): it and its leaves draw over the walking characters (5),
+   still below the tap boxes (7). */
+.crayon-tree.crayon-tree--front,
+.scatter.scatter--front {
+  z-index: 6;
+}
+
 /* Tree hotspots sit inside .crayon-trees, which turns taps off — switch them
    back on. */
 .tree-zone {
@@ -392,7 +400,7 @@
    scatter comes out the same size. */
 .scatter {
   position: absolute;
-  z-index: 5; /* above the zone fixture (4), below the hotspot (6) */
+  z-index: 5; /* above the zone fixture (4), below the hotspot (7) */
   container-type: size; /* size, not inline-size — unlocks cqh for the max-height clamp below */
   pointer-events: none;
 }
@@ -400,7 +408,7 @@
 /* Placement guides — only rendered while SHOW_LEAF_BOXES is on, for the
    tree's canopy boxes. Purely visual; leaves are positioned against the
    canopy, not nested here. */
-.leaf-box {
+.guide-box {
   position: absolute;
   border: 2px dashed rgba(255, 255, 255, 0.85);
   border-radius: 8px;
@@ -415,7 +423,7 @@
   background: rgba(255, 200, 40, 0.18);
 }
 
-.leaf-box-tag {
+.guide-box-tag {
   position: absolute;
   top: 2px;
   left: 3px;
@@ -433,12 +441,18 @@
    Above the characters so it's visible; never tappable. */
 .walk-box {
   position: absolute;
-  z-index: 6;
+  z-index: 7;
   border: 2px dashed rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   background: rgba(229, 57, 53, 0.16);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
   pointer-events: none;
+}
+
+/* A stretch of the walk area where characters pass behind something and
+   never turn around (WALK_HIDING_SPOTS). */
+.walk-box--hiding {
+  background: rgba(30, 136, 229, 0.25);
 }
 
 /* One scattered item (a leaf, a flower, a character). Positioned (left/top
@@ -575,6 +589,14 @@
   -webkit-text-stroke: 0.4px currentColor;
 }
 
+/* The padlock on a locked tree/bed label (see LockIcon in StreetScene.jsx). */
+.zone-lock-icon {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.15em;
+  vertical-align: -0.12em;
+}
+
 .zone-tag {
   display: inline-flex;
   align-items: center;
@@ -594,6 +616,75 @@
   box-shadow: none;
   color: rgba(107, 53, 23, 0.75);
   text-shadow: none;
+}
+
+/* Label-only hotspots (the trees and the character zone): no dashed area,
+   just the label as the button, with the attention glow around it. The
+   button's box only places the label; taps land on the label alone. */
+.zone.zone--label-only,
+.zone.zone--label-only:disabled {
+  border: none;
+  background: none;
+  animation: none;
+  pointer-events: none;
+}
+
+.zone--label-only .zone-label {
+  pointer-events: auto;
+  cursor: pointer;
+  animation: zone-label-glow 3s ease-in-out infinite;
+  animation-delay: inherit; /* keeps the zones' staggered pulse */
+}
+
+.zone--label-only:disabled .zone-label {
+  cursor: default;
+  animation: none;
+}
+
+.zone.zone--label-only:active {
+  transform: none;
+}
+
+.zone--label-only:not(:disabled):active .zone-label {
+  transform: scale(0.97);
+}
+
+@keyframes zone-label-glow {
+  0%, 66%, 100% {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), 0 0 0 rgba(255, 255, 255, 0);
+  }
+  16% {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), 0 0 16px 4px rgba(255, 255, 255, 0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zone--label-only .zone-label {
+    animation: none;
+  }
+}
+
+/* Flower bed hotspots: the whole bed stays tappable, but it's see-through —
+   no dashed outline or pulse. The bed shows as .bed-patch instead. */
+.zone.zone--bed,
+.zone.zone--bed:disabled {
+  border: none;
+  background: none;
+  animation: none;
+}
+
+/* A static, faint green patch filling the bed, drawn first inside the bed's
+   scatter so the flowers stand in front of it. Locked/full beds fade back. */
+.bed-patch {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(67, 160, 71, 0.12);
+}
+
+.bed-patch[data-status="locked"],
+.bed-patch[data-status="full"] {
+  background: rgba(67, 160, 71, 0.05);
 }
 
 /* Bottom-centre call to action. "Start" reveals the hotspots; "Return" drops
@@ -730,10 +821,10 @@
 }
 
 /* ---- Hidden window "surprise" --------------------------------------------
-   View-mode-only pulsing dot tucked into a window (see WINDOW_SOUND in
+   View-mode-only pulsing dot tucked into a window (see WINDOW_RADIO in
    StreetScene.jsx). Unmounted entirely once Start reveals the zone
    hotspots, so there's nothing to hide/show, just show/tap-then-gone. */
-.window-sound-button {
+.street-surprise-button {
   position: absolute;
   z-index: 8;
   display: flex;
@@ -748,7 +839,7 @@
 
 /* The crayon boombox picture (ASSETS.radio) sat in the music window in
    place of the old 🎵 — part of the street, so it pans with the buildings.
-   Centred in its WINDOW_SOUND box (the tap area stays the full box) and
+   Centred in its WINDOW_RADIO box (the tap area stays the full box) and
    has a slow glowing "tap me" pulse — only the glow breathes, the drawing
    itself stays still on the sill. Width is the knob for its size. */
 .window-boombox {
@@ -785,7 +876,7 @@
 }
 
 /* The street sign: a crop window onto its page (the img is positioned
-   inline, like .street-piece). The glow is on this wrapper, so it isn't
+   inline, like .street-building). The glow is on this wrapper, so it isn't
    clipped by the crop. */
 .street-sign {
   position: relative;
@@ -811,9 +902,9 @@
   filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.25));
 }
 
-.window-sound-button:active .window-boombox,
-.window-sound-button:active .window-books,
-.window-sound-button:active .street-sign {
+.street-surprise-button:active .window-boombox,
+.street-surprise-button:active .window-books,
+.street-surprise-button:active .street-sign {
   animation: none;
   transform: scale(0.9);
 }

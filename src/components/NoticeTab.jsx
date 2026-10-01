@@ -14,8 +14,8 @@ import "./NoticeTab.css";
 // Closed = just the kangaroo's head peeking over the screen's bottom edge;
 // open = the whole board, legs and all, standing on the bottom edge.
 // Tuned to the 600x900 board art.
-const PEEK = 0.15;
-const OPEN = 1;
+const CLOSED_SHOWING = 0.15;
+const OPEN_SHOWING = 1;
 // Pointer travel (px) under which a press counts as a tap, not a drag.
 const TAP_PX = 6;
 
@@ -28,34 +28,34 @@ export default function NoticeTab() {
   const [open, setOpen] = useState(false);
   // Live translateY (px) while dragging, null otherwise.
   const [dragY, setDragY] = useState(null);
-  // What the pop-out opens on ({ genre?, day?, showKey? }), null when shut.
+  // What the pop-out opens on ({ genre?, day?, showId? }), null when shut.
   const [popout, setPopout] = useState(null);
   const boardRef = useRef(null);
   const drag = useRef(null);
 
   // translateY (px) that shows `fraction` of the board above the bottom edge.
-  const restY = (isOpen) => {
+  const restingY = (isOpen) => {
     const h = boardRef.current?.offsetHeight ?? 0;
-    return h * (1 - (isOpen ? OPEN : PEEK));
+    return h * (1 - (isOpen ? OPEN_SHOWING : CLOSED_SHOWING));
   };
 
   const onPointerDown = (e) => {
     // The whiteboard scrolls and swipes on its own; don't turn that into a
     // board drag.
     if (e.target.closest(".notice-tab-board, .notice-tab-close")) return;
-    drag.current = { startY: e.clientY, baseY: restY(open), moved: false };
+    drag.current = { pointerStartY: e.clientY, boardStartY: restingY(open), moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e) => {
     const d = drag.current;
     if (!d) return;
-    const dy = e.clientY - d.startY;
+    const dy = e.clientY - d.pointerStartY;
     if (Math.abs(dy) > TAP_PX) d.moved = true;
     if (!d.moved) return;
-    const min = restY(true);
-    const max = restY(false);
-    setDragY(Math.min(Math.max(d.baseY + dy, min), max));
+    const min = restingY(true);
+    const max = restingY(false);
+    setDragY(Math.min(Math.max(d.boardStartY + dy, min), max));
   };
 
   const onPointerUp = (e) => {
@@ -66,7 +66,7 @@ export default function NoticeTab() {
       setOpen((o) => !o);
     } else {
       // Settle whichever way it was heading.
-      setOpen(e.clientY < d.startY);
+      setOpen(e.clientY < d.pointerStartY);
     }
     setDragY(null);
   };
@@ -181,7 +181,7 @@ function Whiteboard({ onPick }) {
                 type="button"
                 className="notice-tab-note"
                 style={{ "--genre": genreColor(e.genre) }}
-                onClick={() => onPick({ day, showKey: e.showKey })}
+                onClick={() => onPick({ day, showId: e.showId })}
               >
                 <span className="notice-tab-date">{e.startLabel}</span>
                 <span className="notice-tab-title">{e.title}</span>

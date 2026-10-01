@@ -4,8 +4,7 @@ import { ZONE_CONFIG, resolveZone } from "../lib/zones";
 import { saveDrawingInBackground } from "../lib/drawingsStore";
 import "./DrawZone.css";
 
-// zoneId is "tree" | "stem" | "free" (also accepts "flower" as an alias),
-// pulled from the route. Rendered as a child route of the street (see
+// zoneId is "tree" | "stem" | "free", pulled from the route. Rendered as a child route of the street (see
 // App.jsx), so this is an overlay floating over the blurred scene.
 export default function DrawZone() {
   const { zoneId } = useParams();
@@ -20,11 +19,7 @@ export default function DrawZone() {
     // Something drawn -> save it in the background and go straight back to
     // the scene rather than waiting on the uploads; the drawing appears there
     // once it lands, and a failed save shows up there as a toast (see
-    // subscribeToSaveErrors in drawingsStore.js). saveDrawing() still emits
-    // the "submitted" signal (subscribeToSubmissions/getLastSubmission) once
-    // the write actually lands — that's the hook point for future consumers
-    // (entry animation, kangaroo reaction), not this handler.
-    // A real submission also takes the street back to its starting view and
+    // subscribeToSaveErrors in drawingsStore.js). A real submission also takes the street back to its starting view and
     // plays the drawing's entrance: it starts from the paper's box on screen
     // (the drawn size and spot) with a local copy of the export.
     if (pngBlob) {
@@ -34,7 +29,7 @@ export default function DrawZone() {
         paper && {
           zone: key,
           imageUrl: URL.createObjectURL(pngBlob),
-          fromRect: { left: paper.left, top: paper.top, width: paper.width, height: paper.height },
+          paperRect: { left: paper.left, top: paper.top, width: paper.width, height: paper.height },
         },
       );
     }
@@ -45,7 +40,6 @@ export default function DrawZone() {
     <div className="draw-overlay" role="dialog" aria-modal="true" aria-label={zone.label}>
       <h2 className="draw-overlay-title">{zone.label}</h2>
       <DrawingCanvas
-        zone={key}
         palette={zone.palette}
         backgroundTemplate={zone.backgroundTemplate}
         exportSize={zone.exportSize}

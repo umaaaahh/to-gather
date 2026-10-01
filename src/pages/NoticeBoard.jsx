@@ -1,47 +1,30 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { EVENTS, MONTH_NAMES } from "../lib/events";
+import { buildMonthGrid, EVENTS, MONTH_NAMES, sameDay } from "../lib/events";
 import "./NoticeBoard.css";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-const sameDay = (a, b) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
-
-function buildMonthGrid(year, month) {
-  const firstOfMonth = new Date(year, month, 1);
-  const startOffset = firstOfMonth.getDay(); // 0 = Sunday
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const cells = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
 export default function NoticeBoard() {
   const navigate = useNavigate();
   const today = useMemo(() => new Date(), []);
-  const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [shownMonth, setShownMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
   const cells = useMemo(
-    () => buildMonthGrid(cursor.getFullYear(), cursor.getMonth()),
-    [cursor],
+    () => buildMonthGrid(shownMonth.getFullYear(), shownMonth.getMonth()),
+    [shownMonth],
   );
 
   const eventsThisMonth = useMemo(
     () =>
       EVENTS.filter(
-        (e) => e.date.getFullYear() === cursor.getFullYear() && e.date.getMonth() === cursor.getMonth(),
+        (e) => e.date.getFullYear() === shownMonth.getFullYear() && e.date.getMonth() === shownMonth.getMonth(),
       ).sort((a, b) => a.date - b.date),
-    [cursor],
+    [shownMonth],
   );
 
   const goMonth = (delta) =>
-    setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
+    setShownMonth((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
 
   return (
     <div className="notice-page">
@@ -62,7 +45,7 @@ export default function NoticeBoard() {
               ‹
             </button>
             <span className="nb-cal-month">
-              {MONTH_NAMES[cursor.getMonth()]} {cursor.getFullYear()}
+              {MONTH_NAMES[shownMonth.getMonth()]} {shownMonth.getFullYear()}
             </span>
             <button className="nb-cal-nav" onClick={() => goMonth(1)} aria-label="Next month">
               ›

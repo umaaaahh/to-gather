@@ -5,7 +5,7 @@ import "./DrawingCanvas.css";
 // the phone width; all drawing happens at this fixed resolution
 // so behaviour is identical regardless of device size. Export is downscaled
 // from here to the zone's exportSize.
-const RES = 768;
+const CANVAS_RES = 768;
 
 const BRUSH_SIZES = [
   { key: "s", label: "S", width: 10 },
@@ -19,7 +19,6 @@ const UNDO_LIMIT = 6;
  * Standalone drawing surface for a zone. Works with zero Firebase wiring —
  * calls onDone(pngBlob) with a flattened PNG at the zone's export resolution.
  *
- * @param {"tree"|"flower"|"free"|string} zone     zone id (for labelling/behaviour hooks)
  * @param {string[]} palette                        fixed list of hex colours shown as swatches
  * @param {string|null} backgroundTemplate          url of a template image shown live as a guide to
  *                                                   draw against, and also baked into the export
@@ -37,7 +36,6 @@ const UNDO_LIMIT = 6;
  * @param {() => void} [onCancel]                   optional — renders a Back control
  */
 export default function DrawingCanvas({
-  zone = "free",
   palette = ["#000000"],
   backgroundTemplate = null,
   exportSize = 400,
@@ -50,7 +48,7 @@ export default function DrawingCanvas({
   const lastPtRef = useRef(null);
   const undoStackRef = useRef([]);
   const bgImgRef = useRef(null);
-  const dirtyRef = useRef(false); // has anything actually been drawn?
+  const hasDrawingRef = useRef(false); // has anything actually been drawn?
   // Guards the Done action end-to-end (export + onDone, including whatever
   // async save onDone performs). A ref rather than just the `busy` state
   // because it must block re-entry synchronously — a second pointer event
@@ -72,8 +70,8 @@ export default function DrawingCanvas({
   // One-time canvas setup.
   useEffect(() => {
     const canvas = canvasRef.current;
-    canvas.width = RES;
-    canvas.height = RES;
+    canvas.width = CANVAS_RES;
+    canvas.height = CANVAS_RES;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -101,7 +99,7 @@ export default function DrawingCanvas({
   const pushUndo = useCallback(() => {
     const ctx = ctxRef.current;
     if (!ctx) return;
-    const snap = ctx.getImageData(0, 0, RES, RES);
+    const snap = ctx.getImageData(0, 0, CANVAS_RES, CANVAS_RES);
     const stack = undoStackRef.current;
     stack.push(snap);
     if (stack.length > UNDO_LIMIT) stack.shift();
@@ -114,7 +112,7 @@ export default function DrawingCanvas({
     if (!stack.length || !ctx) return;
     const snap = stack.pop();
     ctx.putImageData(snap, 0, 0);
-    dirtyRef.current = true;
+    hasDrawingRef.current = true;
     setCanUndo(stack.length > 0);
   }, []);
 
@@ -122,15 +120,15 @@ export default function DrawingCanvas({
     const ctx = ctxRef.current;
     if (!ctx) return;
     pushUndo();
-    ctx.clearRect(0, 0, RES, RES);
-    dirtyRef.current = false;
+    ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
+    hasDrawingRef.current = false;
   }, [pushUndo]);
 
   // ---- pointer -> canvas coords -----------------------------------------
   const toCanvasPt = useCallback((e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = RES / rect.width;
-    const scaleY = RES / rect.height;
+    const scaleX = CANVAS_RES / rect.width;
+    const scaleY = CANVAS_RES / rect.height;
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY,
@@ -161,7 +159,7 @@ export default function DrawingCanvas({
       canvasRef.current.setPointerCapture?.(e.pointerId);
 
       pushUndo();
-      dirtyRef.current = true;
+      hasDrawingRef.current = true;
       drawingRef.current = true;
       lastPtRef.current = pt;
       strokeSettings();
@@ -207,7 +205,7 @@ export default function DrawingCanvas({
     // not just the synchronous export) — see submitLockRef above.
     if (submitLockRef.current) return;
     // Untouched canvas -> don't bother exporting or storing anything.
-    if (!dirtyRef.current) {
+    if (!hasDrawingRef.current) {
       onDone?.(null);
       return;
     }
@@ -225,16 +223,16 @@ export default function DrawingCanvas({
     const out = document.createElement("canvas");
     out.width = exportSize;
     out.height = exportSize;
-    const octx = out.getContext("2d");
+    const outCtx = out.getContext("2d");
 
     if (bg?.naturalWidth && bg?.naturalHeight) {
       const scale = Math.min(exportSize / bg.naturalWidth, exportSize / bg.naturalHeight);
       const w = bg.naturalWidth * scale;
       const h = bg.naturalHeight * scale;
-      octx.drawImage(bg, (exportSize - w) / 2, (exportSize - h) / 2, w, h);
+      outCtx.drawImage(bg, (exportSize - w) / 2, (exportSize - h) / 2, w, h);
     }
 
-    octx.drawImage(canvasRef.current, 0, 0, exportSize, exportSize);
+    outCtx.drawImage(canvasRef.current, 0, 0, exportSize, exportSize);
 
     out.toBlob(async (blob) => {
       try {
@@ -249,7 +247,7 @@ export default function DrawingCanvas({
   }, [exportSize, onDone]);
 
   return (
-    <div className="dc-root" data-zone={zone}>
+    <div className="dc-root">
       <div className="dc-stage">
         {/* Shown live as a guide to draw against, and baked into the
            flattened export too (see handleDone) so it's also part of the
@@ -273,7 +271,7 @@ export default function DrawingCanvas({
         <div className="dc-tools" role="group" aria-label="Tools">
           <button
             type="button"
-            className={cx("dc-tool", tool === "brush" && "dc-tool--active")}
+            className={classNames("dc-tool", tool === "brush" && "dc-tool--active")}
             onClick={() => setTool("brush")}
             aria-pressed={tool === "brush"}
           >
@@ -281,7 +279,7 @@ export default function DrawingCanvas({
           </button>
           <button
             type="button"
-            className={cx("dc-tool", tool === "eraser" && "dc-tool--active")}
+            className={classNames("dc-tool", tool === "eraser" && "dc-tool--active")}
             onClick={() => setTool("eraser")}
             aria-pressed={tool === "eraser"}
           >
@@ -294,7 +292,7 @@ export default function DrawingCanvas({
             <button
               type="button"
               key={b.key}
-              className={cx("dc-size", brushKey === b.key && "dc-size--active")}
+              className={classNames("dc-size", brushKey === b.key && "dc-size--active")}
               onClick={() => setBrushKey(b.key)}
               aria-pressed={brushKey === b.key}
             >
@@ -312,7 +310,7 @@ export default function DrawingCanvas({
             <button
               type="button"
               key={hex}
-              className={cx("dc-swatch", color === hex && "dc-swatch--active")}
+              className={classNames("dc-swatch", color === hex && "dc-swatch--active")}
               style={{ background: hex }}
               onClick={() => {
                 setColor(hex);
@@ -355,6 +353,6 @@ export default function DrawingCanvas({
   );
 }
 
-function cx(...parts) {
+function classNames(...parts) {
   return parts.filter(Boolean).join(" ");
 }
