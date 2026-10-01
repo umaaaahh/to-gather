@@ -83,7 +83,7 @@ const STREET_ROAD_THICKNESS = 8.5 * STREET_SCALE;
 const STREET_BUILDING_SIZE = 3.9 * STREET_SCALE;
 // Empty road before the first building, between buildings, and after the
 // last one, as a % of the scene-ground width. As tuned: 4 / 6 / 4.
-const STREET_START_PADDING = 7.5* STREET_SCALE;
+const STREET_START_PADDING = 20 * STREET_SCALE;
 const STREET_GAP = 10 * STREET_SCALE;
 const STREET_END_PADDING = 4 * STREET_SCALE;
 
@@ -373,7 +373,7 @@ const WINDOW_BOOK = anchored({ top: "86.5%", anchor: "left", left: "29.5%", widt
 // standing on the footpath between the first tree and the left building.
 // `left` is from the left building's edge (negative = before it). Height is
 // the knob for its size; width follows the art.
-const STREET_SIGN_POS = { anchor: "left", left: -7, bottom: 106, height: 30 };
+const STREET_SIGN_POS = { anchor: "left", left: -9.5, bottom: 106, height: 40 };
 // Where the sign sits in its 595x842 file (the rest is empty page).
 const STREET_SIGN_CROP = { vbWidth: 595, vbHeight: 842, x: 135, y: 35, width: 387, height: 757 };
 const STREET_SIGN = {
