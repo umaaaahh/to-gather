@@ -16,6 +16,8 @@ export default function App() {
   const [intro, setIntro] = useState("splash"); // splash -> tour -> done
   const startTour = useCallback(() => setIntro((i) => (i === "splash" ? "tour" : i)), []);
   const endTour = useCallback(() => setIntro("done"), []);
+  // The kangaroo by the street sign plays the tour again on tap.
+  const replayTour = useCallback(() => setIntro("tour"), []);
 
   // The radio popup, app-wide so the music and the mini radio carry on
   // across pages (see RadioLayer).
@@ -46,6 +48,7 @@ export default function App() {
             <StreetScene
               showTour={intro === "tour"}
               onTourDone={endTour}
+              onReplayTour={replayTour}
               onOpenRadio={openRadio}
               onOpenBookshelf={openShelf}
               onOpenStreetSign={openHistory}

@@ -293,7 +293,7 @@ const scaleTree = (t) => {
 const CRAYON_TREES = [
   {
     id: "tree-1",
-    top: "50%",
+    top: "46.5%",
     anchor: "start",
     left: "-5.5%",
     width: "15%",
@@ -307,7 +307,7 @@ const CRAYON_TREES = [
   },
   {
     id: "tree-2",
-    top: "60%",
+    top: "62%",
     anchor: "gap",
     left: "-7%",
     width: "15%",
@@ -324,11 +324,12 @@ const CRAYON_TREES = [
   },
   {
     id: "tree-3",
-    top: "55%",
+    top: "50.7%",
     anchor: "end",
     left: "-10%",
     width: "15%",
     height: "51%",
+    scale: 1.1,
     flip: true,
     // Right third is past the end of the road — left side only. Last tree,
     // so its last box also takes the overflow buffer.
@@ -393,19 +394,19 @@ const treeHotspotBox = (t) => {
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above; `left` is from the left building's edge so it stays on its window.
-const WINDOW_RADIO = resolveAnchor({ top: "83%", anchor: "left", left: "2.4%", width: "8%", height: "14%" });
+const WINDOW_RADIO = resolveAnchor({ top: "78%", anchor: "left", left: "2.95%", width: "8%", height: "14%" });
 
 // A second window surprise, same pattern as WINDOW_RADIO above — a different
 // window pane so the two don't compete for attention. Opens the community
 // bookshelf popup (see Bookshelf.jsx), the same way the boombox opens the
 // radio.
-const WINDOW_BOOK = resolveAnchor({ top: "75%", anchor: "left", left: "98%", width: "6%", height: "14%" });
+const WINDOW_BOOK = resolveAnchor({ top: "81%", anchor: "left", left: "32.5%", width: "6%", height: "14%" });
 
 // Street sign — a third tappable surprise, same glow as the window ones;
 // opens the street's history (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
 // `left` is from the left building's edge (negative = before it). Height is
 // the knob for its size; width follows the art.
-const STREET_SIGN_POS = { anchor: "left", left: -13.5, bottom: 106, height: 40 };
+const STREET_SIGN_POS = { anchor: "left", left: -13.5, bottom: 101, height: 40 };
 // Where the sign sits in its 595x842 file (the rest is empty page).
 const STREET_SIGN_CROP = { fileWidth: 595, fileHeight: 842, x: 135, y: 35, width: 387, height: 757 };
 const STREET_SIGN = {
@@ -420,7 +421,7 @@ const STREET_SIGN = {
 // left building. Same knobs as the sign: `left` from the left building's
 // edge, feet at `bottom`, `height` sets its size and width follows the art
 // (1172 x 1342).
-const STREET_KANGAROO_POS = { anchor: "left", left: -8.5, bottom: 106, height: 22 };
+const STREET_KANGAROO_POS = { anchor: "left", left: -9, bottom: 101.7, height: 22 };
 const STREET_KANGAROO = {
   top: `${STREET_KANGAROO_POS.bottom - STREET_KANGAROO_POS.height}%`,
   left: `${fromStreetStart(STREET_KANGAROO_POS.anchor, STREET_KANGAROO_POS.left)}%`,
@@ -783,6 +784,7 @@ function LockIcon() {
 export default function StreetScene({
   showTour = false,
   onTourDone,
+  onReplayTour,
   onOpenRadio,
   onOpenBookshelf,
   onOpenStreetSign,
@@ -1147,16 +1149,21 @@ export default function StreetScene({
                 </button>
               )}
 
-              {/* The kangaroo by the sign — just scenery. Hidden while the
-                 tour runs, since the tour's kangaroo is the one talking. */}
+              {/* The kangaroo by the sign — tap it to replay the street
+                 tour. Hidden while the tour runs, since the tour's kangaroo
+                 is the one talking; just scenery (disabled) once Start
+                 reveals the zone hotspots, like the notice board. */}
               {!showTour && (
-                <img
-                  className="street-kangaroo"
-                  src={ASSETS.kangaroo}
-                  alt=""
-                  draggable="false"
+                <button
+                  type="button"
+                  className="street-surprise-button street-kangaroo-button"
+                  onClick={onReplayTour}
+                  disabled={mode !== "view"}
+                  aria-label="Show me around the street again"
                   style={STREET_KANGAROO}
-                />
+                >
+                  <img className="street-kangaroo" src={ASSETS.kangaroo} alt="" draggable="false" />
+                </button>
               )}
 
               {/* Flower beds — see FLOWER_BEDS above. Each bed is its scattered
@@ -1165,7 +1172,7 @@ export default function StreetScene({
               {beds.map((b, i) => (
                 <Fragment key={b.id}>
                   <div
-                    className="scatter"
+                    className="scatter scatter--front"
                     style={{ ...bedBox(b), "--item-w": bedFlowerWidth(b),"--item-max-h": FLOWER_MAX_HEIGHT }}
                   >
                     {/* The bed's patch while contributing — first in the
