@@ -47,4 +47,8 @@ export const ASSETS = {
   radio: url("Untitled - 30 September 2026 at 01.21.06 (1).png"),
   // Crayon book row in the street's bookshelf window (opens the Bookshelf).
   books: url("books 2.png"),
+  // Crayon "Cardigan St" street sign, between the first tree and the left
+  // building. A 595x842 page with the sign in the middle — StreetScene crops
+  // it (STREET_SIGN_CROP).
+  streetSign: url("Untitled design (2).svg"),
 };

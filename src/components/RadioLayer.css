@@ -17,12 +17,11 @@
   pointer-events: auto;
 }
 
-/* Mini radio (see MiniRadio.jsx): top-right of the sky, mirroring the sun
-   button's top-left spot (.scene-cta: top 10%, left 5%). */
+/* Mini radio (see MiniRadio.jsx): top-left of the sky. */
 .radio-layer-mini {
   position: absolute;
   top: calc(10% + 1rem);
-  right: 5%;
+  left: 5%;
 }
 
 /* ---- Radio popup -----------------------------------------------------

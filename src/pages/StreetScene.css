@@ -49,10 +49,12 @@
      it below the bottom edge (the green box follows). */
   --scene-lift: -10%;
 
-  /* ---- Street length -----------------------------------------------
-     How long the street is, as a % of the phone frame width. 100% = the
-     whole street fits on screen with no scroll. Larger = a longer street
-     you pan left/right across (see STREET_PIECES for the building art). */
+  /* ---- Street size ---------------------------------------------------
+     Zooms the whole street — road, buildings, trees, beds, zones, window
+     buttons, characters — together, as a % of the phone frame width.
+     Bigger = everything larger (and a longer pan). Spacing between and
+     around the buildings is STREET_GAP / STREET_*_PADDING in
+     StreetScene.jsx. */
   --scene-width: 260%;
 
   /* ---- House artwork position ---------------------------------------
@@ -78,21 +80,21 @@
    lands tile 2 exactly where tile 1 started, so the loop has no seam. */
 .clouds {
   position: absolute;
-  top: 5%;
+  top: 20%;
   left: 0;
   z-index: 1;
   display: flex;
-  width: 270%;
+  width: 155%;
   pointer-events: none;
   user-select: none;
   animation: clouds-drift 90s linear infinite;
 }
 
 .cloud-tile {
-  flex: 0 0 50%;
-  width: 50%;
+  flex: 0 0 70%;
+  width: 70%;
   /* gentle vertical bob, offset the 2nd tile so they don't bob in unison */
-  animation: clouds-bob 7s ease-in-out infinite;
+  animation: clouds-bob 10s ease-in-out infinite;
 }
 
 .cloud-tile:nth-child(2) {
@@ -622,8 +624,8 @@
    Sits up in the top-left of the sky, among the clouds. */
 .scene-cta {
   position: absolute;
-  top: 10%;
-  left: 5%;
+  top: 5%;
+  right: 5%;
   z-index: 5;
   width: 36%;
   max-width: 160px;
@@ -782,15 +784,32 @@
   animation: window-boombox-pulse 3s ease-in-out infinite;
 }
 
+/* The street sign: a crop window onto its page (the img is positioned
+   inline, like .street-piece). The glow is on this wrapper, so it isn't
+   clipped by the crop. */
+.street-sign {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  user-select: none;
+  animation: window-boombox-pulse 3s ease-in-out infinite;
+}
+
 .window-sound-button:active .window-boombox,
-.window-sound-button:active .window-books {
+.window-sound-button:active .window-books,
+.window-sound-button:active .street-sign {
   animation: none;
   transform: scale(0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .window-boombox,
-  .window-books {
+  .window-books,
+  .street-sign {
     animation: none;
   }
 }

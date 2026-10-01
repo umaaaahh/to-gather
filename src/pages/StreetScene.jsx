@@ -28,7 +28,8 @@ const ZONES = [
     level: "Hard",
     stars: 3,
     top: "105.5%", // on the road
-    left: "45%",
+    anchor: "left", // see STREET_ANCHORS
+    left: "41%",
     width: "30%",
     height: "16%",
   },
@@ -37,23 +38,34 @@ const ZONES = [
 // A zone's `top`/`left` shifted by its offsetY/offsetX, if it has one.
 const shifted = (value, offset) => (offset ? `calc(${value} + ${offset})` : value);
 const zoneTop = (zone) => shifted(zone.top, zone.offsetY);
-const zoneLeft = (zone) => shifted(zone.left, zone.offsetX);
+const zoneLeft = (zone) => shifted(`${streetX(zone.anchor, zone.left)}%`, zone.offsetX);
 
 // ---- Street artwork ---------------------------------------------------------
-// The street is split into separate building pieces so each can be moved on
-// its own (e.g. to open up a gap for the tree). `left` is a % of the
-// scene-ground box — that's the knob to move a piece. The optional `scale`
-// resizes one piece on its own (1 = as tuned); it grows up and to the right
-// from its bottom-left corner, so it stays standing on the road.
+// LAYOUT KNOBS — what to reach for when trying out the street's shape:
+//   --scene-width (StreetScene.css) — zooms the WHOLE street: road,
+//       buildings, trees, beds, zones, window buttons and characters all
+//       grow or shrink together.
+//   STREET_START_PADDING / STREET_GAP / STREET_END_PADDING (below) — road
+//       before, between and after the buildings. Everything placed on the
+//       street is anchored (see STREET_ANCHORS) so it follows: the end
+//       trees stay at the ends of the street, tree 2 stays in the gap, the
+//       window buttons stay on their windows.
+//
+// The street is split into separate building pieces, laid out left to
+// right: STREET_START_PADDING, the first piece, STREET_GAP, the next piece,
+// ..., STREET_END_PADDING. The optional `scale` resizes one piece on its own
+// (1 = as tuned); it grows up and to the right from its bottom-left corner,
+// so it stays standing on the road. Things placed on that building don't
+// scale with it, so prefer --scene-width.
 //
 // The buildings are cropped just above their own drawn road, and all sit on
 // one shared road + grass strip (ROAD_STRIP) that runs the full length of
 // the street along the ground line (the bottom of .scene-ground, which is
 // the bottom of the screen at --scene-lift: 0%).
 //
-// STREET_SCALE sizes the whole street — road strip, both buildings and the
-// buildings' `left` positions all scale together, so the layout keeps its
-// look. 1 = the layout as tuned below.
+// STREET_SCALE sizes the road strip, both buildings and the paddings/gap
+// together, but NOT the things placed on the street (trees, beds, zones,
+// window buttons) — leave it at 1 and use --scene-width to resize everything.
 //
 // The road and buildings were tuned separately, which is where the two base
 // sizes come from (in the same units: how thick the drawn grey road would
@@ -69,17 +81,16 @@ const zoneLeft = (zone) => shifted(zone.left, zone.offsetX);
 const STREET_SCALE = 1;
 const STREET_ROAD_THICKNESS = 8.5 * STREET_SCALE;
 const STREET_BUILDING_SIZE = 3.9 * STREET_SCALE;
-// Empty road before the first building and after the last one, as a % of
-// the scene-ground width. Pieces' `left` is measured from the end of the
-// start padding, so changing it keeps the gaps between buildings the same.
-const STREET_START_PADDING = 8 * STREET_SCALE;
+// Empty road before the first building, between buildings, and after the
+// last one, as a % of the scene-ground width. As tuned: 4 / 6 / 4.
+const STREET_START_PADDING = 7.5* STREET_SCALE;
+const STREET_GAP = 10 * STREET_SCALE;
 const STREET_END_PADDING = 4 * STREET_SCALE;
 
 const STREET_PIECES = [
   {
     id: "left",
     src: ASSETS.streetLeft,
-    left: "0%",
     scale: 1.1,
     // building-56.webp: 1833 × 755 px, already cropped from building 56.svg
     // to this box plus a 2px safety margin on every side (clipped by
@@ -90,7 +101,6 @@ const STREET_PIECES = [
   {
     id: "right",
     src: ASSETS.streetRight,
-    left: "72.4%",
     scale: 1.1,
     // building-94.webp: 1891 × 767 px, already cropped from building 94.svg
     // to this box plus a 2px safety margin on every side.
@@ -123,7 +133,12 @@ const ROAD_STRIP = {
 // width.
 const artWidth = ({ crop, roadThickness }, size) => (size * crop.width) / roadThickness;
 const pieceWidth = (piece) => artWidth(piece, STREET_BUILDING_SIZE * (piece.scale ?? 1));
-const pieceLeft = (piece) => STREET_END_PADDING + parseFloat(piece.left) * STREET_SCALE;
+// Each piece starts where the one before it ends, plus the gap.
+const PIECE_LEFTS = STREET_PIECES.reduce(
+  (lefts, p, i) => [...lefts, i === 0 ? STREET_START_PADDING : lefts[i - 1] + pieceWidth(STREET_PIECES[i - 1]) + STREET_GAP],
+  [],
+);
+const pieceLeft = (piece) => PIECE_LEFTS[STREET_PIECES.indexOf(piece)];
 const ROAD_TILE_WIDTH = artWidth(ROAD_STRIP, STREET_ROAD_THICKNESS);
 
 // Height of the road strip (road + grass), as a % of the scene-ground WIDTH.
@@ -136,6 +151,27 @@ const STREET_LENGTH = Math.max(
   100,
   ...STREET_PIECES.map((p) => pieceLeft(p) + pieceWidth(p) + STREET_END_PADDING),
 );
+
+// Points along the street that things placed on it hang off, as a % of the
+// scene-ground width. Anything with `anchor: "<name>"` has its `left`
+// measured from that point (negative = to the left of it), so it follows
+// when the paddings, gap or buildings change. No anchor = "start".
+//   start — the start of the road
+//   left  — the left building's left edge
+//   gap   — the middle of the gap between the buildings
+//   right — the right building's left edge
+//   end   — the end of the road
+const [LEFT_PIECE, RIGHT_PIECE] = STREET_PIECES;
+const STREET_ANCHORS = {
+  start: 0,
+  left: pieceLeft(LEFT_PIECE),
+  gap: (pieceLeft(LEFT_PIECE) + pieceWidth(LEFT_PIECE) + pieceLeft(RIGHT_PIECE)) / 2,
+  right: pieceLeft(RIGHT_PIECE),
+  end: STREET_LENGTH,
+};
+const streetX = (anchor = "start", left = 0) => STREET_ANCHORS[anchor] + parseFloat(left);
+// An item with its `left` resolved to a plain % of the scene-ground box.
+const anchored = (item) => ({ ...item, left: `${streetX(item.anchor, item.left)}%` });
 const ROAD_TILE_COUNT = ROAD_WHOLE ? 1 : Math.ceil(STREET_LENGTH / ROAD_TILE_WIDTH);
 
 const pieceBoxStyle = (piece) => ({
@@ -190,9 +226,9 @@ const NOTICE_TAB = true;
 // To move/resize it, edit only these three numbers (all % of the street):
 //   bottom — gap between the board's feet and the screen bottom (0 = on the edge,
 //            bigger = higher, negative = sinks below the edge)
-//   left   — distance of the board's left edge from the left (bigger = further right)
+//   left   — the board's left edge, from the left building's edge (bigger = further right)
 //   height — board size, grows upward from its feet; width follows automatically
-const NOTICE_BOARD_POS = { bottom: 0, left: 52, height: 40 };
+const NOTICE_BOARD_POS = { bottom: 0, left: streetX("left", 48), height: 40 };
 
 // Width = height x the art's 600:900 ratio, converted through the
 // scene-ground's 660:285 aspect, so the tap target hugs the board.
@@ -229,10 +265,13 @@ const NOTICE_BADGE_POS = { top: 40, left: 50 };
 // boxes over the part that shows, at half capacity (75 each).
 // Capacities sum to 299 — keep drawingsStore.js's ZONE_LIMITS.tree at that
 // plus its overflow buffer.
+// `left` is measured from the tree's `anchor` (see STREET_ANCHORS): the end
+// trees hang off the ends of the road, tree 2 off the middle of the gap.
 const CRAYON_TREES = [
   {
     id: "tree-1",
     top: "55%",
+    anchor: "start",
     left: "-5.5%",
     width: "15%",
     height: "51%",
@@ -245,7 +284,8 @@ const CRAYON_TREES = [
   {
     id: "tree-2",
     top: "57%",
-    left: "67%",
+    anchor: "gap",
+    left: "-6.4%",
     width: "12%",
     height: "51%",
     flip: true,
@@ -258,7 +298,8 @@ const CRAYON_TREES = [
   {
     id: "tree-3",
     top: "55%",
-    left: "139%",
+    anchor: "end",
+    left: "-10%",
     width: "15%",
     height: "51%",
     flip: true,
@@ -269,7 +310,7 @@ const CRAYON_TREES = [
       { id: "low-left", top: "25%", left: "2%", width: "45%", height: "40%", capacity: 30 },
     ],
   },
-];
+].map(anchored);
 
 // The label on whichever tree is open.
 const TREE_HOTSPOT = { label: "Colour the tree", level: "Easy", stars: 1 };
@@ -319,14 +360,29 @@ const treeHotspotBox = (t) => {
 // A pulsing button tucked into one of the house windows, view-mode only —
 // it disappears once Start is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
-// else above.
-const WINDOW_SOUND = { top: "84.5%", left: "15%", width: "8%", height: "14%" };
+// else above; `left` is from the left building's edge so it stays on its window.
+const WINDOW_SOUND = anchored({ top: "84.5%", anchor: "left", left: "11%", width: "8%", height: "14%" });
 
 // A second window surprise, same pattern as WINDOW_SOUND above — a different
 // window pane so the two don't compete for attention. Opens the community
 // bookshelf popup (see Bookshelf.jsx), the same way the boombox opens the
 // radio.
-const WINDOW_BOOK = { top: "86.5%", left: "33.5%", width: "6%", height: "14%" };
+const WINDOW_BOOK = anchored({ top: "86.5%", anchor: "left", left: "29.5%", width: "6%", height: "14%" });
+
+// Street sign — a third tappable surprise, same glow as the window ones,
+// standing on the footpath between the first tree and the left building.
+// `left` is from the left building's edge (negative = before it). Height is
+// the knob for its size; width follows the art.
+const STREET_SIGN_POS = { anchor: "left", left: -7, bottom: 106, height: 30 };
+// Where the sign sits in its 595x842 file (the rest is empty page).
+const STREET_SIGN_CROP = { vbWidth: 595, vbHeight: 842, x: 135, y: 35, width: 387, height: 757 };
+const STREET_SIGN = {
+  top: `${STREET_SIGN_POS.bottom - STREET_SIGN_POS.height}%`,
+  left: `${streetX(STREET_SIGN_POS.anchor, STREET_SIGN_POS.left)}%`,
+  // height is a % of the scene-ground height; width a % of its width (660:285).
+  width: `${(STREET_SIGN_POS.height * STREET_SIGN_CROP.width * 285) / (STREET_SIGN_CROP.height * 660)}%`,
+  height: `${STREET_SIGN_POS.height}%`,
+};
 
 // ---- Scattered zone contributions -----------------------------------------
 // Every zone's contributions pile up over time instead of only showing the
@@ -360,11 +416,12 @@ const SHOW_LEAF_BOXES = false;
 // lands in comes from its arrival order, not which bed was tapped.
 // Capacities sum to 60 — keep drawingsStore.js's ZONE_LIMITS.stem at that
 // plus its overflow buffer (the last bed takes the overflow).
+// `left` is from each bed's `anchor` (see STREET_ANCHORS).
 const FLOWER_BEDS = [
-  { id: "bed-1", top: "127%", left: "5%", width: "35%", height: "10%", capacity: 20 },
-  { id: "bed-2", top: "127%", left: "60%", width: "35%", height: "10%", capacity: 20 },
-  { id: "bed-3", top: "127%", left: "110%", width: "35%", height: "10%", capacity: 20 },
-];
+  { id: "bed-1", top: "127%", anchor: "left", left: "1%", width: "35%", height: "10%", capacity: 20 },
+  { id: "bed-2", top: "127%", anchor: "gap", left: "-13.4%", width: "35%", height: "10%", capacity: 20 },
+  { id: "bed-3", top: "127%", anchor: "right", left: "33.6%", width: "35%", height: "10%", capacity: 20 },
+].map(anchored);
 
 // The label on whichever bed is open.
 const FLOWER_HOTSPOT = { label: "Draw a flower", level: "Medium", stars: 2 };
@@ -397,11 +454,10 @@ const bedBox = (b) => ({ top: b.top, left: b.left, width: b.width, height: b.hei
 // `capacity` documents the free zone's query cap (ZONE_LIMITS); a no-op here
 // since it is the only/last box (see layoutScatter).
 const FREE_BOXES = [{ id: "yard", top: "0%", left: "0%", width: "100%", height: "100%", capacity: 114 }];
-// ~1 screen's width of road: tied to --scene-width (260% of the frame) —
-// 100/260 ≈ 38%. If --scene-width changes, nudge this to match.
-// Edit these four numbers to move/resize where characters walk (same %
+// The whole road, bar the last 2% — its width follows the street length.
+// Edit these numbers to move/resize where characters walk (same %
 // coordinates as ZONES — of the scene-ground box).
-const FREE_ROAD_BOX = { top: "105.5%", left: "0%", width: "147%", height: "18%" };
+const FREE_ROAD_BOX = { top: "105.5%", left: "0%", width: `${STREET_LENGTH - 2}%`, height: "18%" };
 
 // Flip SHOW_WALK_BOX on to see FREE_ROAD_BOX on the street (dashed outline +
 // its numbers) while you position it, then set it back to false.
@@ -657,6 +713,7 @@ export default function StreetScene({
   onTourDone,
   onOpenRadio,
   onOpenBookshelf,
+  onOpenStreetSign,
 }) {
   const navigate = useNavigate();
   // The /draw/:zoneId child route (DrawZone). While it's open the street
@@ -989,6 +1046,27 @@ export default function StreetScene({
                   }}
                 >
                   <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
+                </button>
+              )}
+
+              {/* Street sign — same view-mode-only, glowing pattern. */}
+              {mode === "view" && (
+                <button
+                  type="button"
+                  className="window-sound-button"
+                  onClick={onOpenStreetSign}
+                  aria-label="Cardigan St street sign"
+                  style={STREET_SIGN}
+                >
+                  <span className="street-sign">
+                    <img
+                      className="house-img"
+                      src={ASSETS.streetSign}
+                      alt=""
+                      draggable="false"
+                      style={pieceImgStyle({ crop: STREET_SIGN_CROP })}
+                    />
+                  </span>
                 </button>
               )}
 
