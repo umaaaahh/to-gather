@@ -41,9 +41,9 @@ const listeners = new Set();
 // mid-drawing when the last tree filled still land — layoutScatter piles
 // the extras into the last box.
 //
-// stem: the five flower beds (FLOWER_BEDS in StreetScene.jsx) sum to 100
+// stem: the three flower beds (FLOWER_BEDS in StreetScene.jsx) sum to 60
 // (20 each), plus the same 10-flower buffer.
-const ZONE_LIMITS = { tree: 309, stem: 110, free: 114 };
+const ZONE_LIMITS = { tree: 309, stem: 70, free: 114 };
 
 // Zones that keep their N OLDEST drawings instead of the newest: once the
 // trees / flower beds are full they stay full, so nothing gets swapped out

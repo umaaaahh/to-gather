@@ -18,13 +18,10 @@ const HOLD_MS = 700;
 // How long the drawing takes to shrink into its spot (passed to the CSS as
 // --fly-ms, so the transition always matches).
 const FLY_MS = 2800;
-// How long the glow stays up after landing, then how long it fades.
+// How long the glow stays up after landing, then how long it fades (must
+// match the glow's opacity transition in DrawingArrival.css).
 const GLOW_MS = 2800;
 const GLOW_FADE_MS = 1000;
-// The glow is sized off the landed drawing, with a floor so a tiny leaf or
-// flower still gets a glow you can see.
-const GLOW_SCALE = 2.6;
-const GLOW_MIN_PX = 110;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -34,8 +31,11 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 //   reveal  — the logo fades; the drawing sits over the street at the size
 //             and spot it was drawn at (fromRect, the drawing paper's box)
 //   fly     — it shrinks and moves into its real spot in the scene
-//   glow    — a warm glow behind it for a second, then fades
-// then onDone, which lets the real scene item show in the clone's place.
+//   glow    — the clone hands over to the real scene item, which glows: the
+//             glow is the item's own ::before, so it sits behind the
+//             thumbnail in its final spot (and behind any neighbour over it)
+//   fading  — the glow fades
+// then onDone, which clears the item's arrival marking.
 // If the drawing never turns up (zone full / slow save) it just fades out.
 export default function DrawingArrival({ arrival, sceneRef, onDone }) {
   const [phase, setPhase] = useState("loading");
@@ -54,6 +54,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
   useEffect(() => {
     let cancelled = false;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    let slot = null;
 
     async function run() {
       let img = null;
@@ -86,9 +87,14 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
         if (cancelled) return;
       }
       if (img) {
+        // Shows the real item in the clone's place and lights its glow (see
+        // DrawingArrival.css).
+        slot = img.closest(".scatter-item");
+        slot.dataset.glow = "on";
         setPhase("glow");
         await wait(GLOW_MS);
         if (cancelled) return;
+        slot.dataset.glow = "off";
       }
       setPhase("fading");
       await wait(GLOW_FADE_MS);
@@ -98,6 +104,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
     run();
     return () => {
       cancelled = true;
+      if (slot) delete slot.dataset.glow;
     };
     // One run per arrival (StreetScene keys this component by it).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,7 +121,8 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
         target.h / from.height
       })`
     : undefined;
-  const glowSize = target ? Math.max(Math.max(target.w, target.h) * GLOW_SCALE, GLOW_MIN_PX) : 0;
+  // Once it's landed the real scene item takes over, so the clone goes.
+  const handedOver = target && (phase === "glow" || phase === "fading");
 
   return createPortal(
     <>
@@ -126,24 +134,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
           <span />
         </div>
       </div>
-      {/* The glow lives on its own at the landing spot rather than inside
-         the clone, so the clone shrinking down doesn't shrink it to nothing. */}
-      {target && phase !== "loading" && (
-        <span
-          className="arrival-glow"
-          data-phase={phase}
-          style={{
-            left: target.cx,
-            top: target.cy,
-            width: glowSize,
-            height: glowSize,
-            "--fly-ms": `${FLY_MS}ms`,
-            "--glow-fade-ms": `${GLOW_FADE_MS}ms`,
-          }}
-          aria-hidden="true"
-        />
-      )}
-      {phase !== "loading" && (
+      {phase !== "loading" && !handedOver && (
         <div
           className="arrival-clone"
           data-phase={phase}

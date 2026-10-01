@@ -66,51 +66,6 @@
   height: 100%;
 }
 
-/* Warm glow at the landing spot, behind the drawing (its own element, sized
-   and centred inline from the landed drawing, so the clone's shrink doesn't
-   shrink it too). Grows in over the second half of the flight, pulses
-   through the glow phase, then fades (--glow-fade-ms). */
-.arrival-glow {
-  position: fixed;
-  z-index: 1000; /* just under the clone */
-  translate: -50% -50%;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(255, 252, 235, 1) 0%,
-    rgba(255, 236, 170, 0.85) 30%,
-    rgba(255, 214, 120, 0.4) 55%,
-    rgba(255, 214, 120, 0) 72%
-  );
-  opacity: 0;
-  transform: scale(0.4);
-  transition:
-    opacity var(--glow-fade-ms, 0.7s) ease,
-    transform var(--glow-fade-ms, 0.7s) ease;
-}
-
-.arrival-glow[data-phase="fly"] {
-  /* Kicks in over the second half of the flight. */
-  transition:
-    opacity calc(var(--fly-ms, 2s) / 2) ease calc(var(--fly-ms, 2s) / 2),
-    transform calc(var(--fly-ms, 2s) / 2) ease-out calc(var(--fly-ms, 2s) / 2);
-}
-
-.arrival-glow[data-phase="fly"],
-.arrival-glow[data-phase="glow"] {
-  opacity: 1;
-  transform: scale(1);
-  animation: arrival-glow-pulse 1.6s ease-in-out infinite alternate;
-}
-
-@keyframes arrival-glow-pulse {
-  to {
-    filter: brightness(1.12);
-    scale: 1.08;
-  }
-}
-
 @keyframes arrival-clone-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -128,7 +83,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .arrival-dots span,
-  .arrival-glow {
+  .scatter-item[data-arrival]::before {
     animation: none;
   }
 }
@@ -141,6 +96,52 @@
   animation-play-state: paused;
 }
 
-.scatter-item.scatter-item--arriving {
+.scatter-item.scatter-item--arriving:not([data-glow]) {
   visibility: hidden;
+}
+
+/* Warm glow behind the landed drawing, once the clone hands over
+   (DrawingArrival sets data-glow on the scene item). It's the item's own
+   ::before, so it sits behind the thumbnail in its final spot — the item's
+   translate/rotate make it a stacking context, so z-index -1 stays inside
+   it — and behind any neighbour drawn over it. Centred on the drawing and
+   sized off it, with a floor so a tiny leaf or flower still gets a glow you
+   can see. Pulses while "on", fades when "off" (keep the transition in sync
+   with GLOW_FADE_MS). */
+.scatter-item[data-arrival]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: max(260%, 110px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 252, 235, 1) 0%,
+    rgba(255, 236, 170, 0.85) 30%,
+    rgba(255, 214, 120, 0.4) 55%,
+    rgba(255, 214, 120, 0) 72%
+  );
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 1s ease,
+    transform 1s ease;
+}
+
+.scatter-item[data-arrival][data-glow="on"]::before {
+  opacity: 1;
+  transform: scale(1);
+  animation: arrival-glow-pulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes arrival-glow-pulse {
+  to {
+    filter: brightness(1.12);
+    scale: 1.08;
+  }
 }

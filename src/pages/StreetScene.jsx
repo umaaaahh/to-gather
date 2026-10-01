@@ -358,18 +358,21 @@ const SHOW_LEAF_BOXES = false;
 // left to right, and a bed stays locked (in contribute mode) until the one
 // before it is full. All share the stem zone's drawings — which bed a flower
 // lands in comes from its arrival order, not which bed was tapped.
-// Capacities sum to 100 — keep drawingsStore.js's ZONE_LIMITS.stem at that
+// Capacities sum to 60 — keep drawingsStore.js's ZONE_LIMITS.stem at that
 // plus its overflow buffer (the last bed takes the overflow).
 const FLOWER_BEDS = [
-  { id: "bed-1", top: "127%", left: "8%", width: "15%", height: "10%", capacity: 20 },
-  { id: "bed-2", top: "127%", left: "32%", width: "15%", height: "10%", capacity: 20 },
-  { id: "bed-3", top: "127%", left: "68%", width: "15%", height: "10%", capacity: 20 },
-  { id: "bed-4", top: "127%", left: "96%", width: "15%", height: "10%", capacity: 20 },
-  { id: "bed-5", top: "127%", left: "124%", width: "15%", height: "10%", capacity: 20 },
+  { id: "bed-1", top: "127%", left: "5%", width: "35%", height: "10%", capacity: 20 },
+  { id: "bed-2", top: "127%", left: "60%", width: "35%", height: "10%", capacity: 20 },
+  { id: "bed-3", top: "127%", left: "110%", width: "35%", height: "10%", capacity: 20 },
 ];
 
 // The label on whichever bed is open.
 const FLOWER_HOTSPOT = { label: "Draw a flower", level: "Medium", stars: 2 };
+
+// Flip SHOW_BED_BOXES on to see each flower bed (dashed outline + a live fill
+// count) and, inside it, the root box where flowers are planted, while you
+// position them, then set it back to false.
+const SHOW_BED_BOXES = false;
 
 // One scatter box per bed, covering the bottom half of it — a flower is
 // planted at its root and grows upward, so keeping roots low keeps the
@@ -450,6 +453,10 @@ const LEAF_WIDTH = "24cqw";
 const LEAF_WIDTH_REF = 15;
 const treeLeafWidth = (t) => `calc(${LEAF_WIDTH} * ${LEAF_WIDTH_REF / parseFloat(t.width)})`;
 const STEM_WIDTH = "44cqw";
+// Same trick for flowers: STEM_WIDTH was tuned on a 15%-wide bed, so scale it
+// per bed to keep every flower that size however wide its bed is.
+const STEM_WIDTH_REF = 15;
+const bedStemWidth = (b) => `calc(${STEM_WIDTH} * ${STEM_WIDTH_REF / parseFloat(b.width)})`;
 // Flowers stand on their root point and grow upward, so they may rise past
 // the top of their (short) bed — this replaces the default 92cqh clamp.
 const STEM_MAX_HEIGHT = "170cqh";
@@ -459,6 +466,9 @@ const FREE_WIDTH = `${toWalkBoxW(CHARACTER_SIZE)}cqw`;
 // bulk doesn't spill past the box edge.
 const LEAF_INSET = 14;
 const STEM_INSET = 12;
+// Flower beds pad their ends less than their top/bottom, so the flowers
+// reach further along the bed.
+const STEM_INSET_X = 2;
 
 // Gentle "wind" sway applied to every item (see .scatter-item--wind in the
 // CSS — it animates the image around a top pivot). The tree's leaves and the
@@ -498,16 +508,61 @@ function spreadPoint(boxIdx, n, capacity, seed) {
   return [clamp(u0 + wobble(seed * 2 + 1)), clamp(v0 + wobble(seed * 2 + 2))];
 }
 
+// Row spread, for tall items standing in a wide, shallow box (the flower
+// beds): there, overlap is all about how far apart items are side to side,
+// so the box is cut into `capacity` evenly spaced slots across and each next
+// item takes the slot furthest from every slot already taken — the bed fills
+// evenly at every count, and a full bed is perfectly evenly spaced. Side by
+// side slots alternate between a back and a front row for depth, with a
+// small seeded wobble (a fraction of one slot) so it isn't a grid.
+const ROW_WOBBLE = 0.2;
+const rowOrders = new Map();
+function rowSlotOrder(capacity) {
+  if (rowOrders.has(capacity)) return rowOrders.get(capacity);
+  const order = [];
+  const taken = new Array(capacity).fill(false);
+  for (let n = 0; n < capacity; n++) {
+    let best = -1;
+    let bestGap = -1;
+    for (let s = 0; s < capacity; s++) {
+      if (taken[s]) continue;
+      // Distance to the nearest taken slot (or the bed's edges, counted as
+      // half a slot away so the ends don't fill first).
+      let gap = Math.min(s + 0.5, capacity - s - 0.5);
+      for (const t of order) gap = Math.min(gap, Math.abs(s - t));
+      if (gap > bestGap) {
+        bestGap = gap;
+        best = s;
+      }
+    }
+    taken[best] = true;
+    order.push(best);
+  }
+  rowOrders.set(capacity, order);
+  return order;
+}
+function rowPoint(n, capacity, seed) {
+  const cap = Math.max(1, capacity ?? 20);
+  const slot = rowSlotOrder(cap)[n % cap];
+  const wobble = (s) => (seededUnit(s) - 0.5) * ROW_WOBBLE;
+  const u = (slot + 0.5 + wobble(seed * 2 + 1)) / cap;
+  const row = slot % 2 === 0 ? 0.2 : 0.8; // back row, front row
+  const v = row + wobble(seed * 2 + 2);
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  return [clamp(u), clamp(v)];
+}
+
 // Assign each contribution (by arrival order) to a box, then a scattered
 // position inside it — all expressed as a % of the container so items can
 // live directly in it and the boxes stay pure visual guides. `maxRotDeg`
 // caps the random resting tilt (0 keeps everything upright, e.g. the
-// standing characters).
+// standing characters). `rows` swaps the area-filling spread for the row
+// spread above (the flower beds).
 // `insetX` / `insetTop` / `insetBottom` override `inset` for those edges.
 function layoutScatter(
   urls,
   boxes,
-  { inset = 14, insetX = inset, insetTop = inset, insetBottom = inset, maxRotDeg = 22 } = {},
+  { inset = 14, insetX = inset, insetTop = inset, insetBottom = inset, maxRotDeg = 22, rows = false } = {},
 ) {
   let boxIdx = 0;
   let countInBox = 0;
@@ -527,7 +582,9 @@ function layoutScatter(
     const by = asNum(box.top);
     const bw = asNum(box.width);
     const bh = asNum(box.height);
-    const [u, v] = spreadPoint(boxIdx, countInBox - 1, box.capacity, i);
+    const [u, v] = rows
+      ? rowPoint(countInBox - 1, box.capacity, i)
+      : spreadPoint(boxIdx, countInBox - 1, box.capacity, i);
     const rot = maxRotDeg ? (seededUnit(i * 3 + 7) - 0.5) * maxRotDeg : 0;
 
     return {
@@ -685,7 +742,9 @@ export default function StreetScene({
   const beds = useMemo(() => {
     const flowers = layoutScatter(drawings.stem ?? [], STEM_BOXES, {
       inset: STEM_INSET,
+      insetX: STEM_INSET_X,
       maxRotDeg: 8,
+      rows: true,
     });
     const withFlowers = FLOWER_BEDS.map((b) => {
       const bedFlowers = flowers.filter((f) => f.boxId === b.id);
@@ -940,8 +999,18 @@ export default function StreetScene({
                 <Fragment key={b.id}>
                   <div
                     className="scatter"
-                    style={{ ...bedBox(b), "--item-w": STEM_WIDTH, "--item-max-h": STEM_MAX_HEIGHT }}
+                    style={{ ...bedBox(b), "--item-w": bedStemWidth(b),"--item-max-h": STEM_MAX_HEIGHT }}
                   >
+                    {SHOW_BED_BOXES && (
+                      <>
+                        <div className="leaf-box" style={{ top: 0, left: 0, width: "100%", height: "100%" }}>
+                          <span className="leaf-box-tag">
+                            {b.id} · {b.flowers.length}/{b.capacity}
+                          </span>
+                        </div>
+                        <div className="leaf-box bed-root-box" style={bedBox(STEM_BOXES[i])} />
+                      </>
+                    )}
                     {b.flowers.map((item) => (
                       <div
                         key={`stem-${item.key}`}
@@ -953,6 +1022,8 @@ export default function StreetScene({
                           left: `${item.xPct}%`,
                           top: `${item.yPct}%`,
                           "--item-rot": `${item.rot.toFixed(1)}deg`,
+                          // front-row flowers (lower roots) draw over back-row ones
+                          zIndex: Math.round(item.yPct * 10),
                           // spread the sway so flowers don't move in lockstep
                           animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
                         }}

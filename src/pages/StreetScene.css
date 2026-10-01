@@ -406,6 +406,13 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
+/* The flower bed's root box (where stems are planted) — only while
+   SHOW_BED_BOXES is on. Tinted apart from the bed outline around it. */
+.bed-root-box {
+  border-color: rgba(255, 220, 90, 0.95);
+  background: rgba(255, 200, 40, 0.18);
+}
+
 .leaf-box-tag {
   position: absolute;
   top: 2px;
@@ -463,6 +470,8 @@
      spilling out past the zone they're supposed to stay inside. A
      scatter can loosen it with --item-max-h (the flower beds do). */
   max-height: var(--item-max-h, 92cqh);
+  /* If the clamp does bite, shrink the art to fit rather than squash it. */
+  object-fit: contain;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
 }
 
