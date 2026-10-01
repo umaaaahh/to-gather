@@ -28,9 +28,9 @@ const ZONES = [
     level: "Hard",
     stars: 3,
     top: "105.5%", // on the road
-    left: "72%",
-    width: "24%",
-    height: "18%",
+    left: "45%",
+    width: "30%",
+    height: "16%",
   },
 ];
 
