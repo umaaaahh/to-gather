@@ -223,9 +223,10 @@ const cropImgStyle = ({ crop }) => ({
 // To move/resize it, edit only these three numbers (all % of the street):
 //   bottom — gap between the board's feet and the screen bottom (0 = on the edge,
 //            bigger = higher, negative = sinks below the edge)
-//   left   — the board's left edge, from the left building's edge (bigger = further right)
+//   left   — the board's left edge, from the right building's left edge
+//            (bigger = further right; 5 would stand it just right of tree 2)
 //   height — board size, grows upward from its feet; width follows automatically
-const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("left", 48), height: 40 };
+const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("right", 20), height: 40 };
 
 // Width = height x the art's 600:900 ratio, converted through the
 // scene-ground's 660:285 aspect, so the tap target hugs the board.
@@ -956,6 +957,9 @@ export default function StreetScene({
             }}
           >
             <img className="notice-board-art" src={ASSETS.noticeBoard} alt="" />
+            <span className="notice-board-text" aria-hidden="true">
+              Real world events!
+            </span>
           </button>
 
           <div className="scene-ground">

@@ -739,6 +739,39 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* The writing is sized in cqw (a % of the board's width), so it fits the
+     whiteboard however big the board is drawn. */
+  container-type: inline-size;
+}
+
+/* "Real world events!" in marker on the whiteboard, which is x 15–85%,
+   y 30–60% of the board art. */
+.notice-board-text {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 30%;
+  height: 30%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3cqw;
+  color: #c0483a; /* red whiteboard marker */
+  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-size: 13cqw;
+  font-weight: 700;
+  line-height: 0.95;
+  text-align: center;
+  text-wrap: balance;
+  rotate: -3deg;
+  /* The board's centre, so a press shrinks it in step with the art. */
+  transform-origin: 50% 66.7%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.notice-board-button:enabled:active .notice-board-text {
+  transform: scale(0.9);
 }
 
 /* Outside view mode it's just scenery: let taps fall through to whatever's
