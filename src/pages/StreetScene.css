@@ -122,7 +122,10 @@
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
+  /* none, not contain: contain still lets iOS Safari rubber-band the
+     street past its ends, sliding the road + grass off and showing bare
+     sky beside them. */
+  overscroll-behavior-x: none;
   /* No scrollbar: the street pans by swiping/dragging. */
   scrollbar-width: none;
 }
@@ -455,16 +458,24 @@
   background: rgba(30, 136, 229, 0.25);
 }
 
-/* One scattered item (a leaf, a flower, a character). Positioned (left/top
-   as a % of the container) and centred on that point via the individual
-   `translate` property, with a resting tilt in the individual `rotate`
-   property (kept separate so the wind animation can drive `rotate` without
-   disturbing the centring). */
+/* One scattered item (a leaf, a flower, a character). The item itself is a
+   zero-size point at its spot (left/top as a % of the container); flexbox
+   centres the drawing on that point, letting it overflow evenly both ways.
+   No `translate` for the centring: older iOS Safari drops the individual
+   translate while a transform animation (the wind sway, the walk) runs,
+   which dropped every drawing a whole height below its spot. The resting
+   tilt is the individual `rotate`, which the wind animation drives, pivoting
+   on the point. */
 .scatter-item {
   position: absolute;
-  translate: -50% -50%;
+  width: 0;
+  height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   rotate: var(--item-rot, 0deg);
-  transform-origin: 50% 0%; /* swing from the top, like it's on a twig */
+  transform-origin: 0 0; /* the point itself, the box being zero-size */
+  isolation: isolate; /* keeps the arrival glow's z-index -1 inside it */
 }
 
 /* Flowers (and anything else planted, not hung) anchor at their base instead
@@ -472,11 +483,11 @@
    ground, and both the sway pivot and the item itself sit above that point,
    not centred on it. */
 .scatter-item--rooted {
-  translate: -50% -100%;
-  transform-origin: 50% 100%;
+  align-items: flex-end;
 }
 
 .scatter-item-img {
+  flex: none; /* never shrink into the zero-size item */
   display: block;
   width: var(--item-w, 24cqw);
   height: auto;
@@ -520,9 +531,8 @@
 }
 
 /* Characters stroll back and forth along the road around their seeded
-   spot — `translate` (the item's base position) and `transform` are
-   independent CSS properties, so this stacks on top of it without
-   disturbing the anchor. The slot walks steadily (--walk-dist either way,
+   spot — the item's base position is its left/top, so this `transform`
+   moves it without disturbing the anchor. The slot walks steadily (--walk-dist either way,
    --walk-dur per leg) while the image bobs a little --walk-hop hop every
    --hop-dur, a whole fraction of a leg so the hops stay in step with the
    turns. All per item (see planWalks in StreetScene.jsx); --walk-delay

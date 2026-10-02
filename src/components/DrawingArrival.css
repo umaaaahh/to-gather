@@ -102,21 +102,25 @@
 
 /* Warm glow behind the landed drawing, once the clone hands over
    (DrawingArrival sets data-glow on the scene item). It's the item's own
-   ::before, so it sits behind the thumbnail in its final spot — the item's
-   translate/rotate make it a stacking context, so z-index -1 stays inside
-   it — and behind any neighbour drawn over it. Centred on the drawing and
-   sized off it, with a floor so a tiny leaf or flower still gets a glow you
-   can see. Pulses while "on", fades when "off" (keep the transition in sync
-   with GLOW_FADE_MS). */
+   ::before, so it sits behind the thumbnail in its final spot — the item
+   isolates, so z-index -1 stays inside it — and behind any neighbour drawn
+   over it. The item is a zero-size point (see .scatter-item), so the glow
+   is sized off the drawing's width (--item-w), with a floor so a tiny leaf
+   or flower still gets a glow you can see, and centred on the point —
+   or, for rooted items, half a (square) drawing above it. Margins rather
+   than translate, which older iOS Safari drops mid-animation. Pulses while
+   "on", fades when "off" (keep the transition in sync with GLOW_FADE_MS). */
 .scatter-item[data-arrival]::before {
+  --glow-size: max(calc(var(--item-w, 24cqw) * 2.6), 110px);
+  --glow-drop: 0px;
   content: "";
   position: absolute;
   z-index: -1;
-  left: 50%;
-  top: 50%;
-  width: max(260%, 110px);
-  aspect-ratio: 1;
-  translate: -50% -50%;
+  left: 0;
+  top: var(--glow-drop);
+  width: var(--glow-size);
+  height: var(--glow-size);
+  margin: calc(var(--glow-size) / -2) 0 0 calc(var(--glow-size) / -2);
   border-radius: 50%;
   pointer-events: none;
   background: radial-gradient(
@@ -131,6 +135,10 @@
   transition:
     opacity 1s ease,
     transform 1s ease;
+}
+
+.scatter-item--rooted[data-arrival]::before {
+  --glow-drop: calc(var(--item-w, 24cqw) / -2);
 }
 
 .scatter-item[data-arrival][data-glow="on"]::before {
