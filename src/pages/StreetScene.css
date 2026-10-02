@@ -781,9 +781,9 @@
 }
 
 /* ---- Hidden window "surprise" --------------------------------------------
-   View-mode-only pulsing dot tucked into a window (see WINDOW_RADIO in
-   StreetScene.jsx). Unmounted entirely once Start reveals the zone
-   hotspots, so there's nothing to hide/show, just show/tap-then-gone. */
+   Pulsing, tappable art on the street (see WINDOW_RADIO in
+   StreetScene.jsx). Once Start reveals the zone hotspots they're disabled:
+   still shown, but no pulse and no taps (see :disabled below). */
 .street-surprise-button {
   position: absolute;
   z-index: 8;
@@ -837,11 +837,14 @@
   user-select: none;
 }
 
-/* The kangaroo standing by the street sign (STREET_KANGAROO); its button
-   replays the street tour. Disabled (contribute mode) it's just scenery. */
-.street-kangaroo-button:disabled {
-  cursor: default;
+/* Disabled (contribute mode) they're just scenery: let taps fall through
+   to the zone hotspots behind, like the notice board. */
+.street-surprise-button:disabled {
+  pointer-events: none;
 }
+
+/* The kangaroo standing by the street sign (STREET_KANGAROO); its button
+   replays the street tour. */
 
 .street-kangaroo {
   display: block;
@@ -871,12 +874,12 @@
 /* The one "tap me" pulse every tappable bit of the street shares: the
    window boombox and books, the sign, the poster, the kangaroo and the
    notice board. Glow only — the art stays still, just the orange halo
-   breathes — and a press shrinks it. The kangaroo and board only pulse
-   while they're tappable (view mode). */
-.window-boombox,
-.window-books,
-.street-sign,
-.street-poster,
+   breathes — and a press shrinks it. Only while they're tappable (view
+   mode). */
+.street-surprise-button:enabled .window-boombox,
+.street-surprise-button:enabled .window-books,
+.street-surprise-button:enabled .street-sign,
+.street-surprise-button:enabled .street-poster,
 .street-kangaroo-button:enabled .street-kangaroo,
 .notice-board-button:enabled .notice-board-art {
   animation: street-surprise-pulse 3s ease-in-out infinite;

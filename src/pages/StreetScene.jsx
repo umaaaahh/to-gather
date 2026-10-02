@@ -1095,78 +1095,75 @@ export default function StreetScene({
                 })}
               </div>
 
-              {/* Hidden window surprise — view mode only, gone the moment
-                 Start reveals the zone hotspots. */}
-              {mode === "view" && (
-                <button
-                  type="button"
-                  className="street-surprise-button"
-                  onClick={onOpenRadio}
-                  aria-label="Something's playing in the window"
-                  style={{
-                    top: WINDOW_RADIO.top,
-                    left: WINDOW_RADIO.left,
-                    width: WINDOW_RADIO.width,
-                    height: WINDOW_RADIO.height,
-                  }}
-                >
-                  <img className="window-boombox" src={ASSETS.radio} alt="" draggable="false" />
-                </button>
-              )}
+              {/* Hidden window surprise — tappable and pulsing in view mode;
+                 once Start reveals the zone hotspots it stays as still,
+                 untappable scenery (disabled), like the notice board. */}
+              <button
+                type="button"
+                className="street-surprise-button"
+                onClick={onOpenRadio}
+                disabled={mode !== "view"}
+                aria-label="Something's playing in the window"
+                style={{
+                  top: WINDOW_RADIO.top,
+                  left: WINDOW_RADIO.left,
+                  width: WINDOW_RADIO.width,
+                  height: WINDOW_RADIO.height,
+                }}
+              >
+                <img className="window-boombox" src={ASSETS.radio} alt="" draggable="false" />
+              </button>
 
-              {/* Second window surprise — same view-mode-only pattern as the
-                 boombox above; opens the bookshelf. */}
-              {mode === "view" && (
-                <button
-                  type="button"
-                  className="street-surprise-button"
-                  onClick={onOpenBookshelf}
-                  aria-label="Open the community bookshelf"
-                  style={{
-                    top: WINDOW_BOOK.top,
-                    left: WINDOW_BOOK.left,
-                    width: WINDOW_BOOK.width,
-                    height: WINDOW_BOOK.height,
-                  }}
-                >
-                  <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
-                </button>
-              )}
+              {/* Second window surprise — same pattern as the boombox above;
+                 opens the bookshelf. */}
+              <button
+                type="button"
+                className="street-surprise-button"
+                onClick={onOpenBookshelf}
+                disabled={mode !== "view"}
+                aria-label="Open the community bookshelf"
+                style={{
+                  top: WINDOW_BOOK.top,
+                  left: WINDOW_BOOK.left,
+                  width: WINDOW_BOOK.width,
+                  height: WINDOW_BOOK.height,
+                }}
+              >
+                <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
+              </button>
 
-              {/* Street sign — same view-mode-only, glowing pattern. */}
-              {mode === "view" && (
-                <button
-                  type="button"
-                  className="street-surprise-button"
-                  onClick={onOpenStreetSign}
-                  aria-label="Read the history of Cardigan St"
-                  style={STREET_SIGN}
-                >
-                  <span className="street-sign">
-                    <img
-                      className="cropped-img"
-                      src={ASSETS.streetSign}
-                      alt=""
-                      draggable="false"
-                      style={cropImgStyle({ crop: STREET_SIGN_CROP })}
-                    />
-                  </span>
-                </button>
-              )}
+              {/* Street sign — same pattern as the boombox above. */}
+              <button
+                type="button"
+                className="street-surprise-button"
+                onClick={onOpenStreetSign}
+                disabled={mode !== "view"}
+                aria-label="Read the history of Cardigan St"
+                style={STREET_SIGN}
+              >
+                <span className="street-sign">
+                  <img
+                    className="cropped-img"
+                    src={ASSETS.streetSign}
+                    alt=""
+                    draggable="false"
+                    style={cropImgStyle({ crop: STREET_SIGN_CROP })}
+                  />
+                </span>
+              </button>
 
-              {/* Neon stats poster on the shopfront — same view-mode-only
-                 pattern; opens the street stats. */}
-              {mode === "view" && (
-                <button
-                  type="button"
-                  className="street-surprise-button"
-                  onClick={onOpenStreetStats}
-                  aria-label="See the street's stats"
-                  style={STREET_POSTER}
-                >
-                  <img className="street-poster" src={ASSETS.streetStats} alt="" draggable="false" />
-                </button>
-              )}
+              {/* Neon stats poster on the shopfront — same pattern as the
+                 boombox above; opens the street stats. */}
+              <button
+                type="button"
+                className="street-surprise-button"
+                onClick={onOpenStreetStats}
+                disabled={mode !== "view"}
+                aria-label="See the street's stats"
+                style={STREET_POSTER}
+              >
+                <img className="street-poster" src={ASSETS.streetStats} alt="" draggable="false" />
+              </button>
 
               {/* The kangaroo by the sign — tap it to replay the street
                  tour. Hidden while the tour runs, since the tour's kangaroo
