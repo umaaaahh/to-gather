@@ -728,11 +728,9 @@
 }
 
 /* The notice board (see NOTICE_BOARD in StreetScene.jsx): a button holding
-   the art and, in view mode, .notice-board-badge — the naturally-sized
-   shiny note, placed by NOTICE_BADGE_POS (inline top/left) so it isn't
-   stretched into the board's own (portrait) proportions. It sits in
-   .scene-track, anchored to the screen bottom; z-index 7 keeps it above
-   .scene-ground (2), and so above everything drawn inside it. */
+   the art, which opens the what's-on pop-out. It sits in .scene-track,
+   anchored to the screen bottom; z-index 7 keeps it above .scene-ground (2),
+   and so above everything drawn inside it. */
 .notice-board-button {
   position: absolute;
   z-index: 7;
@@ -741,83 +739,12 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  /* The note is sized in cqw (a % of the board's width), so it always fits
-     the whiteboard however big the board is drawn. */
-  container-type: inline-size;
 }
 
 /* Outside view mode it's just scenery: let taps fall through to whatever's
    behind it, as the plain art used to. */
 .notice-board-button:disabled {
   pointer-events: none;
-}
-
-.notice-board-button:active .notice-board-badge {
-  transform: scale(0.96);
-}
-
-/* A handwritten note pinned to the whiteboard, in the board's own brown
-   ink, with a warm glow that breathes so it still reads as tappable. */
-.notice-board-badge {
-  /* top/left come inline and mark the note's centre; `translate` (not
-     `transform`, which the :active press uses) pulls it back by half its
-     own size so that point really is the middle. */
-  position: absolute;
-  translate: -50% -50%;
-  rotate: -3deg;
-  box-sizing: border-box;
-  width: 56cqw; /* the whiteboard is ~68% of the board's width */
-  padding: 4.5cqw 2.5cqw 3.5cqw;
-  border: 2px solid #6b3517;
-  border-radius: 14px 6px 12px 5px / 5px 12px 6px 14px;
-  background: #fff4c9;
-  box-shadow: 2px 2px 0 #6b3517;
-  color: #6b3517;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 8cqw; /* two lines: "What's on in / the community!" */
-  line-height: 1;
-  text-align: center;
-  text-wrap: balance;
-  animation: notice-glow 2.4s ease-in-out infinite;
-}
-
-/* Pushpin */
-.notice-board-badge::before {
-  content: "";
-  position: absolute;
-  top: -3cqw;
-  left: 50%;
-  width: 6.3cqw;
-  height: 6.3cqw;
-  translate: -50% 0;
-  border: 1.5px solid #6b3517;
-  border-radius: 50%;
-  background: #ef5a4c;
-}
-
-@keyframes notice-glow {
-  0%, 100% { box-shadow: 2px 2px 0 #6b3517, 0 0 4px rgba(242, 177, 85, 0.4); }
-  50% { box-shadow: 2px 2px 0 #6b3517, 0 0 16px rgba(242, 177, 85, 0.95); }
-}
-
-/* The whole board glows too, in time with the note, while it's tappable
-   (view mode — the button isn't there otherwise). drop-shadow follows the
-   board's own outline, posts and kangaroo included. */
-.street-scene[data-mode="view"] .notice-board-art {
-  animation: notice-board-glow 2.4s ease-in-out infinite;
-}
-
-@keyframes notice-board-glow {
-  0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 214, 120, 0.5)); }
-  50% { filter: drop-shadow(0 0 12px rgba(255, 214, 120, 1)); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .notice-board-badge,
-  .street-scene[data-mode="view"] .notice-board-art {
-    animation: none;
-  }
 }
 
 /* ---- Hidden window "surprise" --------------------------------------------
@@ -849,21 +776,10 @@
   transform-origin: 50% 100%;
   pointer-events: none;
   user-select: none;
-  animation: window-boombox-pulse 3s ease-in-out infinite;
-}
-
-/* Glow only — the art itself stays still, just the orange halo breathes. */
-@keyframes window-boombox-pulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 3px rgba(255, 85, 0, 0.45));
-  }
-  50% {
-    filter: drop-shadow(0 0 9px rgba(255, 85, 0, 0.9));
-  }
 }
 
 /* The crayon book row (books.png) in the bookshelf window, in place of the
-   old 📖 — same glow-only pulse as the boombox. The art is wide (9:4), so it
+   old 📖. The art is wide (9:4), so it
    takes most of its WINDOW_BOOK box's width. */
 .window-books {
   display: block;
@@ -872,7 +788,6 @@
   transform-origin: 50% 100%;
   pointer-events: none;
   user-select: none;
-  animation: window-boombox-pulse 3s ease-in-out infinite;
 }
 
 /* The street sign: a crop window onto its page (the img is positioned
@@ -887,7 +802,6 @@
   transform-origin: 0% 100%;
   pointer-events: none;
   user-select: none;
-  animation: window-boombox-pulse 3s ease-in-out infinite;
 }
 
 /* The kangaroo standing by the street sign (STREET_KANGAROO); its button
@@ -905,11 +819,13 @@
   object-position: 50% 100%;
   pointer-events: none;
   user-select: none;
+  /* Grounds it while it's scenery (contribute mode); the pulse's glow
+     takes over while it's tappable. */
   filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.25));
 }
 
 /* The crayon "Street stats!" poster (STREET_POSTER) that opens the stats
-   popup — same glow-only pulse as the boombox. */
+   popup. */
 .street-poster {
   display: block;
   width: 85%;
@@ -917,23 +833,48 @@
   object-fit: contain;
   pointer-events: none;
   user-select: none;
-  animation: window-boombox-pulse 3s ease-in-out infinite;
 }
 
-.street-surprise-button:active .window-boombox,
-.street-surprise-button:active .window-books,
-.street-surprise-button:active .street-sign,
-.street-surprise-button:active .street-poster,
-.street-kangaroo-button:enabled:active .street-kangaroo {
+/* The one "tap me" pulse every tappable bit of the street shares: the
+   window boombox and books, the sign, the poster, the kangaroo and the
+   notice board. Glow only — the art stays still, just the orange halo
+   breathes — and a press shrinks it. The kangaroo and board only pulse
+   while they're tappable (view mode). */
+.window-boombox,
+.window-books,
+.street-sign,
+.street-poster,
+.street-kangaroo-button:enabled .street-kangaroo,
+.notice-board-button:enabled .notice-board-art {
+  animation: street-surprise-pulse 3s ease-in-out infinite;
+}
+
+.street-surprise-button:enabled:active .window-boombox,
+.street-surprise-button:enabled:active .window-books,
+.street-surprise-button:enabled:active .street-sign,
+.street-surprise-button:enabled:active .street-poster,
+.street-kangaroo-button:enabled:active .street-kangaroo,
+.notice-board-button:enabled:active .notice-board-art {
   animation: none;
   transform: scale(0.9);
+}
+
+@keyframes street-surprise-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(255, 85, 0, 0.45));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(255, 85, 0, 0.9));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .window-boombox,
   .window-books,
   .street-sign,
-  .street-poster {
+  .street-poster,
+  .street-kangaroo,
+  .notice-board-art {
     animation: none;
   }
 }

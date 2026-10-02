@@ -1,9 +1,9 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutlet } from "react-router-dom";
 import StreetTour from "../components/StreetTour";
 import SunButton from "../components/SunButton";
 import DrawingArrival from "../components/DrawingArrival";
-import NoticeTab from "../components/NoticeTab";
+import EventsPopout from "../components/EventsPopout";
 import {
   getAllDrawings,
   subscribe,
@@ -213,11 +213,8 @@ const cropImgStyle = ({ crop }) => ({
 });
 
 // ---- Notice board fixture --------------------------------------------------
-// TRIAL: true swaps the board in the street for the pull-up tab (NoticeTab)
-// pinned to the screen's bottom edge. false = the board below, as before.
-const NOTICE_TAB = true;
-
-// Scene furniture that doubles as the link to /notices, positioned the same
+// Scene furniture that opens the what's-on pop-out (EventsPopout), the same
+// way the window surprises open theirs. Positioned the same
 // way as the zones (a % of the scene-ground box, so it pans with the street
 // and holds across phone widths).
 //
@@ -240,12 +237,6 @@ const NOTICE_BOARD = {
   width: `${NOTICE_BOARD_WIDTH}%`,
   height: `${NOTICE_BOARD_POS.height}%`,
 };
-
-// Where the "What's on" note sits ON the board, as a % of the
-// board itself (so it moves with the board). This is the badge's centre point:
-//   top  — 0 = board's top edge, 50 = middle, 100 = the feet
-//   left — 0 = board's left edge, 50 = middle, 100 = right edge
-const NOTICE_BADGE_POS = { top: 40, left: 50 };
 
 // Crayon trees — the "tree" zone's leaves live on these. Same % coordinates
 // as above, one box per tree. The image keeps its aspect ratio
@@ -531,14 +522,13 @@ const HOP_SECONDS = 0.45;
 
 // Stretches of road where a walking character would be hidden, as
 // [from, to] in % of the scene width: the part of each `inFront` tree that
-// covers the road (its `hidesWalkers` box), plus the notice board when it's
-// standing in the street (not in the pull-up tab trial).
+// covers the road (its `hidesWalkers` box), plus the notice board.
 const WALK_HIDING_SPOTS = [
   ...CRAYON_TREES.filter((t) => t.hidesWalkers).map((t) => {
     const from = parseFloat(t.left) + (parseFloat(t.hidesWalkers.left) / 100) * parseFloat(t.width);
     return [from, from + (parseFloat(t.hidesWalkers.width) / 100) * parseFloat(t.width)];
   }),
-  ...(NOTICE_TAB ? [] : [[NOTICE_BOARD_POS.left, NOTICE_BOARD_POS.left + NOTICE_BOARD_WIDTH]]),
+  [NOTICE_BOARD_POS.left, NOTICE_BOARD_POS.left + NOTICE_BOARD_WIDTH],
 ];
 
 // The same in the walk box's own units (the scatter's cqw / % of its box).
@@ -821,6 +811,9 @@ export default function StreetScene({
     },
   });
   const sceneRef = useRef(null);
+  // The what's-on pop-out, opened from the notice board.
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const closeEvents = useCallback(() => setEventsOpen(false), []);
   const [drawings, setDrawings] = useState(getAllDrawings);
 
   // Background saves (see DrawZone) that didn't land — shown as a toast for
@@ -938,17 +931,17 @@ export default function StreetScene({
           <div className="scene-road" style={{ width: `${STREET_LENGTH}%` }} />
 
           {/* Notice board — see NOTICE_BOARD above for its box. One element:
-             the button is the board, with the art and the "What's on" note
-             inside it. A direct child of .scene-track (whose bottom edge is
+             the button is the board, glowing like the window surprises.
+             A direct child of .scene-track (whose bottom edge is
              the screen bottom), so `bottom` anchors it there. High z-index
              keeps it above .scene-ground (2) and everything inside it.
              Tappable in view mode only, same as the window surprise — once
-             Start reveals the zone hotspots it's just scenery (disabled, no
-             note), back once Return drops back to the clean view. */}
-          {!NOTICE_TAB && <button
+             Start reveals the zone hotspots it's just scenery (disabled),
+             back once Return drops back to the clean view. */}
+          <button
             type="button"
             className="notice-board-button"
-            onClick={() => navigate("/notices")}
+            onClick={() => setEventsOpen(true)}
             disabled={mode !== "view"}
             aria-label="What's on in the community"
             style={{
@@ -959,15 +952,7 @@ export default function StreetScene({
             }}
           >
             <img className="notice-board-art" src={ASSETS.noticeBoard} alt="" />
-            {mode === "view" && (
-              <span
-                className="notice-board-badge"
-                style={{ top: `${NOTICE_BADGE_POS.top}%`, left: `${NOTICE_BADGE_POS.left}%` }}
-              >
-                What's on in the community!
-              </span>
-            )}
-          </button>}
+          </button>
 
           <div className="scene-ground">
             <div className="street-art">
@@ -1004,7 +989,6 @@ export default function StreetScene({
                         className={`zone-fixture crayon-tree${t.inFront ? " crayon-tree--front" : ""}${
                           locked ? " crayon-tree--locked" : ""
                         }`}
-                        data-tour={t.status === "open" ? "tree" : undefined}
                         src={ASSETS.crayonTree}
                         alt=""
                         style={{ ...box, transform: t.flip ? "scaleX(-1)" : undefined }}
@@ -1399,9 +1383,7 @@ export default function StreetScene({
         {mode === "view" ? "Start" : "Return"}
       </SunButton>
 
-      {/* Pull-up notice board (trial, see NOTICE_TAB) — view mode only, so
-         it's out of the way of the zone hotspots while contributing. */}
-      {NOTICE_TAB && mode === "view" && <NoticeTab />}
+      {eventsOpen && <EventsPopout initial={{}} onClose={closeEvents} />}
 
       {saveFailed && (
         <p role="alert" className="save-toast">
@@ -1410,7 +1392,7 @@ export default function StreetScene({
       )}
 
       {/* First-visit kangaroo tour (see StreetTour) — the spotlight targets
-         .scene-ground, .scene-cta and the open tree's data-tour="tree". */}
+         .scene-ground, the window boombox, .scene-cta and the notice board. */}
       {showTour && <StreetTour sceneRef={sceneRef} onDone={onTourDone} />}
 
       {drawingCanvasOverlay}

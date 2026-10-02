@@ -56,8 +56,7 @@
   filter: drop-shadow(0 10px 18px rgba(60, 30, 10, 0.3));
 }
 
-/* Arched "COMMUNITY RADIO STATIONS" title above the boombox, styled like
-   .notice-tab-banner. Replays its pop-in each time the popup unhides. */
+/* Arched "COMMUNITY RADIO STATIONS" title above the boombox. Replays its pop-in each time the popup unhides. */
 .radio-modal-banner {
   display: block;
   width: 100%;

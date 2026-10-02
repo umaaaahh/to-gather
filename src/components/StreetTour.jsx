@@ -32,28 +32,28 @@ const ADVANCE_MS = 700;
 // things that would leave the street and cut the tour short if tapped.
 const TOUR_STEPS = [
   {
-    text: "Swipe left and right to explore the street.",
+    text: "Welcome to To Gather, Cardigan Street's digital fun hub! Doodle, explore and see what's on. Scroll along the street to start.",
     target: [".scene-ground"],
     hint: "swipe",
     doneWhen: "scroll",
   },
   {
-    text: "This is the notice board. Tap it any time to see what's on around the street!",
-    target: [".notice-board-art", ".notice-tab"],
+    text: "Hidden details are everywhere! Find community radio to listen to while you draw, or book picks from other users.",
+    target: [".window-boombox", ".window-books"],
     hint: "tap",
     look: true,
   },
   {
-    text: "Tap the sun to start, then pick a leaf, a flower or a character to draw.",
+    text: "Ready to draw? Tap the sun, then pick a drawing zone!",
     target: [".scene-cta"],
     hint: "tap",
     doneWhen: ".scene-cta",
   },
   {
-    text: "Tap Done and your drawing joins the street for everyone to see, like the leaves on this tree!",
-    target: ['[data-tour="tree"]', ".crayon-tree"],
+    text: "Don't forget the notice board for real life events around Cardigan Street!",
+    target: [".notice-board-art"],
     hint: "tap",
-    padTop: 36,
+    look: true,
   },
 ];
 
