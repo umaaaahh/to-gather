@@ -219,6 +219,12 @@
   justify-self: end;
 }
 
+/* A one-bubble message has no arrows or dots, just its button. */
+.tour-nav > :only-child {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
 .tour-arrow {
   width: 2.25rem;
   height: 2.25rem;

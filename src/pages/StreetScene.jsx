@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutlet } from "react-router-dom";
-import StreetTour from "../components/StreetTour";
+import StreetTour, { DRAWING_DONE_STEPS } from "../components/StreetTour";
 import SunButton from "../components/SunButton";
 import DrawingArrival from "../components/DrawingArrival";
 import EventsPopout from "../components/EventsPopout";
@@ -803,6 +803,10 @@ export default function StreetScene({
   // thumbUrl } — thumbUrl arrives once the save lands, and marks which
   // scene item is the new one (hidden until the entrance hands over).
   const [arrival, setArrival] = useState(null);
+  // The kangaroo's well-done message, once that entrance has landed.
+  const [cheering, setCheering] = useState(false);
+  const endCheer = useCallback(() => setCheering(false), []);
+  const openEvents = useCallback(() => setEventsOpen(true), []);
   const drawingCanvasOverlay = useOutlet({
     // `entrance` is null if the paper couldn't be measured — skip it then.
     onSubmitted: (entrance) => {
@@ -1395,6 +1399,18 @@ export default function StreetScene({
          .scene-ground, the window boombox, .scene-cta and the notice board. */}
       {showTour && <StreetTour sceneRef={sceneRef} onDone={onTourDone} />}
 
+      {/* The kangaroo comes back to cheer a drawing that's just landed;
+         "Let's go!" opens the notice board. */}
+      {cheering && !showTour && (
+        <StreetTour
+          sceneRef={sceneRef}
+          onDone={endCheer}
+          steps={DRAWING_DONE_STEPS}
+          label="Well done"
+          onGo={openEvents}
+        />
+      )}
+
       {drawingCanvasOverlay}
 
       {/* A just-submitted drawing's entrance (see DrawingArrival). */}
@@ -1403,7 +1419,10 @@ export default function StreetScene({
           key={arrival.key}
           arrival={arrival}
           sceneRef={sceneRef}
-          onDone={() => setArrival(null)}
+          onDone={() => {
+            setArrival(null);
+            setCheering(true);
+          }}
         />
       )}
     </div>

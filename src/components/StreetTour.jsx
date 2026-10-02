@@ -57,6 +57,18 @@ const TOUR_STEPS = [
   },
 ];
 
+// The kangaroo's one-bubble cheer once a new drawing has landed in the
+// street, pointing at the notice board. Tapping the board opens what's on
+// and sends the kangaroo off.
+export const DRAWING_DONE_STEPS = [
+  {
+    text: "Great work leaving your mark on the community! Check out what's going on in the real world to let this community leave its mark on you!",
+    target: [".notice-board-art"],
+    hint: "tap",
+    doneWhen: ".notice-board-button",
+  },
+];
+
 const prefersReducedMotion = () =>
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -149,7 +161,16 @@ const sameLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // along the road, then talks through the steps one speech bubble at a time
 // (swipe, arrows or dots) while a spotlight and pointer pick out what each
 // step is about. Rendered inside .street-scene, which sceneRef points at.
-export default function StreetTour({ sceneRef, onDone }) {
+// steps defaults to the first-visit tour; a single step is just a message,
+// with no arrows or dots. onGo, if given, runs when "Let's go!" is tapped
+// (not Skip), as the kangaroo hops off.
+export default function StreetTour({
+  sceneRef,
+  onDone,
+  steps = TOUR_STEPS,
+  label = "How to play",
+  onGo,
+}) {
   const [step, setStep] = useState(0);
   // "enter" for the first bubble (pops in once the kangaroo has landed),
   // then which side each new bubble slides in from.
@@ -158,8 +179,8 @@ export default function StreetTour({ sceneRef, onDone }) {
   const [layout, setLayout] = useState(null);
   const swipeStartX = useRef(null);
 
-  const current = TOUR_STEPS[step];
-  const isLast = step === TOUR_STEPS.length - 1;
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
 
   // Re-measureTourLayout every frame: the street art loads in late, the user can
   // resize or rotate, and the street may be panning towards the target.
@@ -201,11 +222,11 @@ export default function StreetTour({ sceneRef, onDone }) {
     let timer;
     const advanceTo = (i) => {
       clearTimeout(timer);
-      timer = setTimeout(() => (i >= TOUR_STEPS.length ? finish() : goTo(i)), ADVANCE_MS);
+      timer = setTimeout(() => (i >= steps.length ? finish() : goTo(i)), ADVANCE_MS);
     };
 
     function onClick(e) {
-      const done = TOUR_STEPS.findIndex(
+      const done = steps.findIndex(
         (s, i) => i >= step && s.doneWhen && s.doneWhen !== "scroll" && e.target.closest(s.doneWhen),
       );
       if (done !== -1) advanceTo(done + 1);
@@ -228,7 +249,7 @@ export default function StreetTour({ sceneRef, onDone }) {
     };
     // goTo/finish are re-created each render but only read step, which is a dep.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneRef, step, leaving]);
+  }, [sceneRef, steps, step, leaving]);
 
   // Leaving the street mid-tour (a tap in the live spotlight can navigate —
   // the open tree's hotspot, the notice board) counts as finishing it, so it
@@ -251,7 +272,7 @@ export default function StreetTour({ sceneRef, onDone }) {
   }, [leaving, onDone]);
 
   function goTo(i) {
-    if (leaving || i < 0 || i >= TOUR_STEPS.length || i === step) return;
+    if (leaving || i < 0 || i >= steps.length || i === step) return;
     setDir(i > step ? "next" : "prev");
     setStep(i);
   }
@@ -285,7 +306,7 @@ export default function StreetTour({ sceneRef, onDone }) {
       className="tour"
       data-leaving={leaving || undefined}
       role="dialog"
-      aria-label="How to play"
+      aria-label={label}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={() => (swipeStartX.current = null)}
@@ -355,31 +376,42 @@ export default function StreetTour({ sceneRef, onDone }) {
             <p className="tour-step">{current.text}</p>
 
             <div className="tour-nav">
-              <button
-                type="button"
-                className="tour-arrow"
-                onClick={() => goTo(step - 1)}
-                disabled={step === 0}
-                aria-label="Previous step"
-              >
-                ‹
-              </button>
-
-              <div className="tour-dots">
-                {TOUR_STEPS.map((_, i) => (
+              {steps.length > 1 && (
+                <>
                   <button
                     type="button"
-                    key={i}
-                    className="tour-dot"
-                    aria-current={i === step ? "step" : undefined}
-                    aria-label={`Step ${i + 1} of ${TOUR_STEPS.length}`}
-                    onClick={() => goTo(i)}
-                  />
-                ))}
-              </div>
+                    className="tour-arrow"
+                    onClick={() => goTo(step - 1)}
+                    disabled={step === 0}
+                    aria-label="Previous step"
+                  >
+                    ‹
+                  </button>
+
+                  <div className="tour-dots">
+                    {steps.map((_, i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        className="tour-dot"
+                        aria-current={i === step ? "step" : undefined}
+                        aria-label={`Step ${i + 1} of ${steps.length}`}
+                        onClick={() => goTo(i)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
 
               {isLast ? (
-                <button type="button" className="tour-go" onClick={finish}>
+                <button
+                  type="button"
+                  className="tour-go"
+                  onClick={() => {
+                    finish();
+                    onGo?.();
+                  }}
+                >
                   Let's go!
                 </button>
               ) : (
