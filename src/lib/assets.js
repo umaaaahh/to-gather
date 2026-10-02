@@ -54,4 +54,6 @@ export const ASSETS = {
   // Crayon neon "Street stats!" poster on the left building (opens the
   // street stats popup).
   streetStats: url("street stats.png"),
+  // UI pop played on every button press (see lib/sounds.js).
+  clickPop: url("floraphonic-minimal-pop-click-ui-1-198301.mp3"),
 };
