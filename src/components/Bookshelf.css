@@ -1,6 +1,6 @@
 /* ---- Bookshelf popup -------------------------------------------------
-   Same layer + blurred backdrop as the radio popup (see RadioLayer.css),
-   but the shelf needs a paper card that scrolls since it's long. */
+   The shared popup frame (popup.css) in its own layer, like the radio.
+   The card scrolls since the shelf is long. */
 .bookshelf-layer {
   position: fixed;
   inset: 0;
@@ -15,78 +15,29 @@
   pointer-events: auto;
 }
 
-.bookshelf-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 0.75rem;
-  background: rgba(255, 248, 230, 0.28);
-  -webkit-backdrop-filter: blur(7px) saturate(0.85);
-  backdrop-filter: blur(7px) saturate(0.85);
-}
-
-.bookshelf-modal-backdrop[hidden] {
-  display: none;
-}
-
 .bookshelf-modal {
   position: relative;
-  width: 100%;
-  max-width: 460px;
-  max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: #fdf8ec;
-  border: 3px solid #2b2b2b;
-  border-radius: 22px 8px 26px 10px;
-  box-shadow: 5px 5px 0 #2b2b2b;
-  filter: drop-shadow(0 10px 18px rgba(60, 30, 10, 0.3));
 }
 
-/* Crayon-outlined close button, same as .radio-modal-close. Sticky so it
-   stays reachable while the shelf scrolls. */
+/* Sticky so it stays reachable while the shelf scrolls. */
 .bookshelf-modal-close {
   position: sticky;
   top: 0.6rem;
   float: right;
   z-index: 1;
   margin: 0.6rem 0.6rem 0 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  border: 2.5px solid #6b3517;
-  border-radius: 18px 22px 16px 20px / 20px 16px 22px 18px;
-  background: #fffaeb;
-  color: #6b3517;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 1.8rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 2px 0 #6b3517;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.bookshelf-modal-close:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 #6b3517;
 }
 
 /* ---- The shelf itself ------------------------------------------------ */
 .bookshelf {
-  --ink: #2b2b2b;
-  --cream: #fff4c9;
-  --red: #ef5a4c;
-  --yellow: #ffd23f;
-  --blue: #2f6fd6;
-  --green: #6fd38a;
-  --purple: #c9a4ff;
+  --ink: var(--ui-ink);
+  --cream: var(--ui-paper-soft);
   --wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
 
   padding: 1.25rem 1rem 1.5rem;
-  color: var(--ink);
+  color: var(--ui-text);
   font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.4;
   text-align: left;
@@ -99,16 +50,17 @@
 }
 
 .shelf-heading {
-  font-family: "Gochi Hand", cursive;
-  font-size: 2.6rem;
-  font-weight: 400;
+  font-family: var(--ui-font);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--ui-orange-ink);
   line-height: 1;
   margin: 0 0 8px;
   transform: rotate(-1.5deg);
 }
 
 .shelf-heading span {
-  background: linear-gradient(transparent 60%, var(--yellow) 60%);
+  background: linear-gradient(transparent 60%, var(--ui-blue-soft) 60%);
   padding: 0 4px;
 }
 
@@ -118,8 +70,9 @@
 }
 
 .shelf-subheading {
-  font-family: "Gochi Hand", cursive;
-  font-weight: 400;
+  font-family: var(--ui-font);
+  font-weight: 700;
+  color: var(--ui-orange-ink);
   font-size: 1.9rem;
   margin: 0 0 12px;
 }
@@ -136,7 +89,8 @@
 
 .shelf-panel label {
   display: block;
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.4rem;
   margin-bottom: 8px;
 }
@@ -153,7 +107,7 @@
 }
 
 .shelf-input:focus {
-  outline: 3px dashed var(--blue);
+  outline: 3px dashed var(--ui-blue);
   outline-offset: 3px;
 }
 
@@ -200,7 +154,8 @@
     var(--c);
   display: grid;
   place-items: center;
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.6rem;
   color: var(--ink);
 }
@@ -226,12 +181,13 @@
 
 /* ---- Crayon buttons ---- */
 .shelf-crayon {
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.15rem;
   padding: 5px 14px;
   border: 3px solid var(--ink);
   border-radius: var(--wobble);
-  background: var(--c, var(--green));
+  background: var(--c, var(--ui-orange));
   color: var(--ink);
   box-shadow: 3px 3px 0 var(--ink);
   cursor: pointer;
@@ -255,7 +211,7 @@
 }
 
 .shelf-crayon:focus-visible {
-  outline: 3px dashed var(--ink);
+  outline: 3px dashed var(--ui-blue);
   outline-offset: 3px;
 }
 
@@ -295,14 +251,15 @@
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
-  color: inherit;
+  color: var(--ui-blue);
   padding: 4px;
 }
 
 .shelf-status {
   min-height: 1.4em;
   margin: 10px 0 0;
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.2rem;
 }
 
@@ -341,16 +298,16 @@
 }
 
 .shelf-rank {
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.6rem;
   line-height: 1;
   min-width: 1ch;
   text-align: center;
 }
 
-.shelf-book.ranked:nth-child(2) .shelf-rank { color: var(--red); }
-.shelf-book.ranked:nth-child(3) .shelf-rank { color: var(--blue); }
-.shelf-book.ranked:nth-child(4) .shelf-rank { color: #2e9e52; }
+.shelf-book.ranked:nth-child(2) .shelf-rank { color: var(--ui-orange-ink); }
+.shelf-book.ranked:nth-child(3) .shelf-rank { color: var(--ui-blue); }
 
 .shelf-book.first {
   background: var(--cream);
@@ -360,7 +317,7 @@
 
 .shelf-book.first .shelf-rank {
   font-size: 2rem;
-  color: #e0a800;
+  color: var(--ui-orange);
   -webkit-text-stroke: 1px var(--ink);
 }
 
@@ -404,15 +361,15 @@
 }
 
 .shelf-vote {
-  --c: var(--purple);
+  --c: var(--ui-orange-soft);
 }
 
 .shelf-vote.voted {
-  --c: var(--yellow);
+  --c: var(--ui-orange);
 }
 
 .shelf-notes-btn {
-  --c: #9fd3ff;
+  --c: var(--ui-blue-soft);
 }
 
 .shelf-bubble {
@@ -435,7 +392,8 @@
 
 .shelf-reason {
   margin: 0;
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.1rem;
   line-height: 1.2;
 }
@@ -445,7 +403,8 @@
   text-align: center;
   border: 3px dashed var(--ink);
   border-radius: var(--wobble);
-  font-family: "Gochi Hand", cursive;
+  font-family: var(--ui-font);
+  font-weight: 700;
   font-size: 1.3rem;
 }
 

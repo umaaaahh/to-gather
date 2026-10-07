@@ -711,13 +711,14 @@
   max-width: calc(100% - 32px);
   margin: 0;
   padding: 0.6em 1em;
-  border-radius: 12px;
-  background: rgba(176, 0, 32, 0.92);
-  color: #fff;
+  border: 2.5px solid var(--ui-ink);
+  border-radius: var(--ui-btn-radius);
+  background: var(--ui-paper);
+  color: #b00020;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 3px 3px 0 var(--ui-ink);
 }
 
 /* The sun (see SunButton for its look). Pinned to the frame, not the

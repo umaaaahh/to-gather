@@ -99,20 +99,20 @@ export default function EventsPopout({ initial, onClose }) {
   else heading = "Coming up";
 
   return (
-    <div className="events-popout-backdrop" onClick={onClose}>
+    <div className="ui-backdrop events-popout-backdrop" onClick={onClose}>
       <div
-        className="events-popout"
+        className="ui-card events-popout"
         role="dialog"
         aria-modal="true"
         aria-label="What's on"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="ep-header">
-          <h2 className="ep-title">What's on</h2>
+        <header className="ui-header">
+          <h2 className="ui-title">What's on</h2>
           <button
             ref={closeRef}
             type="button"
-            className="ep-close"
+            className="ui-close"
             onClick={onClose}
             aria-label="Close"
           >

@@ -1,18 +1,43 @@
 import { useEffect, useRef } from "react";
 import "./StreetHistory.css";
 
-// The street's history, oldest first. Placeholder entries until the real
-// history of Cardigan St is written up — swap these out (and add more) as
-// it comes in. `era` is the short label on the timeline dot.
+// The street's history, oldest first. `era` is the short label above each
+// entry's title on the timeline; `lookFor` is what you can still see today.
 const HISTORY = [
-  { era: "Then", title: "Before the street", body: "Placeholder — who was here first, and what the land was." },
-  { era: "Later", title: "The street is laid out", body: "Placeholder — when Cardigan St got its name, and why." },
-  { era: "Since", title: "The street changes", body: "Placeholder — the shops, houses and people that came and went." },
-  { era: "Now", title: "Cardigan St today", body: "Placeholder — what the street is like now, and who keeps it going." },
+  {
+    era: "Always",
+    title: "Wurundjeri Woi-wurrung Country",
+    body: "Long before the grid, this was a gathering place for the clans of the Kulin Nation. Wurundjeri Elder Uncle Bill Nicholson describes it as a crossroads where songlines heading north and west from the Birrarung met.",
+    lookFor: "the 300-year-old scar tree on Princes Park Drive, where bark was cut for a canoe.",
+  },
+  {
+    era: "1852",
+    title: "A street with a plan",
+    body: "Surveyor Robert Hoddle drew Carlton as a tidy grid of wide streets and garden squares. Within a few decades, land sellers had carved it into narrow lanes and tiny cottages.",
+    lookFor: "the skinny lanes running off Cardigan Street.",
+  },
+  {
+    era: "1861",
+    title: "A refuge on this street",
+    body: "For 136 years, the Carlton Refuge at the north end of Cardigan Street housed young single women and new mothers. Its 1881 chapel was built so every Christian denomination could share it.",
+    lookFor: "the little chapel at 469 Cardigan Street, now a community centre.",
+  },
+  {
+    era: "1886 to 1906",
+    title: "Boom, bust, build",
+    body: "Clare House went up in 1886. Then Melbourne's 1890s crash stopped building for a decade, and the neighbouring terraces weren't finished until 1900 to 1906.",
+    lookFor: "“1900” still raised on the shopfront at 83 Cardigan Street.",
+  },
+  {
+    era: "1970",
+    title: "Residents vs bulldozers",
+    body: "When the Housing Commission planned to flatten Carlton's terraces, locals formed the Carlton Association. In 1970 they became the first community group in Australia to win a union green ban.",
+    lookFor: "the terraces still standing all along Cardigan Street. They're here because people fought for them.",
+  },
 ];
 
-// The history pop-up, opened by tapping the Cardigan St sign. Same layer,
-// blurred backdrop and crayon card as the bookshelf (see Bookshelf.css).
+// The history pop-up, opened by tapping the Cardigan St sign. The shared
+// popup frame (popup.css) with a hand-drawn timeline inside.
 export default function StreetHistoryLayer({ open, onClose }) {
   const closeRef = useRef(null);
 
@@ -28,23 +53,22 @@ export default function StreetHistoryLayer({ open, onClose }) {
 
   return (
     <div className="history-layer">
-      <div className="history-backdrop" onClick={onClose}>
+      <div className="ui-backdrop" onClick={onClose}>
         <div
-          className="history-modal"
+          className="ui-card history-modal"
           role="dialog"
           aria-modal="true"
           aria-labelledby="history-title"
           onClick={(e) => e.stopPropagation()}
         >
-          <header className="history-header">
-            <h2 id="history-title" className="history-title">
-              Cardigan St
-              <span>a history of the street</span>
+          <header className="ui-header">
+            <h2 id="history-title" className="ui-title">
+              Street history
             </h2>
             <button
               ref={closeRef}
               type="button"
-              className="history-close"
+              className="ui-close"
               onClick={onClose}
               aria-label="Close"
             >
@@ -52,15 +76,35 @@ export default function StreetHistoryLayer({ open, onClose }) {
             </button>
           </header>
 
-          <ol className="history-timeline">
-            {HISTORY.map((h) => (
-              <li key={h.title} className="history-entry">
-                <span className="history-era">{h.era}</span>
-                <h3 className="history-entry-title">{h.title}</h3>
-                <p className="history-entry-body">{h.body}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="history-body">
+            <p className="history-intro">
+              Five moments that shaped this street, and where to spot them today.
+            </p>
+
+            <ol className="history-timeline">
+              {HISTORY.map((h) => (
+                <li key={h.title} className="history-entry">
+                  <span className="history-era">{h.era}</span>
+                  <h3 className="history-entry-title">{h.title}</h3>
+                  <p className="history-entry-body">{h.body}</p>
+                  <p className="history-look">
+                    <strong>Look for:</strong> {h.lookFor}
+                  </p>
+                </li>
+              ))}
+            </ol>
+
+            <footer className="history-footer">
+              <p>
+                This street is on the unceded land of the Wurundjeri Woi-wurrung people. With
+                thanks to Uncle Bill Nicholson, whose knowledge is shared in the first entry.
+              </p>
+              <p>
+                Sources: Victorian Heritage Database, Carlton Heritage Review (2021), eMelbourne,
+                Victorian Places.
+              </p>
+            </footer>
+          </div>
         </div>
       </div>
     </div>

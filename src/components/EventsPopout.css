@@ -1,84 +1,15 @@
-/* The "what's on" pop-out (see EventsPopout.jsx). Same blurred backdrop and
-   crayon-outlined card as the Bookshelf pop-up, at the same z-index, inside
-   the .street-scene frame. */
+/* The "what's on" pop-out (see EventsPopout.jsx). Backdrop, card, header
+   and close button are the shared frame in popup.css; this one sits inside
+   the .street-scene frame, at the other popups' z-index. */
 .events-popout-backdrop {
-  position: absolute;
-  inset: 0;
   z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 0.75rem;
-  background: rgba(255, 248, 230, 0.28);
-  -webkit-backdrop-filter: blur(7px) saturate(0.85);
-  backdrop-filter: blur(7px) saturate(0.85);
-  animation: ep-fade 0.25s ease both;
 }
 
 .events-popout {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: 460px;
   height: 100%;
-  background: #fdf8ec;
-  border: 3px solid #2b2b2b;
-  border-radius: 22px 8px 26px 10px;
-  box-shadow: 5px 5px 0 #2b2b2b;
-  filter: drop-shadow(0 10px 18px rgba(60, 30, 10, 0.3));
   overflow: hidden;
-  color: #3a2a18;
-  animation: ep-rise 0.3s cubic-bezier(0.3, 1.3, 0.5, 1) both;
-}
-
-@keyframes ep-fade {
-  from { opacity: 0; }
-}
-
-@keyframes ep-rise {
-  from { transform: translateY(24px) scale(0.97); opacity: 0; }
-}
-
-/* ---- Header ---- */
-.ep-header {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.7rem 0.8rem 0.5rem 1.1rem;
-  border-bottom: 2.5px dashed rgba(107, 53, 23, 0.35);
-}
-
-.ep-title {
-  margin: 0;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 1.9rem;
-  font-weight: 700;
-  line-height: 1;
-  color: #6b3517;
-}
-
-/* Crayon-outlined close button, same as .bookshelf-modal-close. */
-.ep-close {
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  border: 2.5px solid #6b3517;
-  border-radius: 18px 22px 16px 20px / 20px 16px 22px 18px;
-  background: #fffaeb;
-  color: #6b3517;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 1.8rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 2px 0 #6b3517;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.ep-close:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 #6b3517;
 }
 
 .ep-body {
@@ -103,15 +34,15 @@
   display: none;
 }
 
-/* --genre is set per chip (and per card below); "All" falls back to brown. */
+/* --genre is set per chip (and per card below); "All" falls back to orange. */
 .ep-chip {
   flex: none;
   padding: 0.3rem 0.75rem;
-  border: 2px solid var(--genre, #6b3517);
+  border: 2px solid var(--genre, var(--ui-orange-ink));
   border-radius: 999px;
-  background: #fffaeb;
-  color: var(--genre, #6b3517);
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  background: var(--ui-paper-soft);
+  color: var(--genre, var(--ui-orange-ink));
+  font-family: var(--ui-font);
   font-size: 1.05rem;
   font-weight: 700;
   white-space: nowrap;
@@ -120,14 +51,14 @@
 }
 
 .ep-chip[aria-pressed="true"] {
-  background: var(--genre, #6b3517);
-  color: #fffaeb;
+  background: var(--genre, var(--ui-orange-ink));
+  color: var(--ui-paper-soft);
 }
 
 /* ---- Calendar ---- */
 .ep-calendar {
   padding: 0.6rem 0.6rem 0.7rem;
-  border: 2px solid #2b2b2b;
+  border: 2px solid var(--ui-ink);
   border-radius: 14px 6px 16px 8px;
   background: #fff;
   box-shadow: 3px 3px 0 rgba(43, 43, 43, 0.85);
@@ -141,7 +72,7 @@
 }
 
 .ep-cal-month {
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-family: var(--ui-font);
   font-size: 1.3rem;
   font-weight: 700;
 }
@@ -151,8 +82,8 @@
   height: 2rem;
   border: none;
   border-radius: 999px;
-  background: #efe0c4;
-  color: #6b4423;
+  background: var(--ui-orange-soft);
+  color: var(--ui-orange-ink);
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
@@ -170,7 +101,7 @@
   text-align: center;
   font-size: 0.65rem;
   font-weight: 700;
-  color: #9a7b52;
+  color: var(--ui-muted);
 }
 
 .ep-cal-cell {
@@ -184,7 +115,7 @@
   border: none;
   border-radius: 999px;
   background: none;
-  color: #4a3520;
+  color: var(--ui-text);
   font: inherit;
   font-size: 0.8rem;
   font-weight: 600;
@@ -197,7 +128,7 @@
 }
 
 .ep-cal-cell[data-today] {
-  box-shadow: inset 0 0 0 2px #d9822b;
+  box-shadow: inset 0 0 0 2px var(--ui-orange);
   font-weight: 800;
 }
 
@@ -217,9 +148,9 @@
   border-radius: 999px;
 }
 
-/* The picked day is board brown, so it never clashes with a genre. */
+/* The picked day is accent blue, so it never clashes with a genre. */
 .ep-cal-cell[aria-pressed="true"] {
-  background: #6b3517;
+  background: var(--ui-blue);
   color: #fff;
   opacity: 1;
 }
@@ -239,18 +170,18 @@
 
 .ep-list-title {
   margin: 0;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-family: var(--ui-font);
   font-size: 1.45rem;
   font-weight: 700;
-  color: #6b3517;
+  color: var(--ui-orange-ink);
 }
 
 .ep-clear {
   border: none;
   padding: 0.2rem 0.3rem;
   background: none;
-  color: #c0483a;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  color: var(--ui-blue);
+  font-family: var(--ui-font);
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
@@ -259,7 +190,7 @@
 .ep-empty {
   margin: 0.2rem 0.1rem;
   font-size: 0.85rem;
-  color: #7a6449;
+  color: var(--ui-muted);
 }
 
 .ep-list {
@@ -272,14 +203,14 @@
 }
 
 .ep-card {
-  border: 2px solid #2b2b2b;
+  border: 2px solid var(--ui-ink);
   border-radius: 12px 5px 14px 6px;
   background: #fff;
   box-shadow: 2px 2px 0 rgba(43, 43, 43, 0.85);
 }
 
 .ep-card[data-open] {
-  background: #fffaeb;
+  background: var(--ui-paper-soft);
 }
 
 .ep-card-head {
@@ -305,7 +236,7 @@
   justify-content: center;
   width: 3rem;
   border-radius: 8px;
-  background: var(--genre, #6b3517);
+  background: var(--genre, var(--ui-orange-ink));
   color: #fdf3e3;
 }
 
@@ -341,7 +272,7 @@
 .ep-card-genre {
   font-size: 0.68rem;
   font-weight: 700;
-  color: var(--genre, #9a7b52);
+  color: var(--genre, var(--ui-muted));
 }
 
 .ep-card-title {
@@ -352,13 +283,13 @@
 
 .ep-card-meta {
   font-size: 0.75rem;
-  color: #7a6449;
+  color: var(--ui-muted);
 }
 
 .ep-card-more {
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--genre, #c0483a);
+  color: var(--genre, var(--ui-blue));
 }
 
 .ep-card-detail {
@@ -375,7 +306,7 @@
 }
 
 .ep-card-address {
-  color: #2c5f9e;
+  color: var(--ui-blue);
   text-decoration: none;
 }
 
@@ -384,7 +315,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #9a7b52;
+  color: var(--ui-muted);
 }
 
 .ep-card-dates ul {
@@ -399,32 +330,25 @@
 .ep-card-dates li {
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: #efe0c4;
+  background: var(--ui-orange-soft);
   font-size: 0.72rem;
 }
 
 .ep-card-link {
   align-self: flex-start;
   padding: 0.35rem 0.9rem;
-  border: 2.5px solid #6b3517;
-  border-radius: 18px 22px 16px 20px / 20px 16px 22px 18px;
-  background: var(--genre, #c0483a);
+  border: 2.5px solid var(--ui-ink);
+  border-radius: var(--ui-btn-radius);
+  background: var(--genre, var(--ui-orange));
   color: #fff;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-family: var(--ui-font);
   font-size: 1.15rem;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 2px 0 #6b3517;
+  box-shadow: 0 2px 0 var(--ui-ink);
 }
 
 .ep-card-link:active {
   transform: translateY(2px);
-  box-shadow: 0 0 0 #6b3517;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .events-popout-backdrop,
-  .events-popout {
-    animation: none;
-  }
+  box-shadow: 0 0 0 var(--ui-ink);
 }

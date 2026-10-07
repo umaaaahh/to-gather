@@ -96,7 +96,7 @@ export default function StreetStatsLayer({ open, onClose }) {
 
   return (
     <div className="stats-layer">
-      <div className="stats-backdrop" onClick={onClose}>
+      <div className="ui-backdrop" onClick={onClose}>
         <div
           className="stats-modal"
           role="dialog"
@@ -107,13 +107,11 @@ export default function StreetStatsLayer({ open, onClose }) {
           <button
             ref={closeRef}
             type="button"
-            className="stats-close"
+            className="ui-close stats-close"
             onClick={onClose}
             aria-label="Close"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
-              <path d="M3 3l12 12M15 3L3 15" />
-            </svg>
+            ×
           </button>
 
           <div className="stats-scroll">

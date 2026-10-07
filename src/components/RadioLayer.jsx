@@ -35,7 +35,7 @@ export default function RadioLayer({ open, onOpen, onClose }) {
         />
       )}
 
-      <div className="radio-modal-backdrop" hidden={!open} onClick={onClose}>
+      <div className="ui-backdrop radio-modal-backdrop" hidden={!open} onClick={onClose}>
         <div
           className="radio-modal"
           role="dialog"
@@ -44,7 +44,7 @@ export default function RadioLayer({ open, onOpen, onClose }) {
         >
           <button
             type="button"
-            className="radio-modal-close"
+            className="ui-close radio-modal-close"
             onClick={onClose}
             aria-label="Close"
           >

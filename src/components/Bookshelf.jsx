@@ -470,16 +470,16 @@ function Bookshelf() {
 export default function BookshelfLayer({ open, onClose }) {
   return (
     <div className="bookshelf-layer">
-      <div className="bookshelf-modal-backdrop" hidden={!open} onClick={onClose}>
+      <div className="ui-backdrop bookshelf-modal-backdrop" hidden={!open} onClick={onClose}>
         <div
-          className="bookshelf-modal"
+          className="ui-card bookshelf-modal"
           role="dialog"
           aria-label="Community bookshelf"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             type="button"
-            className="bookshelf-modal-close"
+            className="ui-close bookshelf-modal-close"
             onClick={onClose}
             aria-label="Close"
           >

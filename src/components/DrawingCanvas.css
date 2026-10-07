@@ -1,10 +1,10 @@
 .dc-root {
-  /* Crayon palette shared with the sun button / street. */
-  --dc-ink: #6b3517; /* warm brown outlines + text */
+  /* The shared popup palette (popup.css). */
+  --dc-ink: var(--ui-ink); /* crayon outlines + text */
   --dc-paper: #fffdf6;
-  --dc-card: rgba(255, 250, 235, 0.92);
-  --dc-accent: #ffd66e; /* sun yellow for the active tool */
-  --dc-go: #8cc665; /* grass green for Done */
+  --dc-card: rgba(253, 248, 236, 0.92);
+  --dc-accent: var(--ui-blue-soft); /* the active tool */
+  --dc-go: var(--ui-orange); /* Done */
   /* Slightly uneven corners so boxes read hand-drawn, not UI-kit. */
   --dc-wobble: 16px 20px 14px 18px / 18px 14px 20px 16px;
 
@@ -16,7 +16,7 @@
   margin: 0 auto;
   padding: 0.75rem 1rem;
   color: var(--dc-ink);
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
+  font-family: var(--ui-font);
   -webkit-user-select: none;
   user-select: none;
 }
@@ -37,7 +37,7 @@
   border-radius: var(--dc-wobble);
   box-shadow:
     0 10px 28px rgba(60, 30, 10, 0.28),
-    0 2px 0 rgba(107, 53, 23, 0.25);
+    0 2px 0 rgba(43, 43, 43, 0.25);
   overflow: hidden;
 
   /* Size of the live background-template guide (e.g. the leaf), relative to
@@ -159,11 +159,11 @@
   transition: transform 0.12s ease;
 }
 
-/* Active colour: lifted with a sun-yellow ring around the ink outline. */
+/* Active colour: lifted with an accent ring around the ink outline. */
 .dc-swatch--active {
   transform: scale(1.14);
   box-shadow:
-    0 0 0 3px var(--dc-accent),
+    0 0 0 3px var(--ui-blue),
     0 0 0 5px var(--dc-ink);
 }
 
