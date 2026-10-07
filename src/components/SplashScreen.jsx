@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ASSETS } from "../lib/assets";
 import { whenDrawingsLoaded } from "../lib/drawingsStore";
 import "./SplashScreen.css";
@@ -33,40 +33,66 @@ const loadImage = (src) =>
     img.src = src;
   });
 
-// Sky-gradient + logo overlay shown once per page load. It sits on top of
-// the routes rather than in front of them, so the street scene mounts and
-// fetches its artwork underneath while the splash is up. onDone fires as the
-// fade starts, so whatever comes next (the street tour) fades in underneath
-// it rather than popping in afterwards.
+// Sky-gradient + logo overlay shown once per page load, then an
+// Acknowledgement of Country that stays up until it's dismissed. It sits on
+// top of the routes rather than in front of them, so the street scene mounts
+// and fetches its artwork underneath while the splash is up. onDone fires as
+// the fade starts, so whatever comes next (the street tour) fades in
+// underneath it rather than popping in afterwards.
 export default function SplashScreen({ onDone }) {
-  const [phase, setPhase] = useState("showing"); // showing -> fading -> done
+  const [phase, setPhase] = useState("showing"); // showing -> country -> fading -> done
+  const timer = useRef();
 
   useEffect(() => {
     let cancelled = false;
-    let done;
     const minWait = new Promise((resolve) => setTimeout(resolve, MIN_MS));
     const loaded = Promise.all([minWait, whenDrawingsLoaded(), ...PRELOAD.map(loadImage)]);
     const cap = new Promise((resolve) => setTimeout(resolve, MAX_MS));
 
     Promise.race([loaded, cap]).then(() => {
-      if (cancelled) return;
-      setPhase("fading");
-      onDone?.();
-      done = setTimeout(() => setPhase("done"), FADE_MS);
+      if (!cancelled) setPhase("country");
     });
     return () => {
       cancelled = true;
-      clearTimeout(done);
+      clearTimeout(timer.current);
     };
-    // Runs once per page load; onDone is only read when the timer fires.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const finish = () => {
+    setPhase("fading");
+    onDone?.();
+    timer.current = setTimeout(() => setPhase("done"), FADE_MS);
+  };
 
   if (phase === "done") return null;
 
+  if (phase === "showing") {
+    return (
+      <div className="splash" data-phase={phase} aria-hidden="true">
+        <img className="splash-logo" src={ASSETS.logo} alt="" />
+      </div>
+    );
+  }
+
   return (
-    <div className="splash" data-phase={phase} aria-hidden="true">
-      <img className="splash-logo" src={ASSETS.logo} alt="" />
+    <div className="splash" data-phase={phase}>
+      <section className="ui-card splash-country" aria-labelledby="splash-country-title">
+        <h1 id="splash-country-title" className="ui-title splash-country-title">
+          Acknowledgement of Country
+        </h1>
+        <p>
+          We acknowledge the Wurundjeri Woi-wurrung people of the Kulin Nation, the Traditional
+          Owners of the land where Cardigan Street sits.
+        </p>
+        <p>
+          We pay our respects to their Elders past and present, and to all Aboriginal and Torres
+          Strait Islander people here today.
+        </p>
+        <p className="splash-country-always">Always was, always will be, Aboriginal land.</p>
+        <button type="button" className="ui-button" onClick={finish}>
+          Continue
+        </button>
+      </section>
     </div>
   );
 }

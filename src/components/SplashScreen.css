@@ -9,6 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem 0.75rem;
   /* Same sky as .street-scene. */
   background: linear-gradient(#6fb2e6 0%, #a9d3f0 55%, #cfd8e3 100%);
   opacity: 1;
@@ -36,6 +37,39 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Acknowledgement of Country: the shared popup card, after the logo. */
+.splash-country {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding: 1.4rem 1.25rem 1.5rem;
+  text-align: center;
+}
+
+.splash-country-title {
+  line-height: 1.05;
+}
+
+.splash-country p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.splash-country .splash-country-always {
+  font-family: var(--ui-font);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ui-orange-ink);
+}
+
+.splash-country .ui-button {
+  margin-top: 0.4rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
