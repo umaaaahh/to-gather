@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import LoadingLogo from "./LoadingLogo";
+import { addBook, addToBook, setVote, subscribeMyVotes, subscribeShelf } from "../lib/shelfStore";
 import "./Bookshelf.css";
 
-// Book details (search, covers, links) come from Google Books. Adding and
-// voting still live in memory only — the backend (database, one vote per
-// person) gets wired in later.
+// Book details (search, covers, links) come from Google Books. The shelf
+// itself (books, notes, one vote per person) lives in Firestore; see
+// shelfStore.js.
 
 // Optional but recommended: without a key Google Books allows only a small,
 // shared anonymous quota. Create one in Google Cloud (enable the Books API,
@@ -33,17 +34,6 @@ async function searchBooks(q, maxResults, signal) {
   const data = await res.json();
   return (data.items || []).map(toBook);
 }
-
-// Sample books so the shelf has something to show. Their placeholder ids are
-// swapped for real Google Books volumes (with covers and links) on load —
-// see the lookup effect in Bookshelf.
-const SAMPLE_BOOKS = [
-  { id: "s1", title: "The Left Hand of Darkness", authors: "Ursula K. Le Guin", cover: "", link: "", reasons: ["Changed how I think about gender and cold weather."], votes: 14 },
-  { id: "s2", title: "Braiding Sweetgrass", authors: "Robin Wall Kimmerer", cover: "", link: "", reasons: ["Read it slowly. Then go outside.", "Made me want to plant beans."], votes: 11 },
-  { id: "s3", title: "Piranesi", authors: "Susanna Clarke", cover: "", link: "", reasons: [], votes: 9 },
-  { id: "s4", title: "Tomorrow, and Tomorrow, and Tomorrow", authors: "Gabrielle Zevin", cover: "", link: "", reasons: ["For anyone who has ever made something with a friend."], votes: 6 },
-  { id: "s5", title: "The Dispossessed", authors: "Ursula K. Le Guin", cover: "", link: "", reasons: [], votes: 3 },
-];
 
 // Same book, different edition: Google Books gives each edition its own id,
 // so books also match on title (minus subtitle and leading article) + first
@@ -95,8 +85,12 @@ function toBook(item) {
  * reason, and vote on everyone's picks. Rendered inside BookshelfLayer.
  */
 function Bookshelf() {
-  const [shelfBooks, setShelfBooks] = useState(SAMPLE_BOOKS);
-  const [voted, setVoted] = useState(() => new Set(["s2"]));
+  const [shelfBooks, setShelfBooks] = useState(null); // null while loading
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [voted, setVoted] = useState(() => new Set());
+  // Votes on their way to Firestore, so a double tap can't send two.
+  const [pendingVotes, setPendingVotes] = useState(() => new Set());
+  const [saving, setSaving] = useState(false);
   // Books whose notes are open; the shelf only shows cover/title/author.
   const [openNotes, setOpenNotes] = useState(() => new Set());
   const [query, setQuery] = useState("");
@@ -105,40 +99,24 @@ function Bookshelf() {
   const [reason, setReason] = useState("");
   const [status, setStatus] = useState("");
   const reasonRef = useRef(null);
+  const books = shelfBooks || [];
 
-  // Swap each sample book for its real Google Books volume, once. Keeps the
-  // sample's notes and votes; the id change carries over to this visitor's
-  // votes so "already on the shelf" matches search results.
-  useEffect(() => {
-    const ctrl = new AbortController();
-    SAMPLE_BOOKS.forEach(async (sample) => {
-      try {
-        // Plain search: Google Books currently returns nothing for
-        // intitle:/inauthor: queries. Pick the first result that is the same
-        // book, preferring one with a cover.
-        const results = await searchBooks(`${sample.title} ${sample.authors}`, 10, ctrl.signal);
-        const matches = results.filter((r) => sameBookKey(r) === sameBookKey(sample));
-        const found = matches.find((r) => safeCover(r.cover)) || matches[0];
-        if (!found) return;
-        setShelfBooks((books) =>
-          books.some((b) => b.id === found.id)
-            ? books
-            : books.map((b) => (b.id === sample.id ? { ...b, ...found, title: b.title } : b)),
-        );
-        setVoted((v) => {
-          if (!v.has(sample.id)) return v;
-          const next = new Set(v);
-          next.delete(sample.id);
-          next.add(found.id);
-          return next;
-        });
-      } catch (err) {
-        // The shelf still works with the placeholder; it just has no cover.
-        if (err.name !== "AbortError") console.warn(err);
-      }
-    });
-    return () => ctrl.abort();
-  }, []);
+  useEffect(
+    () =>
+      subscribeShelf(
+        (books) => {
+          setShelfBooks(books);
+          setLoadFailed(false);
+        },
+        (err) => {
+          console.warn("Shelf listener failed:", err);
+          setLoadFailed(true);
+        },
+      ),
+    [],
+  );
+
+  useEffect(() => subscribeMyVotes(setVoted), []);
 
   // Debounced Google Books search
   useEffect(() => {
@@ -179,38 +157,35 @@ function Bookshelf() {
     setQuery("");
   }
 
-  // BACKEND HOOK: save the book with 1 vote from this visitor — or, if it's
-  // already on the shelf, stack this visitor's note (and vote, if they
-  // haven't voted yet) onto the existing entry instead of adding a copy.
-  function addBook(book) {
+  // Save the book with 1 vote from this visitor — or, if it's already on the
+  // shelf, stack this visitor's note (and vote, if they haven't voted yet)
+  // onto the existing entry instead of adding a copy.
+  async function saveBook(book) {
     const note = reason.trim().slice(0, REASON_MAX);
-    const onShelf = findOnShelf(shelfBooks, book);
+    const onShelf = findOnShelf(books, book);
+    const addVote = onShelf && !voted.has(onShelf.id);
 
-    if (onShelf) {
-      const addVote = !voted.has(onShelf.id);
-      setShelfBooks((books) =>
-        books.map((b) =>
-          b.id === onShelf.id
-            ? {
-                ...b,
-                reasons: note ? [...b.reasons, note] : b.reasons,
-                votes: b.votes + (addVote ? 1 : 0),
-              }
-            : b,
-        ),
-      );
-      if (addVote) setVoted((v) => new Set(v).add(onShelf.id));
-      setStatus(
-        `"${onShelf.title}" was already on the shelf, so we added your ${
-          note && addVote ? "note and vote" : note ? "note" : "vote"
-        } to it!`,
-      );
-    } else {
-      setShelfBooks((books) => [...books, { ...book, reasons: note ? [note] : [], votes: 1 }]);
-      setVoted((v) => new Set(v).add(book.id));
-      setStatus(`Added "${book.title}" to the shelf!`);
+    setSaving(true);
+    setStatus("");
+    try {
+      if (onShelf) {
+        await addToBook(onShelf.id, { vote: addVote, note });
+        setStatus(
+          `"${onShelf.title}" was already on the shelf, so we added your ${
+            note && addVote ? "note and vote" : note ? "note" : "vote"
+          } to it!`,
+        );
+      } else {
+        await addBook(book, note);
+        setStatus(`Added "${book.title}" to the shelf!`);
+      }
+      resetForm();
+    } catch (err) {
+      console.warn("Shelf save failed:", err);
+      setStatus("That didn't save. Try again in a moment.");
+    } finally {
+      setSaving(false);
     }
-    resetForm();
   }
 
   function toggleNotes(id) {
@@ -221,27 +196,31 @@ function Bookshelf() {
     });
   }
 
-  // BACKEND HOOK: add or remove this visitor's vote
-  function toggleVote(id) {
-    const had = voted.has(id);
-    setVoted((v) => {
-      const next = new Set(v);
-      if (had) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    setShelfBooks((books) =>
-      books.map((b) => (b.id === id ? { ...b, votes: b.votes + (had ? -1 : 1) } : b)),
-    );
+  // Add or remove this visitor's vote
+  async function toggleVote(id) {
+    if (pendingVotes.has(id)) return;
+    setPendingVotes((p) => new Set(p).add(id));
+    try {
+      await setVote(id, !voted.has(id));
+    } catch (err) {
+      console.warn("Shelf vote failed:", err);
+      setStatus("Your vote didn't save. Try again in a moment.");
+    } finally {
+      setPendingVotes((p) => {
+        const next = new Set(p);
+        next.delete(id);
+        return next;
+      });
+    }
   }
 
-  const existing = picked && findOnShelf(shelfBooks, picked);
+  const existing = picked && findOnShelf(books, picked);
   const alreadyVoted = existing && voted.has(existing.id);
   // Too-short queries show nothing, whatever the last search returned.
   const shownResults = query.trim().length >= 2 ? results : null;
-  const topFive = [...shelfBooks].sort((a, b) => b.votes - a.votes).slice(0, 5);
+  const topFive = [...books].sort((a, b) => b.votes - a.votes).slice(0, 5);
   // The full list is A–Z so it's easy to browse; the Top 5 does the ranking.
-  const allBooks = [...shelfBooks].sort((a, b) =>
+  const allBooks = [...books].sort((a, b) =>
     a.title.replace(/^(the|a|an)\s+/i, "").localeCompare(b.title.replace(/^(the|a|an)\s+/i, "")),
   );
 
@@ -335,8 +314,8 @@ function Bookshelf() {
                 className="shelf-crayon"
                 type="button"
                 // Already voted: the note is the only thing left to add.
-                disabled={alreadyVoted && !reason.trim()}
-                onClick={() => addBook(picked)}
+                disabled={saving || (alreadyVoted && !reason.trim())}
+                onClick={() => saveBook(picked)}
               >
                 {!existing ? "Add to the shelf" : alreadyVoted ? "Add your note" : "Add your vote"}
               </button>
@@ -355,7 +334,13 @@ function Bookshelf() {
         </p>
       </section>
 
-      {!shelfBooks.length ? (
+      {shelfBooks === null ? (
+        loadFailed ? (
+          <p className="shelf-empty">The shelf couldn't load right now. Try again in a moment.</p>
+        ) : (
+          <LoadingLogo className="shelf-loading" label="Loading the shelf" />
+        )
+      ) : !books.length ? (
         <p className="shelf-empty">The shelf is empty. Be the first to recommend something!</p>
       ) : (
         <>
@@ -371,7 +356,7 @@ function Bookshelf() {
           <section aria-labelledby="shelf-all-heading" className="shelf-all">
             <h2 id="shelf-all-heading" className="shelf-subheading">
               All recommendations{" "}
-              <span className="shelf-count">({shelfBooks.length})</span>
+              <span className="shelf-count">({books.length})</span>
             </h2>
             <ul className="shelf-list">{allBooks.map((book) => renderBook(book, "all"))}</ul>
           </section>
@@ -437,6 +422,7 @@ function Bookshelf() {
             type="button"
             aria-pressed={isVoted}
             aria-label={`${isVoted ? "Remove your vote for" : "Vote for"} ${book.title}, ${votes} votes`}
+            disabled={pendingVotes.has(book.id)}
             onClick={() => toggleVote(book.id)}
           >
             <span aria-hidden="true">{isVoted ? "♥" : "▲"}</span>
@@ -461,13 +447,16 @@ function Bookshelf() {
 
 /**
  * The bookshelf popup, app-wide like RadioLayer so it floats over the
- * blurred street the same way. Only hidden when closed, never unmounted, so
- * the (in-memory, for now) shelf and a half-typed search survive closing it.
+ * blurred street the same way. The shelf mounts the first time it opens (so
+ * visitors who never open it never read it from Firestore), then is only
+ * hidden when closed, so a half-typed search survives closing it.
  *
  * @param {boolean} open
  * @param {() => void} onClose
  */
 export default function BookshelfLayer({ open, onClose }) {
+  const [opened, setOpened] = useState(open);
+  if (open && !opened) setOpened(true);
   return (
     <div className="bookshelf-layer">
       <div className="ui-backdrop bookshelf-modal-backdrop" hidden={!open} onClick={onClose}>
@@ -485,7 +474,7 @@ export default function BookshelfLayer({ open, onClose }) {
           >
             ×
           </button>
-          <Bookshelf />
+          {opened && <Bookshelf />}
         </div>
       </div>
     </div>

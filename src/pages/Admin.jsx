@@ -182,7 +182,9 @@ export default function Admin() {
   const [user, setUser] = useState(undefined); // undefined = still checking
   const [authError, setAuthError] = useState(null);
 
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  // Shelf visitors get an anonymous sign-in (see shelfStore.js); that isn't
+  // an admin, so it shows the login form like being signed out.
+  useEffect(() => onAuthStateChanged(auth, (u) => setUser(u && !u.isAnonymous ? u : null)), []);
 
   return (
     <div className="admin-page">

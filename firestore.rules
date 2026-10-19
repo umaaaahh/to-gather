@@ -2,6 +2,26 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Uma's email/password account. Shelf visitors are signed in too, but
+    // anonymously, and must never count as admin.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function bookPath(bookId) {
+      return /databases/$(database)/documents/shelfBooks/$(bookId);
+    }
+
+    // This visitor's vote on a book (see shelfStore.js for the id scheme).
+    function myVotePath(bookId) {
+      return /databases/$(database)/documents/shelfVotes/$(request.auth.uid + '_' + bookId);
+    }
+
     match /drawings/{drawingId} {
       allow read: if true;
 
@@ -14,7 +34,89 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
 
       allow update: if false;
-      allow delete: if request.auth != null; // admin-only (Uma's Firebase Auth account)
+      allow delete: if isAdmin();
+    }
+
+    // The Shelf. A book's `votes` count only ever moves by one, in the same
+    // batch as this visitor's vote doc being created or deleted, so the count
+    // always matches the votes and nobody can vote twice.
+    match /shelfBooks/{bookId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && bookId.matches('[A-Za-z0-9_-]{1,64}')
+        && request.resource.data.keys().hasOnly(['title', 'authors', 'cover', 'link', 'votes', 'createdAt'])
+        && request.resource.data.keys().hasAll(['title', 'authors', 'cover', 'link', 'votes', 'createdAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.authors is string
+        && request.resource.data.authors.size() <= 200
+        && request.resource.data.cover is string
+        && (request.resource.data.cover == ''
+          || (request.resource.data.cover.size() < 2000
+            && request.resource.data.cover.matches('https://books[.]google[.].*')))
+        && request.resource.data.link is string
+        && (request.resource.data.link == ''
+          || (request.resource.data.link.size() < 2000
+            && request.resource.data.link.matches('https://(books|play)[.]google[.].*')))
+        && request.resource.data.votes == 1
+        && request.resource.data.createdAt == request.time
+        && !exists(myVotePath(bookId))
+        && existsAfter(myVotePath(bookId));
+
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes'])
+        && ((request.resource.data.votes == resource.data.votes + 1
+            && !exists(myVotePath(bookId))
+            && existsAfter(myVotePath(bookId)))
+          || (request.resource.data.votes == resource.data.votes - 1
+            && exists(myVotePath(bookId))
+            && !existsAfter(myVotePath(bookId))));
+
+      allow delete: if isAdmin();
+    }
+
+    match /shelfVotes/{voteId} {
+      // Only your own votes, so the shelf can show which books you've voted for.
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'bookId', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.bookId is string
+        && voteId == request.auth.uid + '_' + request.resource.data.bookId
+        && request.resource.data.createdAt == request.time
+        && existsAfter(bookPath(request.resource.data.bookId))
+        && getAfter(bookPath(request.resource.data.bookId)).data.votes
+          == (exists(bookPath(request.resource.data.bookId))
+            ? get(bookPath(request.resource.data.bookId)).data.votes + 1
+            : 1);
+
+      allow update: if false;
+
+      allow delete: if isAdmin()
+        || (signedIn()
+          && resource.data.uid == request.auth.uid
+          && getAfter(bookPath(resource.data.bookId)).data.votes
+            == get(bookPath(resource.data.bookId)).data.votes - 1);
+    }
+
+    match /shelfNotes/{noteId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['bookId', 'text', 'uid', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 140
+        && request.resource.data.bookId is string
+        && existsAfter(bookPath(request.resource.data.bookId))
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isAdmin();
     }
   }
 }

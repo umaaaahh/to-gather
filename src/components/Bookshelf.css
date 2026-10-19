@@ -430,3 +430,10 @@
 .shelf-searching .loading-logo {
   height: 2.5rem;
 }
+
+/* ...and while the shelf itself loads from Firestore. */
+.shelf-loading {
+  display: block;
+  height: 3rem;
+  margin: 28px auto;
+}

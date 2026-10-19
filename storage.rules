@@ -9,7 +9,10 @@ service firebase.storage {
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType == 'image/png';
 
-      allow delete: if request.auth != null; // admin-only (Uma's Firebase Auth account)
+      // admin-only (Uma's Firebase Auth account). Shelf visitors are signed in
+      // anonymously, so they're ruled out explicitly.
+      allow delete: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
   }
 }
