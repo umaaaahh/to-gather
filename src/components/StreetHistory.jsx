@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { ASSETS, STREET_SIGN_CROP, cropImgStyle } from "../lib/assets";
 import RibbonTitle from "./RibbonTitle";
 import "./StreetHistory.css";
 
@@ -37,8 +38,31 @@ const HISTORY = [
   },
 ];
 
-// The history pop-up, opened by tapping the Cardigan St sign. The shared
-// popup frame (popup.css) with a hand-drawn timeline inside.
+// The sign in the About pop-up, in pieces of STREET_SIGN_CROP (387x757):
+// the sign down to just above its base (which starts at 715), then copies
+// of a plain stretch of its pole (x 28-86, y 200-700) stacked below, enough
+// to run off the bottom of any card.
+const SIGN_TOP_CROP = { ...STREET_SIGN_CROP, height: 710 };
+const SIGN_POLE_CROP = {
+  ...STREET_SIGN_CROP,
+  x: STREET_SIGN_CROP.x + 28,
+  y: STREET_SIGN_CROP.y + 200,
+  width: 58,
+  height: 500,
+};
+const SIGN_POLE_PIECES = 3;
+
+// Each piece is a box with its crop's shape, placed where that crop sits
+// across the sign's width.
+const signPieceStyle = (crop) => ({
+  width: `${(crop.width / STREET_SIGN_CROP.width) * 100}%`,
+  marginLeft: `${((crop.x - STREET_SIGN_CROP.x) / STREET_SIGN_CROP.width) * 100}%`,
+  aspectRatio: `${crop.width} / ${crop.height}`,
+});
+
+// The About pop-up (the street's history), opened by tapping the Cardigan
+// St sign. The shared popup frame (popup.css) with the sign and a
+// hand-drawn timeline inside.
 export default function StreetHistoryLayer({ open, onClose }) {
   const closeRef = useRef(null);
 
@@ -59,10 +83,10 @@ export default function StreetHistoryLayer({ open, onClose }) {
           className="ui-titled"
           role="dialog"
           aria-modal="true"
-          aria-label="Street history"
+          aria-label="About Cardigan Street"
           onClick={(e) => e.stopPropagation()}
         >
-          <RibbonTitle>History</RibbonTitle>
+          <RibbonTitle>About</RibbonTitle>
           <button
             ref={closeRef}
             type="button"
@@ -73,6 +97,22 @@ export default function StreetHistoryLayer({ open, onClose }) {
             ×
           </button>
           <div className="ui-card history-modal">
+            {/* The Cardigan St sign from the street, pinned over the text,
+                which scrolls under it: the sign cut off above its base, then
+                more of its pole, running off the bottom of the card. */}
+            <span className="history-sign" aria-hidden="true">
+              {[SIGN_TOP_CROP, ...Array(SIGN_POLE_PIECES).fill(SIGN_POLE_CROP)].map((crop, i) => (
+                <span key={i} className="history-sign-piece" style={signPieceStyle(crop)}>
+                  <img
+                    className="cropped-img"
+                    src={ASSETS.streetSign}
+                    alt=""
+                    draggable="false"
+                    style={cropImgStyle({ crop })}
+                  />
+                </span>
+              ))}
+            </span>
             <div className="history-body">
               <p className="history-intro">
                 Five moments that shaped this street, and where to spot them today.

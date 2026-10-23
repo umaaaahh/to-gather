@@ -1,5 +1,6 @@
 /* ---- Street history popup --------------------------------------------
-   The shared popup frame (popup.css) with a hand-drawn timeline inside. */
+   The shared popup frame (popup.css): the street's history scrolling under
+   the Cardigan St sign. */
 .history-layer {
   position: fixed;
   inset: 0;
@@ -8,19 +9,69 @@
   margin: 0 auto;
 }
 
-.history-modal {
+/* The card holds the scrolling text and, pinned on top of it, the Cardigan
+   St sign: its blade across the top, its pole down the left and off the
+   bottom. The text scrolls under the sign. The card is the container the
+   sign is sized against (--sign-w); its padding is replaced by the body's,
+   which is measured from the sign. */
+.ui-titled > .ui-card.history-modal {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-top: 0;
+  container-type: inline-size;
 }
 
-/* Intro, timeline and footer scroll together under the header. */
+/* Where the art falls within the sign's crop (STREET_SIGN_CROP, 387x757):
+   the pole spans 8.5-21% of its width; the blade 7.5-19% of its height,
+   that is 15-37% of its width. */
+.history-sign,
+.history-body {
+  /* The card's full width, so the blade spans it and no text peeks out
+     beside it. */
+  --sign-w: calc(100cqw - 1rem);
+  --sign-top: 3rem; /* clear of the ribbon and the close button */
+}
+
+/* The pieces (see SIGN_TOP_CROP in StreetHistory.jsx) stack down from the
+   top; whatever runs past the card's bottom is cut off. */
+.history-sign {
+  position: absolute;
+  z-index: 1;
+  top: var(--sign-top);
+  bottom: 0;
+  left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  width: var(--sign-w);
+  overflow: hidden;
+  pointer-events: none; /* scrolls and taps reach the text under it */
+}
+
+.history-sign-piece {
+  position: relative;
+  flex: none;
+  display: block;
+  overflow: hidden;
+}
+
+.history-sign .cropped-img {
+  position: absolute;
+  display: block;
+  max-width: none;
+}
+
+/* Intro, timeline and footer scroll together. The scroll area starts at
+   the middle of the blade, so text slides under the blade's lower half as
+   it scrolls up; it starts just below the blade, right of the pole. */
 .history-body {
   flex: 1;
   min-height: 0;
+  margin-top: calc(var(--sign-top) + var(--sign-w) * 0.26);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0.9rem 1rem 1.25rem;
+  padding: calc(var(--sign-w) * 0.11 + 0.9rem) 1rem 1.25rem calc(0.5rem + var(--sign-w) * 0.21 + 0.75rem);
 }
 
 .history-intro {
@@ -29,43 +80,16 @@
   line-height: 1.4;
 }
 
-/* ---- Timeline: a dashed orange line with a blue dot per entry ---- */
+/* ---- Timeline: the sign's pole is its spine; each entry's era marks it ---- */
 .history-timeline {
   margin: 0;
-  padding: 0 0 0 1.4rem;
+  padding: 0;
   list-style: none;
 }
 
 .history-entry {
   position: relative;
-  padding: 0 0 1.2rem 0.4rem;
-}
-
-/* The line, running down to the next entry. */
-.history-entry::before {
-  content: "";
-  position: absolute;
-  top: 0.9rem;
-  bottom: -0.1rem;
-  left: -1.05rem;
-  border-left: 2.5px dashed rgba(245, 137, 61, 0.55);
-}
-
-.history-entry:last-child::before {
-  display: none;
-}
-
-/* The dot. */
-.history-entry::after {
-  content: "";
-  position: absolute;
-  top: 0.3rem;
-  left: -1.5rem;
-  width: 0.85rem;
-  height: 0.85rem;
-  border: 2.5px solid var(--ui-ink);
-  border-radius: 999px;
-  background: var(--ui-blue);
+  padding: 0 0 1.2rem;
 }
 
 .history-era {

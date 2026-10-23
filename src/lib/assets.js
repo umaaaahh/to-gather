@@ -59,3 +59,16 @@ export const ASSETS = {
   // UI pop played on every button press (see lib/sounds.js).
   clickPop: url("floraphonic-minimal-pop-click-ui-1-198301.mp3"),
 };
+
+// Where the street sign sits in its 595x842 file (the rest is empty page).
+// Used by the sign on the street and in the About popup.
+export const STREET_SIGN_CROP = { fileWidth: 595, fileHeight: 842, x: 135, y: 35, width: 387, height: 757 };
+
+// Style for an <img> showing just the `crop` region of its file, inside an
+// overflow-hidden box with the crop's aspect ratio (the img is absolutely
+// positioned, see .cropped-img).
+export const cropImgStyle = ({ crop }) => ({
+  width: `${(crop.fileWidth / crop.width) * 100}%`,
+  left: `${(-crop.x / crop.width) * 100}%`,
+  top: `${(-crop.y / crop.height) * 100}%`,
+});

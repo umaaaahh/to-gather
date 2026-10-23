@@ -10,7 +10,7 @@ import {
   subscribeToSaveErrors,
   subscribeToSubmissions,
 } from "../lib/drawingsStore";
-import { ASSETS } from "../lib/assets";
+import { ASSETS, STREET_SIGN_CROP, cropImgStyle } from "../lib/assets";
 import "./StreetScene.css";
 
 // Zones are positioned as a % of the scene-ground box so they hold across phone
@@ -206,12 +206,6 @@ const roadTileStyle = {
   }),
 };
 
-const cropImgStyle = ({ crop }) => ({
-  width: `${(crop.fileWidth / crop.width) * 100}%`,
-  left: `${(-crop.x / crop.width) * 100}%`,
-  top: `${(-crop.y / crop.height) * 100}%`,
-});
-
 // Cloud tiles in the drifting sky (.clouds in StreetScene.css). Each is
 // ~0.42 street widths, so 6 covers an ultrawide monitor plus the tile
 // sliding off the left; a phone only ever shows 2.
@@ -401,12 +395,10 @@ const WINDOW_RADIO = resolveAnchor({ top: "78%", anchor: "left", left: "12.3%", 
 const WINDOW_BOOK = resolveAnchor({ top: "81%", anchor: "left", left: "32.5%", width: "6%", height: "14%" });
 
 // Street sign — a third tappable surprise, same glow as the window ones;
-// opens the street's history (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
+// opens the About popup (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
 // `left` is from the left building's edge (negative = before it). Height is
 // the knob for its size; width follows the art.
 const STREET_SIGN_POS = { anchor: "left", left: -10.5, bottom: 101, height: 40 };
-// Where the sign sits in its 595x842 file (the rest is empty page).
-const STREET_SIGN_CROP = { fileWidth: 595, fileHeight: 842, x: 135, y: 35, width: 387, height: 757 };
 const STREET_SIGN = {
   top: `${STREET_SIGN_POS.bottom - STREET_SIGN_POS.height}%`,
   left: `${fromStreetStart(STREET_SIGN_POS.anchor, STREET_SIGN_POS.left)}%`,
@@ -1173,7 +1165,7 @@ export default function StreetScene({
                 className="street-surprise-button"
                 onClick={onOpenStreetSign}
                 disabled={mode !== "view"}
-                aria-label="Read the history of Cardigan St"
+                aria-label="About Cardigan St"
                 style={STREET_SIGN}
               >
                 <span className="street-sign">
@@ -1185,7 +1177,7 @@ export default function StreetScene({
                     style={cropImgStyle({ crop: STREET_SIGN_CROP })}
                   />
                 </span>
-                <StreetTag text="History" buttonWidth={STREET_SIGN.width} />
+                <StreetTag text="About" buttonWidth={STREET_SIGN.width} />
               </button>
 
               {/* Neon stats poster on the shopfront — same pattern as the
@@ -1216,7 +1208,7 @@ export default function StreetScene({
                   style={STREET_KANGAROO}
                 >
                   <img className="street-kangaroo" src={ASSETS.kangaroo} alt="" draggable="false" />
-                  <StreetTag text="Tour" buttonWidth={STREET_KANGAROO.width} />
+                  <StreetTag text="Info" buttonWidth={STREET_KANGAROO.width} />
                 </button>
               )}
 
