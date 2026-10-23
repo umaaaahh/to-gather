@@ -52,7 +52,7 @@
 /* ---- Pointer ---------------------------------------------------------- */
 .tour-pointer {
   position: absolute;
-  font-size: 2.25rem;
+  font-size: calc(2.25rem * var(--text-scale));
   line-height: 1;
   pointer-events: none;
   transform: translate(-50%, -100%); /* fingertip on the target's top edge */
@@ -197,7 +197,7 @@
   min-height: 4.2em;
   margin: 0 0 0.6rem;
   color: var(--ui-text);
-  font-size: 1rem;
+  font-size: calc(1rem * var(--text-scale));
   font-weight: 600;
   line-height: 1.4;
   text-align: center;
@@ -235,7 +235,7 @@
   border-radius: 50%;
   background: var(--ui-orange-soft);
   color: var(--ui-orange-ink);
-  font-size: 1.5rem;
+  font-size: calc(1.5rem * var(--text-scale));
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -292,7 +292,7 @@
   background: var(--ui-paper-soft);
   color: var(--ui-orange-ink);
   font-family: var(--ui-font);
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--text-scale));
   font-weight: 700;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -412,20 +412,21 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tour,
-  .tour-pointer,
-  .tour-pointer-hand,
-  .tour-kangaroo,
-  .tour-kangaroo-img,
-  .tour[data-leaving] .tour-kangaroo,
-  .tour[data-leaving] .tour-kangaroo-img,
-  .tour-bubble[data-dir] {
-    animation: none;
-  }
-  .tour-spotlight,
-  .tour-pointer,
-  .tour-dot {
-    transition: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .tour,
+html[data-motion="reduced"] .tour-pointer,
+html[data-motion="reduced"] .tour-pointer-hand,
+html[data-motion="reduced"] .tour-kangaroo,
+html[data-motion="reduced"] .tour-kangaroo-img,
+html[data-motion="reduced"] .tour[data-leaving] .tour-kangaroo,
+html[data-motion="reduced"] .tour[data-leaving] .tour-kangaroo-img,
+html[data-motion="reduced"] .tour-bubble[data-dir] {
+  animation: none;
+}
+
+html[data-motion="reduced"] .tour-spotlight,
+html[data-motion="reduced"] .tour-pointer,
+html[data-motion="reduced"] .tour-dot {
+  transition: none;
 }

@@ -1,0 +1,331 @@
+/* ---- Accessibility menu (AccessMenu.jsx) ---------------------------------
+   The pixel nav's language: a cream face, a notched 1-pixel ink outline
+   (four box-shadows, one per side, so the corners stay empty), a highlight
+   on the top and left, a shade line at the bottom, and a hard offset drop
+   shadow on the panel. Everything sits on a grid of --u (one art pixel). */
+:root {
+  /* The tab's height, which popups and the drawing overlay leave room for
+     at the top of the screen. Grows with the text size. */
+  --access-tab-h: calc(14px * var(--text-scale) + 18px);
+}
+
+.access-menu {
+  --u: 3px;
+  --out: #2b2b2b; /* brand ink: outlines and text */
+  --txt: #2b2b2b;
+  --cream: #fbe3cc;
+  --cream-hi: #fff6ec;
+  --cream-lo: #e2b993;
+  --blue: #2f6fd6; /* brand blue: on / selected */
+  --blue-hi: #8fb4f0;
+  --blue-lo: #1f4fa3;
+  --blue-txt: #ffffff; /* 4.8:1 on --blue */
+  --px-outline:
+    0 calc(var(--u) * -1) 0 var(--out),
+    0 var(--u) 0 var(--out),
+    calc(var(--u) * -1) 0 0 var(--out),
+    var(--u) 0 0 var(--out);
+
+  /* Pinned to the top centre, above the street, popups (50) and the splash
+     (1000), so it's there on the Acknowledgement and the tour. The layer
+     lets taps through; only the tab and panel catch them. */
+  position: fixed;
+  z-index: 1100;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  color: var(--txt);
+  font-family: var(--font-label);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  -webkit-font-smoothing: none;
+}
+
+.access-menu > * {
+  pointer-events: auto;
+}
+
+/* Under the logo while it shows; it appears with the Acknowledgement. */
+body:has(.splash[data-phase="showing"]) .access-menu {
+  visibility: hidden;
+}
+
+.access-menu :focus-visible {
+  outline: calc(var(--u) / 1.5) dashed var(--out);
+  outline-offset: calc(var(--u) * 2);
+}
+
+/* ---- The tab: hangs from the top edge, so no outline along the top ---- */
+.access-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+  height: var(--access-tab-h);
+  margin: 0 var(--u) var(--u);
+  padding: 0 calc(var(--u) * 4);
+  border: 0;
+  border-radius: 0;
+  background: var(--cream);
+  color: inherit;
+  font: inherit;
+  font-size: calc(14px * var(--text-scale));
+  line-height: 1;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset var(--u) 0 0 var(--cream-hi),
+    inset 0 calc(var(--u) * -1) 0 var(--cream-lo),
+    0 var(--u) 0 var(--out),
+    calc(var(--u) * -1) 0 0 var(--out),
+    var(--u) 0 0 var(--out);
+}
+
+/* A 44px-tall hit area, though the tab itself is slimmer. */
+.access-tab::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: max(100%, 44px);
+}
+
+.access-tab:hover {
+  filter: brightness(1.04);
+}
+
+.access-tab[aria-expanded="true"] {
+  background: var(--cream-hi);
+}
+
+/* "Aa" in a little inked box. */
+.access-tab-icon {
+  padding: calc(var(--u) / 1.5) var(--u);
+  box-shadow: var(--px-outline);
+  background: var(--cream-hi);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* The word only fits beside it on wider screens. */
+.access-tab-word {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .access-tab-word {
+    display: inline;
+  }
+}
+
+/* Pixel caret: three squares, flipping up when open. */
+.px-caret {
+  width: var(--u);
+  height: var(--u);
+  margin: var(--u) var(--u) 0;
+  background: currentColor;
+  box-shadow:
+    calc(var(--u) * -1) calc(var(--u) * -1) 0 currentColor,
+    0 calc(var(--u) * -1) 0 currentColor,
+    var(--u) calc(var(--u) * -1) 0 currentColor;
+}
+
+[aria-expanded="true"] > .px-caret {
+  margin: 0 var(--u) var(--u);
+  box-shadow:
+    calc(var(--u) * -1) var(--u) 0 currentColor,
+    0 var(--u) 0 currentColor,
+    var(--u) var(--u) 0 currentColor;
+}
+
+/* ---- The panel ---- */
+.access-panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 3);
+  width: min(calc(20rem * var(--text-scale)), calc(100% - 32px));
+  max-height: calc(100dvh - var(--access-tab-h) - 24px);
+  margin-top: calc(var(--u) * 3);
+  padding: calc(var(--u) * 5) calc(var(--u) * 5) calc(var(--u) * 5);
+  overflow-y: auto;
+  background: var(--cream);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--cream-lo),
+    inset var(--u) var(--u) 0 var(--cream-hi),
+    var(--px-outline),
+    calc(var(--u) * 2) calc(var(--u) * 2) 0 rgb(43 43 43 / 0.25);
+}
+
+/* Phones: the screen's width less a 16px gutter each side. */
+@media (max-width: 599px) {
+  .access-panel {
+    width: calc(100% - 32px);
+  }
+}
+
+.access-panel[hidden] {
+  display: none;
+}
+
+.access-title {
+  margin: 0 0 var(--u);
+  font: inherit;
+  font-size: calc(16px * var(--text-scale));
+  letter-spacing: inherit;
+}
+
+.access-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 3);
+}
+
+.access-label {
+  font-size: calc(12px * var(--text-scale));
+  line-height: 1.3;
+}
+
+.access-reset {
+  --u: 3px;
+  align-self: flex-start;
+  margin-top: calc(var(--u) * 2);
+}
+
+/* ---- .px-switch ---- */
+.px-switch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--u);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.px-switch-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 2);
+  min-width: calc(var(--u) * 18);
+  padding: var(--u);
+  background: var(--cream-hi);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--cream-lo),
+    var(--px-outline);
+}
+
+.px-switch-text {
+  order: 2; /* off: the knob on the left, the word on the right */
+  padding: 0 var(--u);
+  font-size: calc(10px * var(--text-scale));
+  line-height: 1;
+}
+
+.px-switch-knob {
+  order: 1;
+  width: calc(var(--u) * 5);
+  height: calc(var(--u) * 5);
+  background: var(--cream);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--cream-lo),
+    inset var(--u) var(--u) 0 #ffffff,
+    var(--px-outline);
+}
+
+.px-switch[aria-checked="true"] .px-switch-track {
+  background: var(--blue);
+  color: var(--blue-txt);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--blue-lo),
+    var(--px-outline);
+}
+
+/* On: the word on the left, the knob on the right. */
+.px-switch[aria-checked="true"] .px-switch-text {
+  order: 1;
+}
+
+.px-switch[aria-checked="true"] .px-switch-knob {
+  order: 2;
+}
+
+.px-switch:hover .px-switch-track {
+  filter: brightness(1.05);
+}
+
+/* ---- .px-segment ---- */
+.px-segment {
+  flex: none;
+  display: flex;
+  gap: var(--u); /* neighbours' outlines meet in the gap: one shared line */
+  padding: var(--u);
+}
+
+.px-segment-option {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 calc(var(--u) * 2) var(--u);
+  border: 0;
+  border-radius: 0;
+  background: var(--cream-hi);
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 calc(var(--u) * -2) 0 var(--cream-lo),
+    inset var(--u) var(--u) 0 #ffffff,
+    var(--px-outline);
+}
+
+/* Each shows its own size. */
+.px-segment-option:nth-child(1) { font-size: calc(12px * var(--text-scale)); }
+.px-segment-option:nth-child(2) { font-size: calc(15px * var(--text-scale)); }
+.px-segment-option:nth-child(3) { font-size: calc(18px * var(--text-scale)); }
+
+/* Selected: pressed down, blue. */
+.px-segment-option[aria-checked="true"] {
+  padding-bottom: 0;
+  transform: translateY(var(--u));
+  background: var(--blue);
+  color: var(--blue-txt);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--blue-lo),
+    inset var(--u) var(--u) 0 var(--blue-hi),
+    var(--px-outline);
+}
+
+.px-segment-option:hover {
+  filter: brightness(1.05);
+}
+
+html[data-motion="reduced"] .px-segment-option[aria-checked="true"] {
+  transform: none;
+}
+
+/* ---- Room for the tab at the top of popups and the drawing overlay ---- */
+html .ui-backdrop {
+  padding-top: calc(var(--access-tab-h) + 0.6rem);
+}
+
+html .draw-overlay {
+  padding-top: calc(var(--access-tab-h) + 0.6rem);
+}

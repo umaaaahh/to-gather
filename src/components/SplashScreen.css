@@ -55,13 +55,13 @@
 
 .splash-country p {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--text-scale));
   line-height: 1.45;
 }
 
 .splash-country .splash-country-always {
   font-family: var(--ui-font);
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--text-scale));
   font-weight: 700;
   line-height: 1.2;
   color: var(--ui-orange-ink);
@@ -71,11 +71,12 @@
   margin-top: 0.4rem;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .splash {
-    transition: none;
-  }
-  .splash-logo {
-    animation: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .splash {
+  transition: none;
+}
+
+html[data-motion="reduced"] .splash-logo {
+  animation: none;
 }

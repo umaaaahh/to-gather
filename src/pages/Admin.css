@@ -13,7 +13,7 @@
 }
 
 .admin-back {
-  font-size: 1.5rem;
+  font-size: calc(1.5rem * var(--text-scale));
   line-height: 1;
   background: none;
   border: none;
@@ -24,7 +24,7 @@
 .admin-title {
   flex: 1;
   margin: 0;
-  font-size: 1.25rem;
+  font-size: calc(1.25rem * var(--text-scale));
 }
 
 .admin-signout {
@@ -64,14 +64,14 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--text-scale));
 }
 
 .admin-login input {
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--text-scale));
 }
 
 .admin-login button {
@@ -81,7 +81,7 @@
   border-radius: 6px;
   background: #2f6b4f;
   color: #fff;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--text-scale));
   cursor: pointer;
 }
 
@@ -103,7 +103,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--text-scale));
   color: #333;
 }
 
@@ -113,7 +113,7 @@
   border: none;
   border-radius: 6px;
   padding: 0.45rem 0.9rem;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--text-scale));
   cursor: pointer;
 }
 
@@ -172,7 +172,7 @@
 }
 
 .admin-card-zone {
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--text-scale));
   color: #555;
   text-transform: capitalize;
 }
@@ -183,7 +183,7 @@
   border: none;
   border-radius: 6px;
   padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--text-scale));
   cursor: pointer;
 }
 

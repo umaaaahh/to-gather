@@ -6,6 +6,7 @@ import NoticeBoard from "./pages/NoticeBoard";
 import CanvasTest from "./pages/CanvasTest";
 import Admin from "./pages/Admin";
 import SplashScreen from "./components/SplashScreen";
+import AccessMenu from "./components/AccessMenu";
 import RadioLayer from "./components/RadioLayer";
 import BookshelfLayer from "./components/Bookshelf";
 import StreetHistoryLayer from "./components/StreetHistory";
@@ -43,6 +44,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {/* First, so it's first in tab order on every screen. */}
+      <AccessMenu />
       <SplashScreen onDone={startTour} />
       <Routes>
         {/* The drawing canvas is a child route so it opens as an overlay on

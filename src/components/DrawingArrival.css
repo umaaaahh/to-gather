@@ -81,11 +81,11 @@
   white-space: nowrap;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .arrival-dots span,
-  .scatter-item[data-arrival]::before {
-    animation: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .arrival-dots span,
+html[data-motion="reduced"] .scatter-item[data-arrival]::before {
+  animation: none;
 }
 
 /* The scene item the drawing is flying into (StreetScene marks it): hidden

@@ -15,8 +15,8 @@
   to { opacity: 1; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .loading-logo {
-    animation: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .loading-logo {
+  animation: none;
 }

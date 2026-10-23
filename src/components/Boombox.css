@@ -221,12 +221,12 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .boombox *,
-  .boombox-body {
-    animation: none !important;
-    transition: none !important;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .boombox *,
+html[data-motion="reduced"] .boombox-body {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* LoadingLogo while a station tunes in (status "tuning"). It sits
@@ -271,7 +271,7 @@
   background: #d9d4c7;
   color: #2b2b2b;
   font: inherit;
-  font-size: 1.35rem;
+  font-size: calc(1.35rem * var(--text-scale));
   line-height: 1;
   cursor: pointer;
   box-shadow: 3px 3px 0 #2b2b2b;
@@ -295,7 +295,7 @@
 }
 
 .boombox-power-icon {
-  font-size: 1.15rem;
+  font-size: calc(1.15rem * var(--text-scale));
 }
 
 /* Volume: a thick crayon track that fills in yellow up to the thumb
@@ -312,7 +312,7 @@
 .boombox-volume-icon {
   flex: none;
   width: 1.6rem;
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--text-scale));
   text-align: center;
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.8));
 }
@@ -384,7 +384,7 @@
 
 .boombox-about-title {
   margin: 0 0 0.25rem;
-  font-size: 1.25rem;
+  font-size: calc(1.25rem * var(--text-scale));
   font-weight: normal;
   line-height: 1.1;
 }
@@ -398,6 +398,6 @@
 
 .boombox-about p {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: calc(1.05rem * var(--text-scale));
   line-height: 1.3;
 }

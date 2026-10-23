@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { prefersReducedMotion } from "../lib/a11y";
 import { ASSETS } from "../lib/assets";
 import "./SplashScreen.css";
 import "./DrawingArrival.css";
@@ -53,7 +54,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
   // its thumbnail loaded, then run the rest of the sequence.
   useEffect(() => {
     let cancelled = false;
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = prefersReducedMotion();
     let sceneItem = null;
 
     async function run() {

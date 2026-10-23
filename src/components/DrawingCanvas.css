@@ -103,7 +103,7 @@
   background: #fff;
   color: var(--dc-ink);
   font-family: inherit;
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--text-scale));
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -181,11 +181,11 @@
   cursor: default;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dc-tool,
-  .dc-size,
-  .dc-btn,
-  .dc-swatch {
-    transition: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .dc-tool,
+html[data-motion="reduced"] .dc-size,
+html[data-motion="reduced"] .dc-btn,
+html[data-motion="reduced"] .dc-swatch {
+  transition: none;
 }

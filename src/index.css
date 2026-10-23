@@ -7,9 +7,12 @@ html, body, #root {
   padding: 0;
   height: 100%;
   background: #1c1c1e;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
 }
 
 body {
   overflow: hidden; /* the phone frame owns its size; the street pans inside it */
+  /* The base text size, scaled by the accessibility menu. On body, not html,
+     so rem (used for layout too) stays fixed. */
+  font-size: calc(1rem * var(--text-scale));
 }

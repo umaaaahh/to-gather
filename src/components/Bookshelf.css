@@ -28,7 +28,7 @@
 
   padding: 1.25rem 1rem 1.5rem;
   color: var(--ui-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   line-height: 1.4;
   text-align: left;
 }
@@ -48,7 +48,7 @@
   font-family: var(--ui-font);
   font-weight: 700;
   color: var(--ui-orange-ink);
-  font-size: 1.9rem;
+  font-size: calc(1.9rem * var(--text-scale));
   margin: 0 0 12px;
 }
 
@@ -66,14 +66,14 @@
   display: block;
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: calc(1.4rem * var(--text-scale));
   margin-bottom: 8px;
 }
 
 .shelf-input {
   width: 100%;
   font: inherit;
-  font-size: 1.05rem;
+  font-size: calc(1.05rem * var(--text-scale));
   padding: 10px 14px;
   border: 3px solid var(--ink);
   border-radius: 14px 4px 16px 5px;
@@ -109,7 +109,7 @@
 }
 
 .shelf-note {
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--text-scale));
   opacity: 0.75;
 }
 
@@ -131,7 +131,7 @@
   place-items: center;
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.6rem;
+  font-size: calc(1.6rem * var(--text-scale));
   color: var(--ink);
 }
 
@@ -150,7 +150,7 @@
 }
 
 .shelf-author {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--text-scale));
   opacity: 0.75;
 }
 
@@ -158,7 +158,7 @@
 .shelf-crayon {
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: calc(1.15rem * var(--text-scale));
   padding: 5px 14px;
   border: 3px solid var(--ink);
   border-radius: var(--wobble);
@@ -215,7 +215,7 @@
 }
 
 .shelf-counter {
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--text-scale));
   opacity: 0.65;
   margin-left: auto;
 }
@@ -235,7 +235,7 @@
   margin: 10px 0 0;
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--text-scale));
 }
 
 /* ---- The list ---- */
@@ -275,7 +275,7 @@
 .shelf-rank {
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.6rem;
+  font-size: calc(1.6rem * var(--text-scale));
   line-height: 1;
   min-width: 1ch;
   text-align: center;
@@ -291,7 +291,7 @@
 }
 
 .shelf-book.first .shelf-rank {
-  font-size: 2rem;
+  font-size: calc(2rem * var(--text-scale));
   color: var(--ui-orange);
   -webkit-text-stroke: 1px var(--ink);
 }
@@ -302,7 +302,7 @@
 }
 
 .shelf-book.first .shelf-title {
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--text-scale));
 }
 
 .shelf-all {
@@ -310,7 +310,7 @@
 }
 
 .shelf-count {
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--text-scale));
   opacity: 0.6;
 }
 
@@ -326,13 +326,13 @@
   justify-items: center;
   gap: 2px;
   line-height: 1;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--text-scale));
   padding: 6px 9px;
   min-width: 46px;
 }
 
 .shelf-tally .num {
-  font-size: 1.25rem;
+  font-size: calc(1.25rem * var(--text-scale));
 }
 
 .shelf-vote {
@@ -369,7 +369,7 @@
   margin: 0;
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--text-scale));
   line-height: 1.2;
 }
 
@@ -380,19 +380,19 @@
   border-radius: var(--wobble);
   font-family: var(--ui-font);
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--text-scale));
 }
 
 .shelf-credit {
   margin: 28px 0 0;
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--text-scale));
   opacity: 0.7;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .shelf-crayon {
-    transition: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .shelf-crayon {
+  transition: none;
 }
 
 /* LoadingLogo while a book search is in flight. */

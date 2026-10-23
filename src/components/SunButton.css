@@ -100,11 +100,11 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sun-button-art,
-  .sun-button-label,
-  .sun-button-rays,
-  .sun-button::before {
-    animation: none;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .sun-button-art,
+html[data-motion="reduced"] .sun-button-label,
+html[data-motion="reduced"] .sun-button-rays,
+html[data-motion="reduced"] .sun-button::before {
+  animation: none;
 }

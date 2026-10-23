@@ -1,3 +1,4 @@
+import { soundOn } from "./a11y";
 import { ASSETS } from "./assets";
 
 // A soft pop on every button press, wired once at the document level so new
@@ -19,6 +20,7 @@ let pool = [];
 let next = 0;
 
 function play() {
+  if (!soundOn()) return; // the accessibility menu's Sound switch
   const el = pool[next];
   next = (next + 1) % pool.length;
   el.currentTime = 0;

@@ -76,7 +76,7 @@
 
 .history-intro {
   margin: 0 0 1rem;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--text-scale));
   line-height: 1.4;
 }
 
@@ -93,7 +93,7 @@
 }
 
 .history-era {
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--text-scale));
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -103,7 +103,7 @@
 .history-entry-title {
   margin: 0.1rem 0 0.25rem;
   font-family: var(--ui-font);
-  font-size: 1.35rem;
+  font-size: calc(1.35rem * var(--text-scale));
   font-weight: 700;
   line-height: 1.1;
   color: var(--ui-orange-ink);
@@ -111,7 +111,7 @@
 
 .history-entry-body {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--text-scale));
   line-height: 1.4;
 }
 
@@ -122,7 +122,7 @@
   border-left: 3px solid var(--ui-blue);
   border-radius: 0 8px 8px 0;
   background: var(--ui-blue-soft);
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--text-scale));
   line-height: 1.35;
 }
 
@@ -134,7 +134,7 @@
   margin-top: 0.4rem;
   padding-top: 0.8rem;
   border-top: 2.5px dashed rgba(245, 137, 61, 0.45);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--text-scale));
   line-height: 1.4;
   color: var(--ui-muted);
 }

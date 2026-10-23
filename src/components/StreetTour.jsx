@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { prefersReducedMotion } from "../lib/a11y";
 import { ASSETS } from "../lib/assets";
 // Alpha-only silhouette of the notice board art, bundled so it's same-origin:
 // a CSS mask-image needs CORS, which the asset bucket doesn't send.
@@ -68,9 +69,6 @@ export const DRAWING_DONE_STEPS = [
     doneWhen: ".notice-board-button",
   },
 ];
-
-const prefersReducedMotion = () =>
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 function findTarget(scene, selectors) {
   for (const sel of selectors) {

@@ -6,8 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Silkscreen&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Gaegu:wght@700&family=Silkscreen&display=swap" rel="stylesheet" />
     <title>to-gather</title>
+    <script>
+      // Apply the saved accessibility settings before the page paints, so it
+      // never flashes the defaults. Mirrors apply() in src/lib/a11y.js.
+      (function () {
+        var s = {};
+        try {
+          s = JSON.parse(localStorage.getItem("to-gather-a11y") || "{}") || {};
+        } catch (e) {}
+        var root = document.documentElement;
+        root.setAttribute("data-text", s.text || "md");
+        var osReduced = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+        if (s.motion == null ? osReduced : s.motion === "reduced") root.setAttribute("data-motion", "reduced");
+        if (s.sound === false) root.setAttribute("data-sound", "off");
+        if (s.contrast) root.setAttribute("data-contrast", "high");
+        if (s.font) root.setAttribute("data-font", "readable");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

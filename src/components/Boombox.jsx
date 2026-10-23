@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { prefersReducedMotion } from "../lib/a11y";
 import LoadingLogo from "./LoadingLogo";
 import "./Boombox.css";
 
@@ -99,7 +100,7 @@ export default function Boombox({ onNowPlaying }) {
     };
     playerRef.current = player;
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = prefersReducedMotion();
 
     // Read the bass frequencies each frame and push the speaker cones out.
     const pulse = () => {

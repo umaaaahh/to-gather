@@ -42,7 +42,7 @@
   border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
   background: var(--c);
   box-shadow: 2px 2px 0 #2b2b2b;
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--text-scale));
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
@@ -54,7 +54,7 @@
   position: absolute;
   top: -0.2rem;
   right: -0.35rem;
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--text-scale));
   color: #8a4fd8;
   opacity: 0;
   pointer-events: none;
@@ -136,9 +136,9 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mini-radio,
-  .mini-radio * {
-    animation: none !important;
-  }
+/* Reduced motion: the OS setting or the accessibility menu (see
+   lib/a11y.js) sets html[data-motion="reduced"]. */
+html[data-motion="reduced"] .mini-radio,
+html[data-motion="reduced"] .mini-radio * {
+  animation: none !important;
 }
