@@ -74,7 +74,10 @@ export default function SunButton({ className = "", children, ...props }) {
         </g>
       </svg>
 
-      <span className="sun-button-label">{children}</span>
+      {/* The word on a pixel ribbon (popup.css) across the sun. */}
+      <span className="px-ribbon sun-button-label">
+        <span className="px-ribbon__band">{children}</span>
+      </span>
     </button>
   );
 }

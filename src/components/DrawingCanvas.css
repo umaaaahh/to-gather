@@ -4,7 +4,6 @@
   --dc-paper: #fffdf6;
   --dc-card: rgba(253, 248, 236, 0.92);
   --dc-accent: var(--ui-blue-soft); /* the active tool */
-  --dc-go: var(--ui-orange); /* Done */
   /* Slightly uneven corners so boxes read hand-drawn, not UI-kit. */
   --dc-wobble: 16px 20px 14px 18px / 18px 14px 20px 16px;
 
@@ -168,8 +167,13 @@
 }
 
 /* ---- actions ------------------------------------------------------- */
-.dc-btn--primary {
-  background: var(--dc-go);
+/* Done is the shared pixel button (popup.css), a size down, sharing the
+   row evenly with the crayon buttons. */
+.px-btn.dc-done {
+  --u: 3px;
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .dc-btn:disabled {

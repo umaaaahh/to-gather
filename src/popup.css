@@ -1,6 +1,6 @@
 /* ---- Shared popup frame ----------------------------------------------
    The look every popup shares: brand colours, the Gaegu display hand, a
-   blurred cream backdrop, the crayon-outlined paper card, the header and
+   blurred cream backdrop, the crayon-outlined paper card, the ribbon title and
    the close button. Each popup's own stylesheet handles layout and its
    content's personality (the stats screen, the boombox, the shelf). */
 :root {
@@ -17,6 +17,14 @@
   --ui-font: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
   --ui-card-radius: 22px 8px 26px 10px;
   --ui-btn-radius: 18px 22px 16px 20px / 20px 16px 22px 18px;
+  --ui-card-max: 460px; /* popup card width; wider on tablets, below */
+}
+
+/* iPads and monitors: roomier popup cards. */
+@media (min-width: 700px) and (min-height: 700px) {
+  :root {
+    --ui-card-max: 560px;
+  }
 }
 
 .ui-backdrop {
@@ -38,7 +46,7 @@
 
 .ui-card {
   width: 100%;
-  max-width: 460px;
+  max-width: var(--ui-card-max);
   max-height: 100%;
   background: var(--ui-paper);
   border: 3px solid var(--ui-ink);
@@ -55,17 +63,6 @@
 
 @keyframes ui-rise {
   from { transform: translateY(24px) scale(0.97); opacity: 0; }
-}
-
-/* Title left, close right, over a dashed orange rule. */
-.ui-header {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.7rem 0.8rem 0.5rem 1.1rem;
-  border-bottom: 2.5px dashed rgba(245, 137, 61, 0.45);
 }
 
 .ui-title {
@@ -105,30 +102,88 @@
   outline-offset: 2px;
 }
 
-/* The main action: an orange crayon button. */
-.ui-button {
-  padding: 0.25em 1.1em;
-  border: 2.5px solid var(--ui-ink);
-  border-radius: var(--ui-btn-radius);
-  background: var(--ui-orange);
-  color: var(--ui-ink);
-  font-family: var(--ui-font);
-  font-size: 1.4rem;
-  font-weight: 700;
-  line-height: 1.2;
+/* The main action: a chunky 8-bit pixel button. Everything sits on a grid
+   of --u (one "art pixel"): set --u to resize (3px small, 4px default,
+   5px large) — the label scales with it too. The outline is four outer
+   shadows, one per side, so the corners stay empty and step like pixel
+   art; the inset shadows are the 3D bottom edge, a shade line above it
+   and the top/left highlight; ::before is the glint. Hard edges only. */
+.px-btn {
+  --u: 4px;
+  --out: #2b1d2a;
+  --body: #f5a43a;
+  --hi: #ffd88a;
+  --lo: #d0711d;
+  --side: #8c4512;
+  --txt: #fff8ea;
+
+  position: relative;
+  margin: var(--u); /* room for the outline */
+  padding: calc(var(--u) * 3) calc(var(--u) * 6) calc(var(--u) * 5);
+  border: 0;
+  border-radius: 0;
+  background: var(--body);
+  color: var(--txt);
+  font: 400 calc(var(--u) * 5) / 1 "Silkscreen", monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 calc(var(--u) / 2) 0 var(--lo);
   cursor: pointer;
-  box-shadow: 0 2px 0 var(--ui-ink);
+  -webkit-font-smoothing: none;
   -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 calc(var(--u) * -2) 0 var(--side),
+    inset 0 calc(var(--u) * -3) 0 var(--lo),
+    inset var(--u) var(--u) 0 var(--hi),
+    0 calc(var(--u) * -1) 0 var(--out),
+    0 var(--u) 0 var(--out),
+    calc(var(--u) * -1) 0 0 var(--out),
+    var(--u) 0 0 var(--out);
 }
 
-.ui-button:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 var(--ui-ink);
+.px-btn::before {
+  content: "";
+  position: absolute;
+  top: var(--u);
+  left: var(--u);
+  width: var(--u);
+  height: var(--u);
+  background: var(--txt);
+  box-shadow: var(--u) 0 0 var(--txt), 0 var(--u) 0 var(--txt);
 }
 
-.ui-button:focus-visible {
-  outline: 3px solid var(--ui-blue);
-  outline-offset: 3px;
+.px-btn:hover {
+  filter: brightness(1.06);
+}
+
+/* Pushed in: down one pixel, the depth one pixel thinner. */
+.px-btn:active:not(:disabled) {
+  transform: translateY(var(--u));
+  padding-bottom: calc(var(--u) * 4);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--side),
+    inset 0 calc(var(--u) * -2) 0 var(--lo),
+    inset var(--u) var(--u) 0 var(--hi),
+    0 calc(var(--u) * -1) 0 var(--out),
+    0 var(--u) 0 var(--out),
+    calc(var(--u) * -1) 0 0 var(--out),
+    var(--u) 0 0 var(--out);
+}
+
+.px-btn:focus-visible {
+  outline: var(--u) dashed var(--out);
+  outline-offset: calc(var(--u) * 2);
+}
+
+.px-btn:disabled {
+  filter: grayscale(1) opacity(0.6);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .px-btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -136,4 +191,188 @@
   .ui-card {
     animation: none;
   }
+}
+
+/* iPads and monitors: more breathing room around the card (after the
+   base .ui-backdrop rule so it wins). */
+@media (min-width: 700px) and (min-height: 700px) {
+  .ui-backdrop {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+/* Pixel button colour themes: just swap the palette. White and cream are
+   the light themes (ink text, no text shadow). */
+.px-btn--green { --body: #7cc95a; --hi: #c3ec9d; --lo: #4c9a3a; --side: #2e6127; --txt: #fdfff3; }
+.px-btn--blue { --body: #45b4ee; --hi: #a9e2ff; --lo: #2a7fc4; --side: #1d4f86; --txt: #f2fbff; }
+.px-btn--red { --body: #e8545c; --hi: #f7a1a0; --lo: #b8323e; --side: #7a1f2b; --txt: #fff3ec; }
+
+.px-btn--cream {
+  --body: #fbe3cc; --hi: #fff6ec; --lo: #e2b993; --side: #b98a62; --txt: #4a2f2a; --out: #4a2f2a;
+  text-shadow: none;
+}
+
+.px-btn--white {
+  --body: #fffaf2; --hi: #ffffff; --lo: #e3d6c6; --side: #b8a58f; --txt: #2b1d2a;
+  text-shadow: none;
+}
+
+/* The glint stays white on the light themes (--txt is dark ink there). */
+.px-btn--cream::before,
+.px-btn--white::before {
+  background: #fff;
+  box-shadow: var(--u) 0 0 #fff, 0 var(--u) 0 #fff;
+}
+
+/* ---- Pixel ribbon ----------------------------------------------------
+   An arched pixel band holding a label, with swallowtail tails tucked
+   behind both ends, a 1-pixel outline, a highlight along the top arch and
+   a shade along the bottom. Same --u grid and palette idea as .px-btn.
+   Markup: <span class="px-ribbon"><span class="px-ribbon__band">Label
+   </span></span>. Decoration only — put it inside the control it labels
+   (the sun, see SunButton). */
+.px-ribbon {
+  --u: 4px;
+  --out: #2b1d2a; /* outline */
+  --body: #f5a43a; /* ribbon face */
+  --hi: #ffd88a; /* top highlight strip */
+  --lo: #d0711d; /* bottom shade strip + text shadow */
+  --tail: #d0711d; /* tails */
+  --fold: #8c4512; /* fold where a tail tucks under */
+  --txt: #fff8ea; /* label */
+
+  position: relative;
+  display: inline-block;
+  filter:
+    drop-shadow(var(--u) 0 0 var(--out))
+    drop-shadow(calc(var(--u) * -1) 0 0 var(--out))
+    drop-shadow(0 var(--u) 0 var(--out))
+    drop-shadow(0 calc(var(--u) * -1) 0 var(--out));
+}
+
+/* Tails: tucked behind both ends of the band, notched on the outer edge. */
+.px-ribbon::before,
+.px-ribbon::after {
+  content: "";
+  position: absolute;
+  bottom: calc(var(--u) * -4);
+  z-index: 0;
+  width: calc(var(--u) * 9);
+  height: calc(var(--u) * 10);
+}
+
+.px-ribbon::before {
+  left: calc(var(--u) * -5);
+  background:
+    linear-gradient(var(--fold), var(--fold)) right top / calc(var(--u) * 3) calc(var(--u) * 8) no-repeat,
+    var(--tail);
+  clip-path: polygon(
+    0 0, 100% 0, 100% 100%, 0 100%,
+    0 calc(var(--u) * 8), var(--u) calc(var(--u) * 8),
+    var(--u) calc(var(--u) * 7), calc(var(--u) * 2) calc(var(--u) * 7),
+    calc(var(--u) * 2) calc(var(--u) * 6), calc(var(--u) * 3) calc(var(--u) * 6),
+    calc(var(--u) * 3) calc(var(--u) * 4), calc(var(--u) * 2) calc(var(--u) * 4),
+    calc(var(--u) * 2) calc(var(--u) * 3), var(--u) calc(var(--u) * 3),
+    var(--u) calc(var(--u) * 2), 0 calc(var(--u) * 2)
+  );
+}
+
+.px-ribbon::after {
+  right: calc(var(--u) * -5);
+  background:
+    linear-gradient(var(--fold), var(--fold)) left top / calc(var(--u) * 3) calc(var(--u) * 8) no-repeat,
+    var(--tail);
+  clip-path: polygon(
+    0 0, 100% 0,
+    100% calc(var(--u) * 2), calc(100% - var(--u)) calc(var(--u) * 2),
+    calc(100% - var(--u)) calc(var(--u) * 3), calc(100% - var(--u) * 2) calc(var(--u) * 3),
+    calc(100% - var(--u) * 2) calc(var(--u) * 4), calc(100% - var(--u) * 3) calc(var(--u) * 4),
+    calc(100% - var(--u) * 3) calc(var(--u) * 6), calc(100% - var(--u) * 2) calc(var(--u) * 6),
+    calc(100% - var(--u) * 2) calc(var(--u) * 7), calc(100% - var(--u)) calc(var(--u) * 7),
+    calc(100% - var(--u)) calc(var(--u) * 8), 100% calc(var(--u) * 8),
+    100% 100%, 0 100%
+  );
+}
+
+/* The band: top and bottom both rise 4 pixels toward the centre in steps. */
+.px-ribbon__band {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  display: block;
+  padding: calc(var(--u) * 3) calc(var(--u) * 9) calc(var(--u) * 7);
+  background: var(--body);
+  color: var(--txt);
+  font: 400 calc(var(--u) * 5) / 1 "Silkscreen", monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 calc(var(--u) / 2) 0 var(--lo);
+  -webkit-font-smoothing: none;
+  clip-path: polygon(0% calc(var(--u) * 4), 5% calc(var(--u) * 4), 5% calc(var(--u) * 3), 12% calc(var(--u) * 3), 12% calc(var(--u) * 2), 22% calc(var(--u) * 2), 22% calc(var(--u) * 1), 34% calc(var(--u) * 1), 34% 0, 66% 0, 66% calc(var(--u) * 1), 78% calc(var(--u) * 1), 78% calc(var(--u) * 2), 88% calc(var(--u) * 2), 88% calc(var(--u) * 3), 95% calc(var(--u) * 3), 95% calc(var(--u) * 4), 100% calc(var(--u) * 4), 100% 100%, 95% 100%, 95% calc(100% - var(--u) * 1), 88% calc(100% - var(--u) * 1), 88% calc(100% - var(--u) * 2), 78% calc(100% - var(--u) * 2), 78% calc(100% - var(--u) * 3), 66% calc(100% - var(--u) * 3), 66% calc(100% - var(--u) * 4), 34% calc(100% - var(--u) * 4), 34% calc(100% - var(--u) * 3), 22% calc(100% - var(--u) * 3), 22% calc(100% - var(--u) * 2), 12% calc(100% - var(--u) * 2), 12% calc(100% - var(--u) * 1), 5% calc(100% - var(--u) * 1), 5% 100%, 0% 100%);
+}
+
+.px-ribbon__band::before,
+.px-ribbon__band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+/* Highlight strip following the top arch. */
+.px-ribbon__band::before {
+  background: var(--hi);
+  clip-path: polygon(0% calc(var(--u) * 4), 5% calc(var(--u) * 4), 5% calc(var(--u) * 3), 12% calc(var(--u) * 3), 12% calc(var(--u) * 2), 22% calc(var(--u) * 2), 22% calc(var(--u) * 1), 34% calc(var(--u) * 1), 34% 0, 66% 0, 66% calc(var(--u) * 1), 78% calc(var(--u) * 1), 78% calc(var(--u) * 2), 88% calc(var(--u) * 2), 88% calc(var(--u) * 3), 95% calc(var(--u) * 3), 95% calc(var(--u) * 4), 100% calc(var(--u) * 4), 100% calc(var(--u) * 5), 95% calc(var(--u) * 5), 95% calc(var(--u) * 4), 88% calc(var(--u) * 4), 88% calc(var(--u) * 3), 78% calc(var(--u) * 3), 78% calc(var(--u) * 2), 66% calc(var(--u) * 2), 66% calc(var(--u) * 1), 34% calc(var(--u) * 1), 34% calc(var(--u) * 2), 22% calc(var(--u) * 2), 22% calc(var(--u) * 3), 12% calc(var(--u) * 3), 12% calc(var(--u) * 4), 5% calc(var(--u) * 4), 5% calc(var(--u) * 5), 0% calc(var(--u) * 5));
+}
+
+/* Shade strip following the bottom arch. */
+.px-ribbon__band::after {
+  background: var(--lo);
+  clip-path: polygon(0% calc(100% - var(--u) * 1), 5% calc(100% - var(--u) * 1), 5% calc(100% - var(--u) * 2), 12% calc(100% - var(--u) * 2), 12% calc(100% - var(--u) * 3), 22% calc(100% - var(--u) * 3), 22% calc(100% - var(--u) * 4), 34% calc(100% - var(--u) * 4), 34% calc(100% - var(--u) * 5), 66% calc(100% - var(--u) * 5), 66% calc(100% - var(--u) * 4), 78% calc(100% - var(--u) * 4), 78% calc(100% - var(--u) * 3), 88% calc(100% - var(--u) * 3), 88% calc(100% - var(--u) * 2), 95% calc(100% - var(--u) * 2), 95% calc(100% - var(--u) * 1), 100% calc(100% - var(--u) * 1), 100% 100%, 95% 100%, 95% calc(100% - var(--u) * 1), 88% calc(100% - var(--u) * 1), 88% calc(100% - var(--u) * 2), 78% calc(100% - var(--u) * 2), 78% calc(100% - var(--u) * 3), 66% calc(100% - var(--u) * 3), 66% calc(100% - var(--u) * 4), 34% calc(100% - var(--u) * 4), 34% calc(100% - var(--u) * 3), 22% calc(100% - var(--u) * 3), 22% calc(100% - var(--u) * 2), 12% calc(100% - var(--u) * 2), 12% calc(100% - var(--u) * 1), 5% calc(100% - var(--u) * 1), 5% 100%, 0% 100%);
+}
+
+/* ---- Ribbon-titled popup ---------------------------------------------
+   A popup whose title is the pixel ribbon (RibbonTitle.jsx) pinned across
+   the top edge of its card, like a banner. .ui-titled stacks the ribbon
+   over the card and caps the pair to the screen, so a tall card scrolls
+   inside rather than pushing the title off; the close button sits in its
+   top-right corner, beside the ribbon. */
+.ui-titled {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--ui-card-max);
+  max-height: 100%;
+}
+
+/* The card: shrinks to fit, and pads its top so the ribbon's tails don't
+   cover its content. */
+.ui-titled > :last-child {
+  flex: 0 1 auto;
+  min-height: 0;
+  padding-top: 3.25rem; /* clears the ribbon's tails and the close button */
+}
+
+/* Tucked inside the card's top-right corner. The card's top edge is 36px
+   down: the ribbon's margin, band and overlap below, in its 4px art
+   pixels (1 + 15 - 7 = 9). */
+.ui-titled-close {
+  position: absolute;
+  z-index: 2;
+  top: calc(4px * 9 + 10px);
+  right: 10px;
+}
+
+/* Over the card's top edge: the card slides up under the ribbon's lower
+   half. */
+.ui-ribbon-title {
+  z-index: 1;
+  flex: none;
+  align-self: center;
+}
+
+.ui-titled > .ui-ribbon-title {
+  margin: var(--u) 0 calc(var(--u) * -7);
 }

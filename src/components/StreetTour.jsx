@@ -406,7 +406,7 @@ export default function StreetTour({
               {isLast ? (
                 <button
                   type="button"
-                  className="tour-go"
+                  className="px-btn tour-go"
                   onClick={() => {
                     finish();
                     onGo?.();

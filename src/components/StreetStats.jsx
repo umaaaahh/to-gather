@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { ASSETS } from "../lib/assets";
+import RibbonTitle from "./RibbonTitle";
 import "./StreetStats.css";
 
 // The street's numbers: Carlton (the suburb Cardigan St runs through) against
@@ -63,11 +65,21 @@ const FIGS = {
 };
 
 const pct = (n) => `${Math.round(n * 10) / 10}%`;
-const tilt = (i) => `${i % 3 === 0 ? -0.6 : i % 3 === 1 ? 0.5 : 0}deg`;
+
+// The crayon kangaroo head either side of the "tap a bar" hint, with three
+// tick marks fanning towards the text. The right one is mirrored.
+const Critter = ({ flip }) => (
+  <span className="stats-critter" aria-hidden="true" style={flip ? { transform: "scaleX(-1)" } : undefined}>
+    <img src={ASSETS.kangarooHead} alt="" draggable="false" />
+    <svg viewBox="0 0 12 20">
+      <path d="M1 3 L9 6 M1 10 L11 10 M1 17 L9 14" />
+    </svg>
+  </span>
+);
 
 // The street stats popup, opened by tapping the neon poster on the street.
 // Same layer and blurred backdrop as the history popup (StreetHistory.css),
-// with a neon graph-paper card inside.
+// with a cream paper card of yellow crayon tiles inside.
 export default function StreetStatsLayer({ open, onClose }) {
   const closeRef = useRef(null);
   const [tab, setTab] = useState("age");
@@ -98,144 +110,146 @@ export default function StreetStatsLayer({ open, onClose }) {
     <div className="stats-layer">
       <div className="ui-backdrop" onClick={onClose}>
         <div
-          className="stats-modal"
+          className="ui-titled"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="stats-title"
+          aria-label="Street stats"
           onClick={(e) => e.stopPropagation()}
         >
+          <RibbonTitle>Stats</RibbonTitle>
           <button
             ref={closeRef}
             type="button"
-            className="ui-close stats-close"
+            className="ui-close ui-titled-close"
             onClick={onClose}
             aria-label="Close"
           >
             ×
           </button>
+          <div className="stats-modal">
+            <div className="stats-scroll">
+              <header className="stats-header">
+                {/* The title doubles as the legend: Carlton's highlighter is
+                    its bar colour, Victoria's is blue. */}
+                <h2 id="stats-title" className="stats-title" aria-label="Street stats: Carlton and Victoria">
+                  <span className="stats-name stats-name--carlton">Carlton</span>
+                  <svg className="stats-vs" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3 3 L9 6 L5 9 L12 13" />
+                  </svg>
+                  <span className="stats-name stats-name--vic">Victoria</span>
+                </h2>
+              </header>
 
-          <div className="stats-scroll">
-            <header className="stats-header">
-              <div className="stats-kicker stats-glow">Field report · Carlton 3053</div>
-              <h2 id="stats-title" className="stats-title">
-                <span>Street stats</span>
-              </h2>
-              <p className="stats-intro">
-                Who lives around Cardigan Street? Here's the 2021 Census, measured against the rest of Victoria.
-              </p>
-              <div className="stats-floor" aria-hidden="true" />
-            </header>
-
-            <div className="stats-legend">
-              <span><i className="stats-swatch stats-swatch--carlton" />Carlton</span>
-              <span><i className="stats-swatch stats-swatch--vic" />Victoria</span>
-            </div>
-
-            <div className="stats-tiles">
-              {TILES.map(([label, c, v, max, isPct], i) => (
-                <div key={label} className="stats-tile" style={{ transform: `rotate(${tilt(i)})` }}>
-                  <div className="stats-tile-label">{label}</div>
-                  <div className="stats-tile-values">
-                    <span className="stats-tile-c stats-glow">{isPct ? `${Math.round(c)}%` : c}</span>
-                    <span className="stats-tile-v">VIC {isPct ? `${Math.round(v)}%` : v}</span>
+              <div className="stats-tiles">
+                {TILES.map(([label, c, v, max, isPct]) => (
+                  <div key={label} className="stats-tile">
+                    <div className="stats-tile-label">{label}</div>
+                    <div className="stats-tile-values">
+                      <span className="stats-tile-c">{isPct ? `${Math.round(c)}%` : c}</span>
+                      <span className="stats-tile-v">VIC {isPct ? `${Math.round(v)}%` : v}</span>
+                    </div>
+                    <div className="stats-tile-bars">
+                      <div className="stats-bar stats-bar--carlton" style={{ width: `${(c / max) * 100}%` }} />
+                      <div className="stats-bar stats-bar--vic" style={{ width: `${(v / max) * 100}%` }} />
+                    </div>
                   </div>
-                  <div className="stats-tile-bars">
-                    <div className="stats-bar stats-bar--carlton" style={{ width: `${(c / max) * 100}%` }} />
-                    <div className="stats-bar stats-bar--vic" style={{ width: `${(v / max) * 100}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="stats-charts">
-              <div role="tablist" aria-label="Charts" className="stats-tabs">
-                {Object.entries(FIGS).map(([id, f]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === id}
-                    className="stats-tab"
-                    onClick={() => {
-                      setTab(id);
-                      setRow(0);
-                    }}
-                  >
-                    {f.tab}
-                  </button>
                 ))}
               </div>
 
-              <div className="stats-fig">
-                <div className="stats-fig-head">
-                  <div className="stats-fig-no">{fig.no}</div>
-                  <h3 className="stats-fig-title stats-glow">{fig.title}</h3>
-                  <div className="stats-fig-finding">{fig.finding}</div>
+              <div className="stats-charts">
+                <div role="tablist" aria-label="Charts" className="stats-tabs">
+                  {Object.entries(FIGS).map(([id, f]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === id}
+                      className="stats-tab"
+                      onClick={() => {
+                        setTab(id);
+                        setRow(0);
+                      }}
+                    >
+                      {f.tab}
+                    </button>
+                  ))}
                 </div>
 
-                {tab === "age" ? (
-                  <div className="stats-age">
-                    <div className="stats-age-axis" aria-hidden="true">
-                      <span>25%</span><span>20%</span><span>15%</span><span>10%</span><span>5%</span><span>0</span>
-                    </div>
-                    <div className="stats-age-main">
-                      <div className="stats-age-plot">
-                        {AGES.map(([band, c, v], i) => (
-                          <button
-                            key={band}
-                            type="button"
-                            className="stats-age-col"
-                            data-on={age === i}
-                            onClick={() => setAge(i)}
-                            aria-label={`Ages ${band}: Carlton ${pct(c)}, Victoria ${pct(v)}`}
-                          >
-                            <span className="stats-col stats-bar--carlton" style={{ height: `${(c / AGE_MAX) * 100}%` }} />
-                            <span className="stats-col stats-bar--vic" style={{ height: `${(v / AGE_MAX) * 100}%` }} />
-                          </button>
-                        ))}
-                      </div>
-                      <div className="stats-age-ticks" aria-hidden="true">
-                        {AGES.map(([band], i) => (
-                          <span key={band}>{i % 4 === 0 ? band.split("-")[0] : ""}</span>
-                        ))}
-                      </div>
-                      <div className="stats-age-caption">age (years)</div>
-                    </div>
+                <div className="stats-fig">
+                  <div className="stats-fig-head">
+                    <div className="stats-fig-no">{fig.no}</div>
+                    <h3 className="stats-fig-title"><span>{fig.title}</span></h3>
+                    <div className="stats-fig-finding">{fig.finding}</div>
                   </div>
-                ) : (
-                  <div className="stats-rows">
-                    {fig.rows.map(([label, c, v], i) => (
-                      <button
-                        key={label}
-                        type="button"
-                        className="stats-row"
-                        data-on={row === i}
-                        onClick={() => setRow(i)}
-                      >
-                        <span className="stats-row-label">{label}</span>
-                        <span className="stats-row-bars">
-                          <span className="stats-row-line">
-                            <span className="stats-bar stats-bar--carlton" style={{ width: `calc(${c / fig.max} * (100% - 48px))` }} />
-                            <span className="stats-row-c">{pct(c)}</span>
-                          </span>
-                          <span className="stats-row-line">
-                            <span className="stats-bar stats-bar--vic" style={{ width: `calc(${v / fig.max} * (100% - 48px))` }} />
-                            <span className="stats-row-v">{pct(v)}</span>
-                          </span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
 
-                <div className="stats-readout" aria-live="polite">{readout}</div>
-                {fig.note && <div className="stats-note">{fig.note}</div>}
+                  {tab === "age" ? (
+                    <div className="stats-age">
+                      <div className="stats-age-axis" aria-hidden="true">
+                        <span>25%</span><span>20%</span><span>15%</span><span>10%</span><span>5%</span><span>0</span>
+                      </div>
+                      <div className="stats-age-main">
+                        <div className="stats-age-plot">
+                          {AGES.map(([band, c, v], i) => (
+                            <button
+                              key={band}
+                              type="button"
+                              className="stats-age-col"
+                              data-on={age === i}
+                              onClick={() => setAge(i)}
+                              aria-label={`Ages ${band}: Carlton ${pct(c)}, Victoria ${pct(v)}`}
+                            >
+                              <span className="stats-col stats-bar--carlton" style={{ height: `${(c / AGE_MAX) * 100}%` }} />
+                              <span className="stats-col stats-bar--vic" style={{ height: `${(v / AGE_MAX) * 100}%` }} />
+                            </button>
+                          ))}
+                        </div>
+                        <div className="stats-age-ticks" aria-hidden="true">
+                          {AGES.map(([band], i) => (
+                            <span key={band}>{i % 4 === 0 ? band.split("-")[0] : ""}</span>
+                          ))}
+                        </div>
+                        <div className="stats-age-caption">age (years)</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="stats-rows">
+                      {fig.rows.map(([label, c, v], i) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className="stats-row"
+                          data-on={row === i}
+                          onClick={() => setRow(i)}
+                        >
+                          <span className="stats-row-label">{label}</span>
+                          <span className="stats-row-bars">
+                            <span className="stats-row-line">
+                              <span className="stats-bar stats-bar--carlton" style={{ width: `calc(${c / fig.max} * (100% - 48px))` }} />
+                              <span className="stats-row-c">{pct(c)}</span>
+                            </span>
+                            <span className="stats-row-line">
+                              <span className="stats-bar stats-bar--vic" style={{ width: `calc(${v / fig.max} * (100% - 48px))` }} />
+                              <span className="stats-row-v">{pct(v)}</span>
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="stats-readout" aria-live="polite">{readout}</div>
+                  {fig.note && <div className="stats-note">{fig.note}</div>}
+                </div>
+                <div className="stats-hint">
+                  <Critter />
+                  <span className="stats-hint-text">tap a bar to measure it</span>
+                  <Critter flip />
+                </div>
               </div>
-              <div className="stats-hint">tap a bar to measure it</div>
-            </div>
 
-            <div className="stats-source">
-              Source: Australian Bureau of Statistics, 2021 Census QuickStats, Carlton (SAL20495) and Victoria. Licensed CC BY 4.0.
+              <div className="stats-source">
+                Source: Australian Bureau of Statistics, 2021 Census QuickStats, Carlton (SAL20495) and Victoria. Licensed CC BY 4.0.
+              </div>
             </div>
           </div>
         </div>

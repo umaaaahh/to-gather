@@ -12,6 +12,7 @@ import {
   startOfDay,
   upcomingShows,
 } from "../lib/events";
+import RibbonTitle from "./RibbonTitle";
 import "./EventsPopout.css";
 
 // Most genre dots a calendar day shows.
@@ -101,201 +102,200 @@ export default function EventsPopout({ initial, onClose }) {
   return (
     <div className="ui-backdrop events-popout-backdrop" onClick={onClose}>
       <div
-        className="ui-card events-popout"
+        className="ui-titled"
         role="dialog"
         aria-modal="true"
         aria-label="What's on"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="ui-header">
-          <h2 className="ui-title">What's on</h2>
-          <button
-            ref={closeRef}
-            type="button"
-            className="ui-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </header>
-
-        <div className="ep-body" ref={listRef}>
-          <div className="ep-genres" role="group" aria-label="Filter by genre">
-            <button
-              type="button"
-              className="ep-chip"
-              aria-pressed={!genre}
-              onClick={() => setGenre(null)}
-            >
-              All
-            </button>
-            {GENRES.map((g) => (
+        <RibbonTitle>What's on</RibbonTitle>
+        <button
+          ref={closeRef}
+          type="button"
+          className="ui-close ui-titled-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <div className="ui-card events-popout">
+          <div className="ep-body" ref={listRef}>
+            <div className="ep-genres" role="group" aria-label="Filter by genre">
               <button
-                key={g}
                 type="button"
                 className="ep-chip"
-                aria-pressed={genre === g}
-                style={{ "--genre": genreColor(g) }}
-                onClick={() => setGenre(g)}
+                aria-pressed={!genre}
+                onClick={() => setGenre(null)}
               >
-                {g}
+                All
               </button>
-            ))}
-          </div>
-
-          <section className="ep-calendar" aria-label="Calendar">
-            <div className="ep-cal-head">
-              <button type="button" className="ep-cal-nav" onClick={() => goMonth(-1)} aria-label="Previous month">
-                ‹
-              </button>
-              <span className="ep-cal-month">
-                {MONTH_NAMES[shownMonth.getMonth()]} {shownMonth.getFullYear()}
-              </span>
-              <button type="button" className="ep-cal-nav" onClick={() => goMonth(1)} aria-label="Next month">
-                ›
-              </button>
-            </div>
-            <div className="ep-cal-grid">
-              {DAY_NAMES.map((w) => (
-                <span key={w} className="ep-cal-weekday">
-                  {w.slice(0, 2)}
-                </span>
-              ))}
-              {cells.map((date, i) => {
-                if (!date) return <span key={`empty-${i}`} />;
-                const dayGenres = eventDays.get(date.getTime());
-                const has = !!dayGenres;
-                return (
-                  <button
-                    key={date.getTime()}
-                    type="button"
-                    className="ep-cal-cell"
-                    data-today={sameDay(date, today) ? "" : undefined}
-                    data-past={date < today ? "" : undefined}
-                    aria-pressed={!!day && sameDay(date, day)}
-                    aria-label={`${shortDate(date)}${has ? ", has events" : ""}`}
-                    onClick={() => setDay((d) => (d && sameDay(d, date) ? null : date))}
-                  >
-                    {date.getDate()}
-                    {has && (
-                      <span className="ep-cal-dots" aria-hidden="true">
-                        {[...dayGenres].slice(0, MAX_DOTS).map((g) => (
-                          <i key={g} style={{ background: genreColor(g) }} />
-                        ))}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <div className="ep-list-head">
-            <h3 className="ep-list-title">{heading}</h3>
-            {day && (
-              <button type="button" className="ep-clear" onClick={() => setDay(null)}>
-                All dates ×
-              </button>
-            )}
-          </div>
-
-          {items.length === 0 && (
-            <p className="ep-empty">
-              {day ? "Nothing on this day." : "Nothing coming up here yet."}
-            </p>
-          )}
-
-          <ul className="ep-list">
-            {items.map(({ session, show }) => {
-              const expanded = openKey === session.showId;
-              const nextDates = show.sessions.filter((s) => s.id !== session.id && isUpcoming(s, now));
-              return (
-                <li
-                  key={session.id}
-                  className="ep-card"
-                  data-key={session.showId}
-                  data-open={expanded ? "" : undefined}
-                  style={{ "--genre": genreColor(session.genre) }}
+              {GENRES.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className="ep-chip"
+                  aria-pressed={genre === g}
+                  style={{ "--genre": genreColor(g) }}
+                  onClick={() => setGenre(g)}
                 >
-                  <button
-                    type="button"
-                    className="ep-card-head"
-                    aria-expanded={expanded}
-                    onClick={() => toggle(session.showId)}
-                  >
-                    <span className="ep-card-date">
-                      {day ? (
-                        <span className="ep-card-time">{session.startLabel}</span>
-                      ) : (
-                        <>
-                          <span className="ep-card-day">{session.date.getDate()}</span>
-                          <span className="ep-card-month">
-                            {MONTH_NAMES[session.date.getMonth()].slice(0, 3)}
-                          </span>
-                        </>
-                      )}
-                    </span>
-                    <span className="ep-card-main">
-                      {!genre && <span className="ep-card-genre">{session.genre}</span>}
-                      <span className="ep-card-title">{session.title}</span>
-                      <span className="ep-card-meta">
-                        {day ? session.timeLabel : `${DAY_NAMES[session.date.getDay()]} ${session.timeLabel}`}
-                        {" · "}
-                        {session.location}
-                      </span>
-                      {!day && show.sessions.length > 1 && (
-                        <span className="ep-card-more">
-                          +{show.sessions.length - 1} more date{show.sessions.length > 2 ? "s" : ""}
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            <section className="ep-calendar" aria-label="Calendar">
+              <div className="ep-cal-head">
+                <button type="button" className="ep-cal-nav" onClick={() => goMonth(-1)} aria-label="Previous month">
+                  ‹
+                </button>
+                <span className="ep-cal-month">
+                  {MONTH_NAMES[shownMonth.getMonth()]} {shownMonth.getFullYear()}
+                </span>
+                <button type="button" className="ep-cal-nav" onClick={() => goMonth(1)} aria-label="Next month">
+                  ›
+                </button>
+              </div>
+              <div className="ep-cal-grid">
+                {DAY_NAMES.map((w) => (
+                  <span key={w} className="ep-cal-weekday">
+                    {w.slice(0, 2)}
+                  </span>
+                ))}
+                {cells.map((date, i) => {
+                  if (!date) return <span key={`empty-${i}`} />;
+                  const dayGenres = eventDays.get(date.getTime());
+                  const has = !!dayGenres;
+                  return (
+                    <button
+                      key={date.getTime()}
+                      type="button"
+                      className="ep-cal-cell"
+                      data-today={sameDay(date, today) ? "" : undefined}
+                      data-past={date < today ? "" : undefined}
+                      aria-pressed={!!day && sameDay(date, day)}
+                      aria-label={`${shortDate(date)}${has ? ", has events" : ""}`}
+                      onClick={() => setDay((d) => (d && sameDay(d, date) ? null : date))}
+                    >
+                      {date.getDate()}
+                      {has && (
+                        <span className="ep-cal-dots" aria-hidden="true">
+                          {[...dayGenres].slice(0, MAX_DOTS).map((g) => (
+                            <i key={g} style={{ background: genreColor(g) }} />
+                          ))}
                         </span>
                       )}
-                    </span>
-                  </button>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-                  {expanded && (
-                    <div className="ep-card-detail">
-                      {show.description && <p className="ep-card-desc">{show.description}</p>}
-                      {session.address && (
-                        <a
-                          className="ep-card-address"
-                          href={mapsLink(session.address)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {session.address}
-                        </a>
-                      )}
-                      {nextDates.length > 0 && (
-                        <div className="ep-card-dates">
-                          <span className="ep-card-dates-label">
-                            {day ? "Also on" : "Other dates"}
+            <div className="ep-list-head">
+              <h3 className="ep-list-title">{heading}</h3>
+              {day && (
+                <button type="button" className="ep-clear" onClick={() => setDay(null)}>
+                  All dates ×
+                </button>
+              )}
+            </div>
+
+            {items.length === 0 && (
+              <p className="ep-empty">
+                {day ? "Nothing on this day." : "Nothing coming up here yet."}
+              </p>
+            )}
+
+            <ul className="ep-list">
+              {items.map(({ session, show }) => {
+                const expanded = openKey === session.showId;
+                const nextDates = show.sessions.filter((s) => s.id !== session.id && isUpcoming(s, now));
+                return (
+                  <li
+                    key={session.id}
+                    className="ep-card"
+                    data-key={session.showId}
+                    data-open={expanded ? "" : undefined}
+                    style={{ "--genre": genreColor(session.genre) }}
+                  >
+                    <button
+                      type="button"
+                      className="ep-card-head"
+                      aria-expanded={expanded}
+                      onClick={() => toggle(session.showId)}
+                    >
+                      <span className="ep-card-date">
+                        {day ? (
+                          <span className="ep-card-time">{session.startLabel}</span>
+                        ) : (
+                          <>
+                            <span className="ep-card-day">{session.date.getDate()}</span>
+                            <span className="ep-card-month">
+                              {MONTH_NAMES[session.date.getMonth()].slice(0, 3)}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                      <span className="ep-card-main">
+                        {!genre && <span className="ep-card-genre">{session.genre}</span>}
+                        <span className="ep-card-title">{session.title}</span>
+                        <span className="ep-card-meta">
+                          {day ? session.timeLabel : `${DAY_NAMES[session.date.getDay()]} ${session.timeLabel}`}
+                          {" · "}
+                          {session.location}
+                        </span>
+                        {!day && show.sessions.length > 1 && (
+                          <span className="ep-card-more">
+                            +{show.sessions.length - 1} more date{show.sessions.length > 2 ? "s" : ""}
                           </span>
-                          <ul>
-                            {nextDates.slice(0, 8).map((s) => (
-                              <li key={s.id}>
-                                {shortDate(s.date)}, {s.startLabel}
-                              </li>
-                            ))}
-                            {nextDates.length > 8 && <li>+{nextDates.length - 8} more</li>}
-                          </ul>
-                        </div>
-                      )}
-                      {session.link && (
-                        <a
-                          className="ep-card-link"
-                          href={session.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {session.linkLabel} ↗
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                        )}
+                      </span>
+                    </button>
+
+                    {expanded && (
+                      <div className="ep-card-detail">
+                        {show.description && <p className="ep-card-desc">{show.description}</p>}
+                        {session.address && (
+                          <a
+                            className="ep-card-address"
+                            href={mapsLink(session.address)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {session.address}
+                          </a>
+                        )}
+                        {nextDates.length > 0 && (
+                          <div className="ep-card-dates">
+                            <span className="ep-card-dates-label">
+                              {day ? "Also on" : "Other dates"}
+                            </span>
+                            <ul>
+                              {nextDates.slice(0, 8).map((s) => (
+                                <li key={s.id}>
+                                  {shortDate(s.date)}, {s.startLabel}
+                                </li>
+                              ))}
+                              {nextDates.length > 8 && <li>+{nextDates.length - 8} more</li>}
+                            </ul>
+                          </div>
+                        )}
+                        {session.link && (
+                          <a
+                            className="ep-card-link"
+                            href={session.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {session.linkLabel} ↗
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       </div>
     </div>

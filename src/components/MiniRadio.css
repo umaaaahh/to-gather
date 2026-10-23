@@ -4,7 +4,8 @@
   flex-direction: column;
   align-items: center;
   gap: 0.15rem;
-  width: 110px;
+  /* 110px on a phone, a touch bigger on tall screens like the sun. */
+  width: clamp(110px, 13dvh, 150px);
   padding: 0;
   border: none;
   background: none;

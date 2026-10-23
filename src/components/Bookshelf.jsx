@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import RibbonTitle from "./RibbonTitle";
 import LoadingLogo from "./LoadingLogo";
 import { addBook, addToBook, setVote, subscribeMyVotes, subscribeShelf } from "../lib/shelfStore";
 import "./Bookshelf.css";
@@ -226,9 +227,6 @@ function Bookshelf() {
 
   return (
     <div className="bookshelf">
-      <h1 className="shelf-heading">
-        <span>The Shelf</span>
-      </h1>
       <p className="shelf-sub">
         Books recommended by people who stopped by. Add one you loved, and vote for the ones
         you've enjoyed too.
@@ -461,20 +459,21 @@ export default function BookshelfLayer({ open, onClose }) {
     <div className="bookshelf-layer">
       <div className="ui-backdrop bookshelf-modal-backdrop" hidden={!open} onClick={onClose}>
         <div
-          className="ui-card bookshelf-modal"
+          className="ui-titled"
           role="dialog"
-          aria-label="Community bookshelf"
+          aria-label="The Shelf, a community bookshelf"
           onClick={(e) => e.stopPropagation()}
         >
+          <RibbonTitle>The Shelf</RibbonTitle>
           <button
             type="button"
-            className="ui-close bookshelf-modal-close"
+            className="ui-close ui-titled-close"
             onClick={onClose}
             aria-label="Close"
           >
             ×
           </button>
-          {opened && <Bookshelf />}
+          <div className="ui-card bookshelf-modal">{opened && <Bookshelf />}</div>
         </div>
       </div>
     </div>

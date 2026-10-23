@@ -1,14 +1,17 @@
 .street-scene {
   position: relative;
   width: 100%;
-  max-width: 480px; /* mobile-first canvas, matches typical phone viewport */
-  /* Phone-sized frame: fills the screen height exactly, never scrolls
+  /* Full-screen frame: fills the screen height exactly, never scrolls
      itself. dvh keeps it honest as mobile browser chrome shows/hides.
      The left/right panning happens inside .street-scroll. */
   height: 500vh;
   height: 100dvh;
   margin: 0 auto;
   overflow: hidden; /* frame clips the clouds and the ends of the street */
+  /* The frame is a size container, so the street, clouds and sun can be
+     sized against whichever of the screen's width or height is tighter
+     (cqw / cqh) — see --scene-width. */
+  container-type: size;
   /* Blue sky gradient — lighter near the rooftops, deeper up top. */
   background: linear-gradient(#6fb2e6 0%, #a9d3f0 55%, #cfd8e3 100%);
   touch-action: manipulation;
@@ -51,11 +54,17 @@
 
   /* ---- Street size ---------------------------------------------------
      Zooms the whole street — road, buildings, trees, beds, zones, window
-     buttons, characters — together, as a % of the phone frame width.
+     buttons, characters — together. It's the width of the .scene-ground
+     box, and the smaller of two sizes:
+       260cqw — 2.6 screen widths, how phones in portrait have always
+                looked (the screen's width is the tight side);
+       139cqh — the box about 60% of the screen's height tall, for iPads,
+                monitors and landscape (the height is the tight side).
+     The street runs ~1.9 box widths, so even a wide monitor still pans.
      Bigger = everything larger (and a longer pan). Spacing between and
      around the buildings is STREET_GAP / STREET_*_PADDING in
      StreetScene.jsx. */
-  --scene-width: 260%;
+  --scene-width: min(260cqw, 139cqh);
 
   /* ---- House artwork position ---------------------------------------
      Nudges/scales ONLY the street artwork (all pieces together) — the
@@ -76,34 +85,37 @@
   --overlay-offset-y: -50%;
 }
 
-/* Cloud track: 2 tiles wide, drifting left forever. translateX(-50%)
-   lands tile 2 exactly where tile 1 started, so the loop has no seam. */
+/* Cloud track: a row of CLOUD_TILES tiles drifting left forever. Each
+   loop moves exactly one tile, landing tile 2 where tile 1 started, so
+   there's no seam. Tiles scale with the street (--cloud-tile), and there
+   are enough of them to cover even an ultrawide screen plus the one
+   sliding off. */
 .clouds {
+  --cloud-tile: calc(var(--scene-width) * 0.42);
   position: absolute;
   top: 20%;
   left: 0;
   z-index: 1;
   display: flex;
-  width: 155%;
   pointer-events: none;
   user-select: none;
-  animation: clouds-drift 90s linear infinite;
+  animation: clouds-drift 70s linear infinite;
 }
 
 .cloud-tile {
-  flex: 0 0 70%;
-  width: 70%;
-  /* gentle vertical bob, offset the 2nd tile so they don't bob in unison */
+  flex: none;
+  width: var(--cloud-tile);
+  /* gentle vertical bob, offset every other tile so they don't bob in unison */
   animation: clouds-bob 7s ease-in-out infinite;
 }
 
-.cloud-tile:nth-child(2) {
+.cloud-tile:nth-child(even) {
   animation-delay: -3.5s;
 }
 
 @keyframes clouds-drift {
   from { transform: translateX(0); }
-  to { transform: translateX(-90%); }
+  to { transform: translateX(calc(-1 * var(--cloud-tile))); }
 }
 
 @keyframes clouds-bob {
@@ -294,12 +306,6 @@
   -webkit-tap-highlight-color: transparent;
   animation: zone-pulse 3s ease-in-out infinite;
 }
-
-/* Label tag colour-coded by difficulty: easy green, medium orange, hard
-   red (see .zone-label). --zone-ink is the darker outline shade. */
-.zone--easy { --zone-color: #6aaa6d; --zone-ink: #2e6b31; }
-.zone--medium { --zone-color: #eba054; --zone-ink: #925b24; }
-.zone--hard { --zone-color: #ee5b59; --zone-ink: #810f0d; }
 
 /* Cycle attention across the 3 zones one at a time, rather than
    all pulsing in unison — staggered by animation-delay. */
@@ -571,32 +577,34 @@
   }
 }
 
-/* Crayon tag in the Gaegu hand the tour bubble and sun button use, filled
-   with the zone's difficulty colour (--zone-color, see .zone--easy etc.)
-   with cream ink. */
-.zone-label {
+/* Zone label: the shared pixel button (.px-btn, popup.css), themed by
+   difficulty — easy green, medium orange (the default), hard red — with
+   the stars and level on a smaller second line. 3px art pixels on a
+   phone, 4px on an iPad or monitor. */
+.zone-label.px-btn {
+  --u: 3px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1em;
+  gap: var(--u);
   max-width: 100%;
-  padding: 0.25em 0.75em 0.3em;
-  border: 2.5px solid var(--zone-ink, #b86b42);
-  border-radius: 14px;
-  background: var(--zone-color, #fffaf3);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  color: #fffaf3;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-weight: 700;
-  line-height: 1.05;
+  margin: 0;
   text-align: center;
 }
 
+@media (min-width: 700px) and (min-height: 700px) {
+  .zone-label.px-btn {
+    --u: 4px;
+  }
+}
+
+.zone--easy .zone-label.px-btn { --body: #7cc95a; --hi: #c3ec9d; --lo: #4c9a3a; --side: #2e6127; --txt: #fdfff3; }
+.zone--hard .zone-label.px-btn { --body: #e8545c; --hi: #f7a1a0; --lo: #b8323e; --side: #7a1f2b; --txt: #fff3ec; }
+
+/* Wraps rather than spilling out: the label stays inside its hotspot box
+   (the tree's is narrow and sits at the very start of the street). */
 .zone-label-text {
-  font-size: 1.1rem;
-  /* Gaegu's strokes are thin; thicken them a touch. */
-  -webkit-text-stroke: 0.4px currentColor;
+  line-height: 1.2;
 }
 
 /* The padlock on a locked tree/bed label (see LockIcon in StreetScene.jsx). */
@@ -610,22 +618,30 @@
 .zone-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.3em;
-  font-size: 0.85rem;
+  gap: var(--u);
+  font-size: calc(var(--u) * 3.5);
+  white-space: nowrap;
 }
 
 .zone-stars {
-  color: #ffe082;
   letter-spacing: 0.05em;
 }
 
-/* Full / locked trees and beds: a quiet cream tag instead of the colour. */
-.zone:disabled .zone-label {
-  border-color: rgba(184, 107, 66, 0.5);
-  background: rgba(255, 250, 243, 0.8);
-  box-shadow: none;
-  color: rgba(107, 53, 23, 0.75);
+/* Full / locked trees and beds: the quiet white pixel theme, no glow, no
+   press — taps fall through. */
+.zone:disabled .zone-label.px-btn {
+  --body: #fffaf2;
+  --hi: #ffffff;
+  --lo: #e3d6c6;
+  --side: #b8a58f;
+  --txt: #6b5a4c;
   text-shadow: none;
+  pointer-events: none;
+}
+
+.zone:disabled .zone-label.px-btn::before {
+  background: #fff;
+  box-shadow: var(--u) 0 0 #fff, 0 var(--u) 0 #fff;
 }
 
 /* Label-only hotspots (the trees and the character zone): no dashed area,
@@ -639,37 +655,33 @@
   pointer-events: none;
 }
 
-.zone--label-only .zone-label {
-  pointer-events: auto;
-  cursor: pointer;
-  animation: zone-label-glow 3s ease-in-out infinite;
-  animation-delay: inherit; /* keeps the zones' staggered pulse */
-}
-
-.zone--label-only:disabled .zone-label {
-  cursor: default;
-  animation: none;
-}
-
 .zone.zone--label-only:active {
   transform: none;
 }
 
-.zone--label-only:not(:disabled):active .zone-label {
-  transform: scale(0.97);
+/* The glow is a filter, not a box-shadow (the pixel outline is the
+   box-shadow), so it follows the stepped silhouette. */
+.zone--label-only .zone-label.px-btn {
+  pointer-events: auto;
+  animation: zone-label-glow 3s ease-in-out infinite;
+  animation-delay: inherit; /* keeps the zones' staggered pulse */
+}
+
+.zone--label-only:disabled .zone-label.px-btn {
+  animation: none;
 }
 
 @keyframes zone-label-glow {
   0%, 66%, 100% {
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), 0 0 0 rgba(255, 255, 255, 0);
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
   }
   16% {
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), 0 0 16px 4px rgba(255, 255, 255, 0.85);
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zone--label-only .zone-label {
+  .zone--label-only .zone-label.px-btn {
     animation: none;
   }
 }
@@ -727,8 +739,11 @@
   top: 5%;
   right: 5%;
   z-index: 5;
-  width: 36%;
-  max-width: 160px;
+  /* 36% of a phone's width, but no more than 17% of the screen's height,
+     so it grows a little on an iPad without ballooning on a monitor. Its
+     label is sized against it (container, see SunButton.css). */
+  width: min(36cqw, 17cqh, 240px);
+  container-type: inline-size;
 }
 
 
@@ -842,34 +857,52 @@
   user-select: none;
 }
 
-/* Arched title above each street button (ArchLabel in StreetScene.jsx),
-   styled like the radio popup's .radio-modal-banner. Sits just above the
-   button's box; width and left come inline. Only while the button is
+/* Pixel button label above each street button (StreetTag in
+   StreetScene.jsx) — the shared .px-btn (popup.css) in its orange,
+   as a label rather than a control: the street button under it takes the
+   tap. The anchor sits just above the button's box (width, left and bottom
+   come inline) and is the container --u is sized against, so every label
+   is one size and scales with the street. Only while the button is
    tappable — once Draw reveals the zone hotspots the street goes quiet. */
-.street-arch-label {
+.street-tag-anchor {
   position: absolute;
   bottom: 100%;
-  display: block;
-  height: auto;
-  overflow: visible;
+  display: flex;
+  justify-content: center;
+  container-type: inline-size;
   pointer-events: none;
   user-select: none;
 }
 
-.street-arch-label text {
-  fill: var(--ui-orange-ink);
-  stroke: var(--ui-paper-soft);
-  stroke-width: 10px;
-  stroke-linejoin: round;
-  paint-order: stroke;
-  font-family: var(--ui-font);
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 1px;
+/* 2px art pixels on a phone, ~3px on an iPad or monitor; never under 2px
+   so the label stays readable on a short landscape phone. */
+.px-btn.street-tag {
+  --u: max(2cqw, 2px);
+  margin-bottom: calc(var(--u) * 2);
+  white-space: nowrap;
+  cursor: inherit;
+  /* Slim: less padding and a 1-pixel 3D edge (a button's is 2), so it
+     reads as a label strip rather than a chunky button. */
+  padding: calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * 3);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--side),
+    inset 0 calc(var(--u) * -2) 0 var(--lo),
+    inset var(--u) var(--u) 0 var(--hi),
+    0 calc(var(--u) * -1) 0 var(--out),
+    0 var(--u) 0 var(--out),
+    calc(var(--u) * -1) 0 0 var(--out),
+    var(--u) 0 0 var(--out);
 }
 
-.street-surprise-button:disabled .street-arch-label,
-.notice-board-button:disabled .street-arch-label {
+/* Whole art pixels where the browser can round, so edges stay crisp. */
+@supports (width: round(1px, 1px)) {
+  .px-btn.street-tag {
+    --u: max(round(down, 2cqw, 1px), 2px);
+  }
+}
+
+.street-surprise-button:disabled .street-tag-anchor,
+.notice-board-button:disabled .street-tag-anchor {
   display: none;
 }
 

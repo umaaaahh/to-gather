@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import RibbonTitle from "./RibbonTitle";
 import "./StreetHistory.css";
 
 // The street's history, oldest first. `era` is the short label above each
@@ -55,55 +56,52 @@ export default function StreetHistoryLayer({ open, onClose }) {
     <div className="history-layer">
       <div className="ui-backdrop" onClick={onClose}>
         <div
-          className="ui-card history-modal"
+          className="ui-titled"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="history-title"
+          aria-label="Street history"
           onClick={(e) => e.stopPropagation()}
         >
-          <header className="ui-header">
-            <h2 id="history-title" className="ui-title">
-              Street history
-            </h2>
-            <button
-              ref={closeRef}
-              type="button"
-              className="ui-close"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </header>
-
-          <div className="history-body">
-            <p className="history-intro">
-              Five moments that shaped this street, and where to spot them today.
-            </p>
-
-            <ol className="history-timeline">
-              {HISTORY.map((h) => (
-                <li key={h.title} className="history-entry">
-                  <span className="history-era">{h.era}</span>
-                  <h3 className="history-entry-title">{h.title}</h3>
-                  <p className="history-entry-body">{h.body}</p>
-                  <p className="history-look">
-                    <strong>Look for:</strong> {h.lookFor}
-                  </p>
-                </li>
-              ))}
-            </ol>
-
-            <footer className="history-footer">
-              <p>
-                This street is on the unceded land of the Wurundjeri Woi-wurrung people. With
-                thanks to Uncle Bill Nicholson, whose knowledge is shared in the first entry.
+          <RibbonTitle>History</RibbonTitle>
+          <button
+            ref={closeRef}
+            type="button"
+            className="ui-close ui-titled-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <div className="ui-card history-modal">
+            <div className="history-body">
+              <p className="history-intro">
+                Five moments that shaped this street, and where to spot them today.
               </p>
-              <p>
-                Sources: Victorian Heritage Database, Carlton Heritage Review (2021), eMelbourne,
-                Victorian Places.
-              </p>
-            </footer>
+
+              <ol className="history-timeline">
+                {HISTORY.map((h) => (
+                  <li key={h.title} className="history-entry">
+                    <span className="history-era">{h.era}</span>
+                    <h3 className="history-entry-title">{h.title}</h3>
+                    <p className="history-entry-body">{h.body}</p>
+                    <p className="history-look">
+                      <strong>Look for:</strong> {h.lookFor}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+
+              <footer className="history-footer">
+                <p>
+                  This street is on the unceded land of the Wurundjeri Woi-wurrung people. With
+                  thanks to Uncle Bill Nicholson, whose knowledge is shared in the first entry.
+                </p>
+                <p>
+                  Sources: Victorian Heritage Database, Carlton Heritage Review (2021), eMelbourne,
+                  Victorian Places.
+                </p>
+              </footer>
+            </div>
           </div>
         </div>
       </div>

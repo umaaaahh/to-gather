@@ -31,11 +31,10 @@
   animation: sun-button-halo 3.2s ease-in-out infinite;
 }
 
-/* A slow "tap me" pulse — on the drawing and label rather than the button
-   itself, so the button's box stays still (the tour spotlight measures it
-   every frame and would chase the pulse otherwise). */
-.sun-button-art,
-.sun-button-label {
+/* A slow "tap me" pulse — on the drawing rather than the button itself, so
+   the button's box stays still (the tour spotlight measures it every frame
+   and would chase the pulse otherwise). The ribbon holds still across it. */
+.sun-button-art {
   animation: sun-button-pulse 2.4s ease-in-out infinite;
 }
 
@@ -58,18 +57,19 @@
   animation: sun-button-spin 24s linear infinite;
 }
 
-.sun-button-label {
+/* The orange pixel ribbon (.px-ribbon, popup.css) across the middle of the
+   sun. Its art pixel is a share of the sun's own width (.scene-cta is its
+   container), so the ribbon grows with the sun — 3px on a phone. */
+.px-ribbon.sun-button-label {
+  --u: max(2.2cqw, 2px);
   grid-area: 1 / 1;
-  margin-top: -0.35em; /* sit a little above the cheeks */
-  color: #6b3517;
-  font-family: "Gaegu", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 1.9rem;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  /* Gaegu's strokes are thin; thicken them so the word reads on the sun. */
-  -webkit-text-stroke: 0.6px currentColor;
-  text-shadow: 0 1px 0 rgba(255, 245, 210, 0.8);
+}
+
+/* Whole art pixels where the browser can round, so edges stay crisp. */
+@supports (width: round(1px, 1px)) {
+  .px-ribbon.sun-button-label {
+    --u: max(round(down, 2.2cqw, 1px), 2px);
+  }
 }
 
 @keyframes sun-button-pulse {

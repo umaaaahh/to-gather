@@ -341,7 +341,7 @@ export default function DrawingCanvas({
           </button>
           <button
             type="button"
-            className="dc-btn dc-btn--primary"
+            className="px-btn dc-done"
             onClick={handleDone}
             disabled={busy}
           >

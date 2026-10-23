@@ -2,9 +2,8 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  /* Same phone frame as .street-scene so the splash lines up with it. */
+  /* Full screen, like .street-scene. */
   width: 100%;
-  max-width: 480px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -68,7 +67,7 @@
   color: var(--ui-orange-ink);
 }
 
-.splash-country .ui-button {
+.splash-country .px-btn {
   margin-top: 0.4rem;
 }
 

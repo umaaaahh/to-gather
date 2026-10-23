@@ -212,6 +212,11 @@ const cropImgStyle = ({ crop }) => ({
   top: `${(-crop.y / crop.height) * 100}%`,
 });
 
+// Cloud tiles in the drifting sky (.clouds in StreetScene.css). Each is
+// ~0.42 street widths, so 6 covers an ultrawide monitor plus the tile
+// sliding off the left; a phone only ever shows 2.
+const CLOUD_TILES = 6;
+
 // ---- Notice board fixture --------------------------------------------------
 // Scene furniture that opens the what's-on pop-out (EventsPopout), the same
 // way the window surprises open theirs. Positioned the same
@@ -434,38 +439,28 @@ const STREET_KANGAROO = {
   height: `${STREET_KANGAROO_POS.height}%`,
 };
 
-// ---- Arched button labels --------------------------------------------------
-// Each tappable bit of the street wears a little arched title above it, in
-// the style of the radio popup's "COMMUNITY RADIO STATIONS". Every label is
-// the same width of street (ARCH_LABEL_WIDTH, a % of the scene's width, the
-// same width every button's box is a % of), so the lettering is one size
-// whatever the button under it. Pass the button's own box width ("8%").
-// `drop` sinks a label into its button's box, as a % of the box's height
-// (for window art that sits low in a tall box); bigger = closer.
-const ARCH_LABEL_WIDTH = 9;
-function ArchLabel({ id, text, buttonWidth, drop = 0 }) {
-  const w = (ARCH_LABEL_WIDTH / parseFloat(buttonWidth)) * 100;
+// ---- Pixel button labels ---------------------------------------------------
+// Each tappable bit of the street has a little white pixel-button label
+// above it. The label sits in an anchor box that is the same width of
+// street for every button (STREET_TAG_WIDTH, a % of the scene's width, the
+// same width every button's box is a % of), and its art pixel (--u) is
+// sized in cqw of that box, so labels are one size whatever the button
+// under them and scale with the street. Pass the button's own box width
+// ("8%"). `drop` sinks a label into its button's box, as a % of the box's
+// height (for window art that sits low in a tall box); bigger = closer.
+const STREET_TAG_WIDTH = 10;
+function StreetTag({ text, buttonWidth, drop = 0 }) {
+  const w = (STREET_TAG_WIDTH / parseFloat(buttonWidth)) * 100;
   return (
-    <svg
-      className="street-arch-label"
-      // The box stops short of the arc's low ends (it overflows), so the
-      // label's bottom edge — which sits on the button — is just under the
-      // lettering. Lower the 72 to tuck labels closer to their buttons.
-      viewBox="0 -12 300 72"
+    <span
+      className="street-tag-anchor"
       aria-hidden="true"
       // Centred with `left` rather than a transform (old iOS Safari drops
       // transforms on animated items).
       style={{ width: `${w}%`, left: `${(100 - w) / 2}%`, bottom: `${100 - drop}%` }}
     >
-      {/* The arc runs past the viewBox on both sides (the SVG overflows) so
-         long labels have room: textPath drops whatever doesn't fit on it. */}
-      <path id={`arch-${id}`} d="M -50 141 Q 150 -77 350 141" fill="none" />
-      <text textAnchor="middle">
-        <textPath href={`#arch-${id}`} startOffset="50%">
-          {text}
-        </textPath>
-      </text>
-    </svg>
+      <span className="px-btn street-tag">{text}</span>
+    </span>
   );
 }
 
@@ -956,8 +951,9 @@ export default function StreetScene({
     >
       {/* Two tiles side by side so the drift loop is seamless. */}
       <div className="clouds">
-        <img className="cloud-tile" src={ASSETS.clouds} alt="" />
-        <img className="cloud-tile" src={ASSETS.clouds} alt="" />
+        {Array.from({ length: CLOUD_TILES }, (_, i) => (
+          <img key={i} className="cloud-tile" src={ASSETS.clouds} alt="" />
+        ))}
       </div>
 
       {/* Horizontal pan track: the frame stays phone-sized, this scrolls
@@ -996,7 +992,7 @@ export default function StreetScene({
             <span className="notice-board-text" aria-hidden="true">
               Real world events!
             </span>
-            <ArchLabel id="notice" text="WHAT'S ON" buttonWidth={NOTICE_BOARD.width} drop={8} />
+            <StreetTag text="What's on" buttonWidth={NOTICE_BOARD.width} drop={8} />
           </button>
 
           <div className="scene-ground">
@@ -1107,7 +1103,7 @@ export default function StreetScene({
                               : `Tree ${i + 1} — ${t.status === "full" ? "full" : "locked"}`
                           }
                         >
-                          <span className="zone-label">
+                          <span className="zone-label px-btn">
                             {t.status === "open" ? (
                               <>
                                 <span className="zone-label-text">{TREE_HOTSPOT.label}</span>
@@ -1149,7 +1145,7 @@ export default function StreetScene({
                 }}
               >
                 <img className="window-boombox" src={ASSETS.radio} alt="" draggable="false" />
-                <ArchLabel id="radio" text="COMMUNITY RADIO" buttonWidth={WINDOW_RADIO.width} drop={20} />
+                <StreetTag text="Radio" buttonWidth={WINDOW_RADIO.width} drop={20} />
               </button>
 
               {/* Second window surprise — same pattern as the boombox above;
@@ -1168,7 +1164,7 @@ export default function StreetScene({
                 }}
               >
                 <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
-                <ArchLabel id="books" text="THE SHELF" buttonWidth={WINDOW_BOOK.width} drop={20} />
+                <StreetTag text="The Shelf" buttonWidth={WINDOW_BOOK.width} drop={20} />
               </button>
 
               {/* Street sign — same pattern as the boombox above. */}
@@ -1189,7 +1185,7 @@ export default function StreetScene({
                     style={cropImgStyle({ crop: STREET_SIGN_CROP })}
                   />
                 </span>
-                <ArchLabel id="sign" text="STREET HISTORY" buttonWidth={STREET_SIGN.width} />
+                <StreetTag text="History" buttonWidth={STREET_SIGN.width} />
               </button>
 
               {/* Neon stats poster on the shopfront — same pattern as the
@@ -1203,7 +1199,7 @@ export default function StreetScene({
                 style={STREET_POSTER}
               >
                 <img className="street-poster" src={ASSETS.streetStats} alt="" draggable="false" />
-                <ArchLabel id="stats" text="STREET STATS" buttonWidth={STREET_POSTER.width} />
+                <StreetTag text="Stats" buttonWidth={STREET_POSTER.width} />
               </button>
 
               {/* The kangaroo by the sign — tap it to replay the street
@@ -1220,7 +1216,7 @@ export default function StreetScene({
                   style={STREET_KANGAROO}
                 >
                   <img className="street-kangaroo" src={ASSETS.kangaroo} alt="" draggable="false" />
-                  <ArchLabel id="tour" text="SHOW ME AROUND" buttonWidth={STREET_KANGAROO.width} />
+                  <StreetTag text="Tour" buttonWidth={STREET_KANGAROO.width} />
                 </button>
               )}
 
@@ -1291,7 +1287,7 @@ export default function StreetScene({
                           : `Flower bed ${i + 1} — ${b.status === "full" ? "full" : "locked"}`
                       }
                     >
-                      <span className="zone-label">
+                      <span className="zone-label px-btn">
                         {b.status === "open" ? (
                           <>
                             <span className="zone-label-text">{FLOWER_HOTSPOT.label}</span>
@@ -1404,7 +1400,7 @@ export default function StreetScene({
                     onClick={() => navigate(`/draw/${zone.id}`)}
                     aria-label={`${zone.label} — ${zone.level}`}
                   >
-                    <span className="zone-label">
+                    <span className="zone-label px-btn">
                       <span className="zone-label-text">{zone.label}</span>
                       <span className="zone-tag">
                         <span className="zone-stars" aria-hidden="true">

@@ -6,7 +6,9 @@
   --tour-dim: rgba(10, 28, 46, 0.55);
   --tour-line: var(--ui-ink); /* the shared popup outline (popup.css) */
   --tour-cream: var(--ui-paper);
-  --kangaroo-w: 104px;
+  /* 104px on a phone; grows with the screen's height (the street does
+     too, see --scene-width) so it stays in scale on an iPad. */
+  --kangaroo-w: clamp(88px, 12.3cqh, 160px);
 
   position: absolute;
   inset: 0;
@@ -144,7 +146,7 @@
 .tour-bubble {
   position: relative;
   box-sizing: border-box;
-  width: min(16.5rem, 100%);
+  width: min(18rem, 100%); /* fits the pixel "Let's go!" button */
   margin-bottom: 1.5rem; /* room for the tail */
   padding: 0.9rem 1rem 0.7rem;
   border: 3px solid var(--tour-line);
@@ -245,7 +247,6 @@
 }
 
 .tour-arrow:active,
-.tour-go:active,
 .tour-skip:active {
   transform: scale(0.94);
 }
@@ -274,20 +275,11 @@
   transform: scale(1.3);
 }
 
-/* Orange crayon button, so finishing the tour reads as "go". */
-.tour-go {
-  padding: 0.25em 0.9em;
-  border: 2.5px solid var(--ui-ink);
-  border-radius: var(--ui-btn-radius);
-  background: var(--ui-orange);
-  color: var(--ui-ink);
-  box-shadow: 0 2px 0 var(--ui-ink);
-  font-family: var(--ui-font);
-  font-size: 1.3rem;
-  font-weight: 700;
+/* The shared pixel button (popup.css), so finishing the tour reads as
+   "go"; a size down to sit in the bubble. */
+.px-btn.tour-go {
+  --u: 3px;
   white-space: nowrap;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .tour-skip {
