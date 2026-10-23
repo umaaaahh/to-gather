@@ -858,11 +858,12 @@
 }
 
 /* Pixel button label above each street button (StreetTag in
-   StreetScene.jsx) — the shared .px-btn (popup.css) in its orange,
-   as a label rather than a control: the street button under it takes the
-   tap. The anchor sits just above the button's box (width, left and bottom
-   come inline) and is the container --u is sized against, so every label
-   is one size and scales with the street. Only while the button is
+   StreetScene.jsx) — the shared .px-btn (popup.css) in its orange. It sits
+   inside the street button, so tapping the label or the picture is one
+   press of the same button, and both animate together (see "Pressed",
+   below). The anchor sits just above the button's box (width, left and
+   bottom come inline) and is the container --u is sized against, so every
+   label is one size and scales with the street. Only while the button is
    tappable — once Draw reveals the zone hotspots the street goes quiet. */
 .street-tag-anchor {
   position: absolute;
@@ -881,6 +882,7 @@
   margin-bottom: calc(var(--u) * 2);
   white-space: nowrap;
   cursor: inherit;
+  pointer-events: auto; /* tappable, though its anchor box isn't */
   /* Slim: less padding and a 1-pixel 3D edge (a button's is 2), so it
      reads as a label strip rather than a chunky button. */
   padding: calc(var(--u) * 2) calc(var(--u) * 5) calc(var(--u) * 3);
@@ -898,6 +900,29 @@
 @supports (width: round(1px, 1px)) {
   .px-btn.street-tag {
     --u: max(round(down, 2cqw, 1px), 2px);
+  }
+}
+
+/* Pressed: whichever of label or picture was tapped, the street button is
+   :active, so the label pushes in here as the picture shrinks (below) — down
+   one art pixel, its 3D edge pressed flat. */
+.street-surprise-button:enabled:active .px-btn.street-tag,
+.notice-board-button:enabled:active .px-btn.street-tag {
+  transform: translateY(var(--u));
+  padding-bottom: calc(var(--u) * 2);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--lo),
+    inset var(--u) var(--u) 0 var(--hi),
+    0 calc(var(--u) * -1) 0 var(--out),
+    0 var(--u) 0 var(--out),
+    calc(var(--u) * -1) 0 0 var(--out),
+    var(--u) 0 0 var(--out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .street-surprise-button:enabled:active .px-btn.street-tag,
+  .notice-board-button:enabled:active .px-btn.street-tag {
+    transform: none;
   }
 }
 
