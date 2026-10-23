@@ -697,10 +697,8 @@
   background: rgba(67, 160, 71, 0.05);
 }
 
-/* Bottom-centre call to action. "Start" reveals the hotspots; "Return" drops
-   back to the clean scene. */
 /* A background save that didn't land (see DrawZone) — sits just above the
-   Start button for a few seconds. */
+   sun for a few seconds. */
 .save-toast {
   position: absolute;
   bottom: calc(3.5% + 4rem);
@@ -733,10 +731,6 @@
   max-width: 160px;
 }
 
-/* "Return" is a longer word than "Start". */
-.street-scene[data-mode="contribute"] .scene-cta .sun-button-label {
-  font-size: 1.5rem;
-}
 
 /* The notice board (see NOTICE_BOARD in StreetScene.jsx): a button holding
    the art, which opens the what's-on pop-out. It sits in .scene-track,
@@ -793,7 +787,7 @@
 
 /* ---- Hidden window "surprise" --------------------------------------------
    Pulsing, tappable art on the street (see WINDOW_RADIO in
-   StreetScene.jsx). Once Start reveals the zone hotspots they're disabled:
+   StreetScene.jsx). Once Draw reveals the zone hotspots they're disabled:
    still shown, but no pulse and no taps (see :disabled below). */
 .street-surprise-button {
   position: absolute;
@@ -846,6 +840,37 @@
   transform-origin: 0% 100%;
   pointer-events: none;
   user-select: none;
+}
+
+/* Arched title above each street button (ArchLabel in StreetScene.jsx),
+   styled like the radio popup's .radio-modal-banner. Sits just above the
+   button's box; width and left come inline. Only while the button is
+   tappable — once Draw reveals the zone hotspots the street goes quiet. */
+.street-arch-label {
+  position: absolute;
+  bottom: 100%;
+  display: block;
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+}
+
+.street-arch-label text {
+  fill: var(--ui-orange-ink);
+  stroke: var(--ui-paper-soft);
+  stroke-width: 10px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  font-family: var(--ui-font);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.street-surprise-button:disabled .street-arch-label,
+.notice-board-button:disabled .street-arch-label {
+  display: none;
 }
 
 /* Disabled (contribute mode) they're just scenery: let taps fall through

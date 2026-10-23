@@ -223,10 +223,11 @@ const cropImgStyle = ({ crop }) => ({
 // To move/resize it, edit only these three numbers (all % of the street):
 //   bottom — gap between the board's feet and the screen bottom (0 = on the edge,
 //            bigger = higher, negative = sinks below the edge)
-//   left   — the board's left edge, from the right building's left edge
-//            (bigger = further right; 5 would stand it just right of tree 2)
+//   left   — the board's left edge, from the left building's left edge
+//            (bigger = further right; around -14 stands it on the grass in
+//            front of the street sign)
 //   height — board size, grows upward from its feet; width follows automatically
-const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("right", 20), height: 40 };
+const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("left", -22), height: 40 };
 
 // Width = height x the art's 600:900 ratio, converted through the
 // scene-ground's 660:285 aspect, so the tap target hugs the board.
@@ -383,10 +384,10 @@ const treeHotspotBox = (t) => {
 
 // ---- Hidden window "surprise" ----------------------------------------------
 // A pulsing button tucked into one of the house windows, view-mode only —
-// it disappears once Start is tapped and the zone hotspots take over the
+// it disappears once Draw is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
 // else above; `left` is from the left building's edge so it stays on its window.
-const WINDOW_RADIO = resolveAnchor({ top: "78%", anchor: "left", left: "2.95%", width: "8%", height: "14%" });
+const WINDOW_RADIO = resolveAnchor({ top: "78%", anchor: "left", left: "12.3%", width: "8%", height: "14%" });
 
 // A second window surprise, same pattern as WINDOW_RADIO above — a different
 // window pane so the two don't compete for attention. Opens the community
@@ -398,7 +399,7 @@ const WINDOW_BOOK = resolveAnchor({ top: "81%", anchor: "left", left: "32.5%", w
 // opens the street's history (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
 // `left` is from the left building's edge (negative = before it). Height is
 // the knob for its size; width follows the art.
-const STREET_SIGN_POS = { anchor: "left", left: -13.5, bottom: 101, height: 40 };
+const STREET_SIGN_POS = { anchor: "left", left: -10.5, bottom: 101, height: 40 };
 // Where the sign sits in its 595x842 file (the rest is empty page).
 const STREET_SIGN_CROP = { fileWidth: 595, fileHeight: 842, x: 135, y: 35, width: 387, height: 757 };
 const STREET_SIGN = {
@@ -425,13 +426,48 @@ const STREET_POSTER = {
 // left building. Same knobs as the sign: `left` from the left building's
 // edge, feet at `bottom`, `height` sets its size and width follows the art
 // (1172 x 1342).
-const STREET_KANGAROO_POS = { anchor: "left", left: -9, bottom: 101.7, height: 22 };
+const STREET_KANGAROO_POS = { anchor: "left", left: -7.5, bottom: 101.7, height: 22 };
 const STREET_KANGAROO = {
   top: `${STREET_KANGAROO_POS.bottom - STREET_KANGAROO_POS.height}%`,
   left: `${fromStreetStart(STREET_KANGAROO_POS.anchor, STREET_KANGAROO_POS.left)}%`,
   width: `${(STREET_KANGAROO_POS.height * 1172 * 285) / (1342 * 660)}%`,
   height: `${STREET_KANGAROO_POS.height}%`,
 };
+
+// ---- Arched button labels --------------------------------------------------
+// Each tappable bit of the street wears a little arched title above it, in
+// the style of the radio popup's "COMMUNITY RADIO STATIONS". Every label is
+// the same width of street (ARCH_LABEL_WIDTH, a % of the scene's width, the
+// same width every button's box is a % of), so the lettering is one size
+// whatever the button under it. Pass the button's own box width ("8%").
+// `drop` sinks a label into its button's box, as a % of the box's height
+// (for window art that sits low in a tall box); bigger = closer.
+const ARCH_LABEL_WIDTH = 9;
+function ArchLabel({ id, text, buttonWidth, drop = 0 }) {
+  const w = (ARCH_LABEL_WIDTH / parseFloat(buttonWidth)) * 100;
+  return (
+    <svg
+      className="street-arch-label"
+      // The box stops short of the arc's low ends (it overflows), so the
+      // label's bottom edge — which sits on the button — is just under the
+      // lettering. Lower the 72 to tuck labels closer to their buttons.
+      viewBox="0 -12 300 72"
+      aria-hidden="true"
+      // Centred with `left` rather than a transform (old iOS Safari drops
+      // transforms on animated items).
+      style={{ width: `${w}%`, left: `${(100 - w) / 2}%`, bottom: `${100 - drop}%` }}
+    >
+      {/* The arc runs past the viewBox on both sides (the SVG overflows) so
+         long labels have room: textPath drops whatever doesn't fit on it. */}
+      <path id={`arch-${id}`} d="M -50 141 Q 150 -77 350 141" fill="none" />
+      <text textAnchor="middle">
+        <textPath href={`#arch-${id}`} startOffset="50%">
+          {text}
+        </textPath>
+      </text>
+    </svg>
+  );
+}
 
 // ---- Scattered zone contributions -----------------------------------------
 // Every zone's contributions pile up over time instead of only showing the
@@ -797,7 +833,7 @@ export default function StreetScene({
   // The /draw/:zoneId child route (DrawZone). While it's open the street
   // stays mounted underneath, blurred, and the canvas floats over it.
   // Submitting a drawing drops back to the clean view (no hotspots, sun
-  // says "Start") and plays its entrance (see DrawingArrival) via
+  // says "Draw") and plays its entrance (see DrawingArrival) via
   // onSubmitted; cancelling leaves contribute mode on.
   const [mode, setMode] = useState("view"); // "view" | "contribute"
   // The just-submitted drawing's entrance: { key, zone, imageUrl, paperRect,
@@ -941,8 +977,8 @@ export default function StreetScene({
              the screen bottom), so `bottom` anchors it there. High z-index
              keeps it above .scene-ground (2) and everything inside it.
              Tappable in view mode only, same as the window surprise — once
-             Start reveals the zone hotspots it's just scenery (disabled),
-             back once Return drops back to the clean view. */}
+             Draw reveals the zone hotspots it's just scenery (disabled),
+             back once Back drops back to the clean view. */}
           <button
             type="button"
             className="notice-board-button"
@@ -960,6 +996,7 @@ export default function StreetScene({
             <span className="notice-board-text" aria-hidden="true">
               Real world events!
             </span>
+            <ArchLabel id="notice" text="WHAT'S ON" buttonWidth={NOTICE_BOARD.width} drop={8} />
           </button>
 
           <div className="scene-ground">
@@ -1096,7 +1133,7 @@ export default function StreetScene({
               </div>
 
               {/* Hidden window surprise — tappable and pulsing in view mode;
-                 once Start reveals the zone hotspots it stays as still,
+                 once Draw reveals the zone hotspots it stays as still,
                  untappable scenery (disabled), like the notice board. */}
               <button
                 type="button"
@@ -1112,6 +1149,7 @@ export default function StreetScene({
                 }}
               >
                 <img className="window-boombox" src={ASSETS.radio} alt="" draggable="false" />
+                <ArchLabel id="radio" text="COMMUNITY RADIO" buttonWidth={WINDOW_RADIO.width} drop={20} />
               </button>
 
               {/* Second window surprise — same pattern as the boombox above;
@@ -1130,6 +1168,7 @@ export default function StreetScene({
                 }}
               >
                 <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
+                <ArchLabel id="books" text="THE SHELF" buttonWidth={WINDOW_BOOK.width} drop={20} />
               </button>
 
               {/* Street sign — same pattern as the boombox above. */}
@@ -1150,6 +1189,7 @@ export default function StreetScene({
                     style={cropImgStyle({ crop: STREET_SIGN_CROP })}
                   />
                 </span>
+                <ArchLabel id="sign" text="STREET HISTORY" buttonWidth={STREET_SIGN.width} />
               </button>
 
               {/* Neon stats poster on the shopfront — same pattern as the
@@ -1163,11 +1203,12 @@ export default function StreetScene({
                 style={STREET_POSTER}
               >
                 <img className="street-poster" src={ASSETS.streetStats} alt="" draggable="false" />
+                <ArchLabel id="stats" text="STREET STATS" buttonWidth={STREET_POSTER.width} />
               </button>
 
               {/* The kangaroo by the sign — tap it to replay the street
                  tour. Hidden while the tour runs, since the tour's kangaroo
-                 is the one talking; just scenery (disabled) once Start
+                 is the one talking; just scenery (disabled) once Draw
                  reveals the zone hotspots, like the notice board. */}
               {!showTour && (
                 <button
@@ -1179,6 +1220,7 @@ export default function StreetScene({
                   style={STREET_KANGAROO}
                 >
                   <img className="street-kangaroo" src={ASSETS.kangaroo} alt="" draggable="false" />
+                  <ArchLabel id="tour" text="SHOW ME AROUND" buttonWidth={STREET_KANGAROO.width} />
                 </button>
               )}
 
@@ -1379,13 +1421,13 @@ export default function StreetScene({
         </div>
       </div>
 
-      {/* Call to action, drawn as the sun in the sky: reveal the zones, or
-         drop back to the clean view. */}
+      {/* Call to action, drawn as the sun in the sky: "Draw" reveals the
+         zones, "Back" drops back to the clean view. */}
       <SunButton
         className="scene-cta"
         onClick={() => setMode((m) => (m === "view" ? "contribute" : "view"))}
       >
-        {mode === "view" ? "Start" : "Return"}
+        {mode === "view" ? "Draw" : "Back"}
       </SunButton>
 
       {eventsOpen && <EventsPopout initial={{}} onClose={closeEvents} />}

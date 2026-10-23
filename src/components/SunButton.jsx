@@ -9,7 +9,7 @@ const RAYS = Array.from({ length: 10 }, (_, i) => ({
   outer: i % 2 ? 82 : 90,
 }));
 
-// The street's Start/Return button, drawn as a crayon sun in the sky. The
+// The street's Draw button, drawn as a crayon sun in the sky. The
 // crayon look is an SVG filter: fractal noise wobbles the edges and speckles
 // the fill so it matches the hand-coloured street art, and diagonal hatching
 // across the disc echoes the kangaroo's shading. className/onClick/children
