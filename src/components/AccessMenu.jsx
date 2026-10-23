@@ -8,7 +8,8 @@ const TEXT_SIZES = [
   { value: "xl", label: "A++", name: "130%" },
 ];
 
-// The accessibility menu: a slim pixel tab pinned to the top centre of every
+// The settings menu (all accessibility, for now): a slim pixel cog tab
+// pinned to the top centre of every
 // screen (first in tab order, above the street, popups, Acknowledgement and
 // tour), dropping down a pixel panel of settings that apply as they change
 // (lib/a11y.js). Opens on tap/click/Enter/Space; closes on Esc, a tap
@@ -61,14 +62,12 @@ export default function AccessMenu() {
         className="access-tab"
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label="Accessibility settings"
+        aria-label="Settings"
         onClick={() => (open ? close(true) : setOpen(true))}
       >
-        <span className="access-tab-icon" aria-hidden="true">
-          Aa
-        </span>
+        <span className="px-cog" aria-hidden="true" />
         <span className="access-tab-word" aria-hidden="true">
-          Access
+          Settings
         </span>
         <span className="px-caret" aria-hidden="true" />
       </button>
@@ -82,8 +81,9 @@ export default function AccessMenu() {
         hidden={!open}
       >
         <h2 id={titleId} className="access-title">
-          Accessibility
+          Settings
         </h2>
+        <h3 className="access-subtitle">Accessibility</h3>
 
         <TextSizeRow value={settings.text} onChange={(v) => setSetting("text", v)} />
         <SwitchRow

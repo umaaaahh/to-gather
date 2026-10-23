@@ -1,4 +1,4 @@
-/* ---- Accessibility menu (AccessMenu.jsx) ---------------------------------
+/* ---- Settings menu (AccessMenu.jsx) --------------------------------------
    The pixel nav's language: a cream face, a notched 1-pixel ink outline
    (four box-shadows, one per side, so the corners stay empty), a highlight
    on the top and left, a shade line at the bottom, and a hard offset drop
@@ -103,13 +103,79 @@ body:has(.splash[data-phase="showing"]) .access-menu {
   background: var(--cream-hi);
 }
 
-/* "Aa" in a little inked box. */
-.access-tab-icon {
-  padding: calc(var(--u) / 1.5) var(--u);
-  box-shadow: var(--px-outline);
-  background: var(--cream-hi);
-  text-transform: none;
-  letter-spacing: 0;
+/* Pixel cog: a 9x9 grid of 2px art pixels drawn as box-shadows off one
+   empty centre square (inside the hole), like the caret below. A square
+   body with a 3x3 hole, a tooth on each side, and notched corners that
+   read as the teeth between:
+     . . . # # # . . .
+     . # # # # # # # .
+     . # # # # # # # .
+     # # # . . . # # #
+     # # # . . . # # #
+     # # # . . . # # #
+     . # # # # # # # .
+     . # # # # # # # .
+     . . . # # # . . .                                                      */
+.px-cog {
+  --u: 2px;
+  --c: currentColor;
+  flex: none;
+  width: var(--u);
+  height: var(--u);
+  margin: calc(var(--u) * 4);
+  box-shadow:
+    calc(var(--u) * -1) calc(var(--u) * -4) 0 var(--c),
+    0 calc(var(--u) * -4) 0 var(--c),
+    var(--u) calc(var(--u) * -4) 0 var(--c),
+    calc(var(--u) * -3) calc(var(--u) * -3) 0 var(--c),
+    calc(var(--u) * -2) calc(var(--u) * -3) 0 var(--c),
+    calc(var(--u) * -1) calc(var(--u) * -3) 0 var(--c),
+    0 calc(var(--u) * -3) 0 var(--c),
+    var(--u) calc(var(--u) * -3) 0 var(--c),
+    calc(var(--u) * 2) calc(var(--u) * -3) 0 var(--c),
+    calc(var(--u) * 3) calc(var(--u) * -3) 0 var(--c),
+    calc(var(--u) * -3) calc(var(--u) * -2) 0 var(--c),
+    calc(var(--u) * -2) calc(var(--u) * -2) 0 var(--c),
+    calc(var(--u) * -1) calc(var(--u) * -2) 0 var(--c),
+    0 calc(var(--u) * -2) 0 var(--c),
+    var(--u) calc(var(--u) * -2) 0 var(--c),
+    calc(var(--u) * 2) calc(var(--u) * -2) 0 var(--c),
+    calc(var(--u) * 3) calc(var(--u) * -2) 0 var(--c),
+    calc(var(--u) * -4) calc(var(--u) * -1) 0 var(--c),
+    calc(var(--u) * -3) calc(var(--u) * -1) 0 var(--c),
+    calc(var(--u) * -2) calc(var(--u) * -1) 0 var(--c),
+    calc(var(--u) * 2) calc(var(--u) * -1) 0 var(--c),
+    calc(var(--u) * 3) calc(var(--u) * -1) 0 var(--c),
+    calc(var(--u) * 4) calc(var(--u) * -1) 0 var(--c),
+    calc(var(--u) * -4) 0 0 var(--c),
+    calc(var(--u) * -3) 0 0 var(--c),
+    calc(var(--u) * -2) 0 0 var(--c),
+    calc(var(--u) * 2) 0 0 var(--c),
+    calc(var(--u) * 3) 0 0 var(--c),
+    calc(var(--u) * 4) 0 0 var(--c),
+    calc(var(--u) * -4) var(--u) 0 var(--c),
+    calc(var(--u) * -3) var(--u) 0 var(--c),
+    calc(var(--u) * -2) var(--u) 0 var(--c),
+    calc(var(--u) * 2) var(--u) 0 var(--c),
+    calc(var(--u) * 3) var(--u) 0 var(--c),
+    calc(var(--u) * 4) var(--u) 0 var(--c),
+    calc(var(--u) * -3) calc(var(--u) * 2) 0 var(--c),
+    calc(var(--u) * -2) calc(var(--u) * 2) 0 var(--c),
+    calc(var(--u) * -1) calc(var(--u) * 2) 0 var(--c),
+    0 calc(var(--u) * 2) 0 var(--c),
+    var(--u) calc(var(--u) * 2) 0 var(--c),
+    calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--c),
+    calc(var(--u) * 3) calc(var(--u) * 2) 0 var(--c),
+    calc(var(--u) * -3) calc(var(--u) * 3) 0 var(--c),
+    calc(var(--u) * -2) calc(var(--u) * 3) 0 var(--c),
+    calc(var(--u) * -1) calc(var(--u) * 3) 0 var(--c),
+    0 calc(var(--u) * 3) 0 var(--c),
+    var(--u) calc(var(--u) * 3) 0 var(--c),
+    calc(var(--u) * 2) calc(var(--u) * 3) 0 var(--c),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--c),
+    calc(var(--u) * -1) calc(var(--u) * 4) 0 var(--c),
+    0 calc(var(--u) * 4) 0 var(--c),
+    var(--u) calc(var(--u) * 4) 0 var(--c);
 }
 
 /* The word only fits beside it on wider screens. */
@@ -173,10 +239,21 @@ body:has(.splash[data-phase="showing"]) .access-menu {
 }
 
 .access-title {
-  margin: 0 0 var(--u);
+  margin: 0;
   font: inherit;
   font-size: calc(16px * var(--text-scale));
   letter-spacing: inherit;
+}
+
+/* "Accessibility", over the options: a small heading on a shade rule. */
+.access-subtitle {
+  margin: var(--u) 0 0;
+  padding-bottom: calc(var(--u) * 2);
+  font: inherit;
+  font-size: calc(11px * var(--text-scale));
+  letter-spacing: inherit;
+  color: #6b4a2f;
+  box-shadow: 0 var(--u) 0 var(--cream-lo);
 }
 
 .access-row {
