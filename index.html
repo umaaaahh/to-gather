@@ -21,6 +21,8 @@
         var osReduced = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
         if (s.motion == null ? osReduced : s.motion === "reduced") root.setAttribute("data-motion", "reduced");
         if (s.sound === false) root.setAttribute("data-sound", "off");
+        // Saved before music had its own switch: Sound off meant music off too.
+        if (s.music === false || (s.music == null && s.sound === false)) root.setAttribute("data-music", "off");
         if (s.contrast) root.setAttribute("data-contrast", "high");
         if (s.font) root.setAttribute("data-font", "readable");
       })();

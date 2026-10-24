@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ASSETS } from "../lib/assets";
 import { whenDrawingsLoaded } from "../lib/drawingsStore";
+import { useDuckAmbience } from "../lib/sounds";
 import "./SplashScreen.css";
 
 // The splash holds until the street's art and its drawings have loaded, but
@@ -42,6 +43,8 @@ const loadImage = (src) =>
 export default function SplashScreen({ onDone }) {
   const [phase, setPhase] = useState("showing"); // showing -> country -> fading -> done
   const timer = useRef();
+  // No street ambience until Continue is pressed.
+  useDuckAmbience(phase === "showing" || phase === "country", "mute");
 
   useEffect(() => {
     let cancelled = false;

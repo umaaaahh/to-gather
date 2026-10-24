@@ -1,10 +1,14 @@
-import { soundOn } from "./a11y";
+import { useEffect } from "react";
+import { musicOn, soundOn } from "./a11y";
 import { ASSETS } from "./assets";
 
-// Every sound the site plays, wired through here so the accessibility menu's
-// Sound switch covers them all. Plain <audio> elements rather than Web Audio:
-// the r2.dev bucket sends no Access-Control-Allow-Origin header, so fetching
-// the file to decode it would fail, but an <audio> element plays it fine.
+// Every sound the site plays, wired through here so the Settings menu's
+// switches cover them all: Sound effects for the cues, Background music for
+// the street's music loop. Mostly plain <audio> elements: the r2.dev
+// bucket sends no Access-Control-Allow-Origin header, so fetching a file to
+// decode it would fail, but an <audio> element plays it fine. Bundled cues
+// (the click pop) use Web Audio instead, which starts instantly — see
+// "Instant playback" below.
 //
 // Three ways in:
 //   - Button presses, wired once at the document level so new buttons get a
@@ -22,6 +26,7 @@ import { ASSETS } from "./assets";
 export const SFX = {
   // ---- UI -----------------------------------------------------------------
   click: ASSETS.clickPop, // the default pop on every button press
+  popupOpen: ASSETS.popupOpenSound, // Radio, The Shelf, About, Stats and the drawing canvas opening (usePopupSound)
   close: null, // a popup's × — a soft paper fold / whoosh down
   welcome: null, // Acknowledgement of Country's Continue — gentle warm chime
   oops: null, // the "couldn't save" toast — a soft, low bonk (not an alarm)
@@ -29,8 +34,8 @@ export const SFX = {
   // ---- The street ---------------------------------------------------------
   sunDraw: null, // the sun's Draw — bright twinkle as the zones appear
   sunBack: null, // the sun's Back — the same twinkle, falling
-  noticeBoard: null, // What's on — paper flutter, pin pushed into cork
-  radioOpen: ASSETS.radioOpenSound, // the window boombox, opening the radio
+  noticeBoard: ASSETS.noticeBoardSound, // What's on popping up (EventsPopout plays it)
+  radioOpen: null, // the window boombox, opening the radio — the click pop, by choice
   bookOpen: null, // The Shelf — a book pulled off the shelf, pages riffled
   signCreak: null, // About — a metal street sign creaking on its post
   neonBuzz: null, // Stats — neon tube flickering on with a buzz
@@ -38,8 +43,8 @@ export const SFX = {
 
   // ---- Kangaroo tour ------------------------------------------------------
   hop: ASSETS.kangarooHopSound, // each hop of the kangaroo, in or off
-  bubble: null, // each new speech bubble — a little blip
-  cheer: null, // the kangaroo cheering a just-landed drawing
+  bubble: ASSETS.bubbleSound, // each speech bubble as it pops or slides in
+  cheer: ASSETS.cheerSound, // the kangaroo cheering a just-landed drawing, as it hops in
 
   // ---- Drawing canvas -----------------------------------------------------
   crayon: null, // LOOP while the brush is down — waxy crayon on paper
@@ -51,28 +56,31 @@ export const SFX = {
   // ---- A drawing arriving on the street (DrawingArrival) ------------------
   reveal: ASSETS.revealSound, // "Your drawing is on the street!"
   whoosh: null, // the drawing flying to its spot
-  landed: null, // it lands and glows — a warm chime
+  landed: ASSETS.harpSound, // it lands and glows
 
   // ---- Popups -------------------------------------------------------------
   radioButton: ASSETS.radioButtonSound, // the boombox's station keys
   radioPower: ASSETS.radioPowerSound, // the boombox's power button
-  tuning: null, // LOOP while a station is tuning in — dial static
+  tuning: ASSETS.radioStaticSound, // LOOP while a station is tuning in
   vote: null, // The Shelf's vote button — a light tick
-  bookAdded: null, // a book saved to the shelf — a soft thud as it's shelved
+  bookAdded: ASSETS.harpSound, // a book recommendation saved to the shelf
   pageTurn: null, // What's on's month arrows — a page turning
 
   // ---- Ambience -----------------------------------------------------------
-  street: null, // LOOP under the street — birds, leaves, a distant tram bell
+  street: ASSETS.streetAmbience, // LOOP under the street — cute lofi
 };
 
 const VOLUME = 0.5;
-const AMBIENCE_VOLUME = 0.25;
+const AMBIENCE_VOLUME = 0.05;
 // Cues that sit louder or quieter than VOLUME (0–1).
-const CUE_VOLUME = { click: 0.8, hop: 0.35 };
+const CUE_VOLUME = { click: 0.8, hop: 0.045, tuning: 0.3 };
 // Cues cut off after this many ms, for files that run longer than the moment
 // they go with. These also skip preloading the whole file, so a long one
 // isn't downloaded up front. None need it right now.
 const CUE_MAX_MS = {};
+// Cues whose file opens with silence: play from this far in (ms), so the
+// sound lands on the tap. Measured from each file's first audible sample.
+const CUE_START_MS = { popupOpen: 200, radioButton: 290, radioPower: 390 };
 
 // Things that count as a press. Range inputs (the radio volume) and the
 // drawing canvas are deliberately left out — they'd pop on every drag.
@@ -117,13 +125,69 @@ const tryPlay = (el) => el.play().catch(() => {});
 /** True once the cue has a file (i.e. isn't still a placeholder). */
 export const hasSound = (name) => Boolean(SFX[name]);
 
+// ---- Instant playback (Web Audio) -------------------------------------------
+// An <audio> element can take a noticeable moment to start, which a button
+// press feels. Web Audio plays a decoded copy straight away — but decoding
+// means fetching the file, which needs CORS, and the r2.dev bucket sends no
+// Access-Control-Allow-Origin. So cues from DECODE_ORIGINS (the site itself:
+// the bundled click pop, see assets.js) go through Web Audio, and the rest
+// stay on <audio> elements. Once the bucket's CORS policy allows this site,
+// add its origin here and every cue gets instant playback.
+const DECODE_ORIGINS = [location.origin];
+const AC = window.AudioContext || window.webkitAudioContext;
+let ctx = null;
+const buffers = new Map(); // name -> AudioBuffer, null while loading, false if it failed
+
+function canDecode(name) {
+  if (!AC || !SFX[name]) return false;
+  try {
+    return DECODE_ORIGINS.includes(new URL(SFX[name], location.href).origin);
+  } catch {
+    return false;
+  }
+}
+
+function decodeCue(name) {
+  if (!canDecode(name) || buffers.has(name)) return;
+  ctx ??= new AC();
+  buffers.set(name, null);
+  fetch(SFX[name])
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    .then((data) => ctx.decodeAudioData(data))
+    .then((buf) => buffers.set(name, buf))
+    .catch(() => buffers.set(name, false)); // falls back to an <audio> element
+}
+
+// Browsers start a Web Audio context suspended until the first gesture.
+// Waking it on pointerdown/keydown, before the click lands, means even the
+// first pop is on time.
+function wakeAudio() {
+  if (ctx?.state === "suspended") ctx.resume().catch(() => {});
+}
+
+function playBuffer(name) {
+  const buf = buffers.get(name);
+  if (!buf) return false;
+  wakeAudio();
+  const source = ctx.createBufferSource();
+  source.buffer = buf;
+  const gain = ctx.createGain();
+  gain.gain.value = CUE_VOLUME[name] ?? VOLUME;
+  source.connect(gain).connect(ctx.destination);
+  source.start(0, (CUE_START_MS[name] ?? 0) / 1000);
+  const maxMs = CUE_MAX_MS[name];
+  if (maxMs) source.stop(ctx.currentTime + maxMs / 1000);
+  return true;
+}
+
 /** Play a one-shot cue. Placeholders (no file yet) do nothing. */
 export function playSound(name) {
   if (!hasSound(name) || !soundOn()) return;
+  if (playBuffer(name)) return;
   const pool = poolFor(name);
   const el = pool.els[pool.next];
   pool.next = (pool.next + 1) % pool.els.length;
-  el.currentTime = 0;
+  el.currentTime = (CUE_START_MS[name] ?? 0) / 1000;
   const maxMs = CUE_MAX_MS[name];
   if (maxMs) {
     // Timed from when it actually starts sounding, not from the play() call —
@@ -143,10 +207,20 @@ export function warmSound(name) {
 }
 
 /**
+ * A popup's opening sound, each time `open` turns true — however it was
+ * opened (a street button, the mini radio...).
+ */
+export function usePopupSound(open, name = "popupOpen") {
+  useEffect(() => {
+    if (open) playSound(name);
+  }, [open, name]);
+}
+
+/**
  * Loop a cue until the returned function is called. Safe to call for a
  * placeholder — it returns a no-op stop.
  */
-export function startLoop(name, volume = VOLUME) {
+export function startLoop(name, volume = CUE_VOLUME[name] ?? VOLUME) {
   if (!hasSound(name) || !soundOn()) return () => {};
   const el = makeEl(SFX[name], volume);
   el.loop = true;
@@ -158,23 +232,91 @@ export function startLoop(name, volume = VOLUME) {
 }
 
 // ---- Street ambience --------------------------------------------------------
-// One quiet loop under the street. It's on while the street wants it, and
-// steps aside while the radio plays (the two would just be noise), while the
-// tab is hidden, and whenever the Sound switch is off.
+// One quiet music loop under the street. It fades in while the street wants
+// it, and steps aside for whatever else is going on (useDuckAmbience /
+// duckAmbience): "dip" fades it down to AMBIENCE_DIP of its level (a popup
+// or the drawing canvas open, the intro tour), "mute" fades it out entirely
+// (the splash before Continue, the radio playing). It stops outright while
+// the tab is hidden or the Background music switch is off.
+//
+// The fades step the <audio> element's volume. iOS Safari ignores that, so
+// there it plays at the file's own level and just starts, and stops once the
+// fade-out time is up (and doesn't dip).
 
-const ambience = { wanted: false, ducked: false, el: null };
+const AMBIENCE_FADE_IN_MS = 1500;
+const AMBIENCE_FADE_OUT_MS = 700;
+const AMBIENCE_DIP = 0.25; // of AMBIENCE_VOLUME, while something's open
+// ducks: key -> "dip" | "mute". target: the volume it's at or fading
+// towards (0 = fading out / stopped). starting: a play() is in flight.
+const ambience = { wanted: false, ducks: new Map(), el: null, target: 0, timer: null, starting: false };
+
+// The volume the ambience should be at right now.
+function ambienceLevel() {
+  if (!ambience.wanted) return 0;
+  const modes = [...ambience.ducks.values()];
+  if (modes.includes("mute")) return 0;
+  return modes.length ? AMBIENCE_VOLUME * AMBIENCE_DIP : AMBIENCE_VOLUME;
+}
+
+function fadeAmbience(to, ms, then) {
+  const el = ambience.el;
+  const from = el.volume;
+  const start = performance.now();
+  clearInterval(ambience.timer);
+  ambience.timer = setInterval(() => {
+    const t = Math.min((performance.now() - start) / ms, 1);
+    el.volume = from + (to - from) * t;
+    if (t === 1) {
+      clearInterval(ambience.timer);
+      then?.();
+    }
+  }, 30);
+}
 
 function syncAmbience() {
   if (!hasSound("street")) return;
-  const on = ambience.wanted && !ambience.ducked && soundOn() && !document.hidden;
-  if (on) {
+  if (!musicOn() || document.hidden) {
+    // Off straight away, not faded: the visitor asked for quiet, or can't
+    // hear it anyway (and a hidden tab throttles the fade's timer).
+    clearInterval(ambience.timer);
+    ambience.target = 0;
+    if (ambience.el) {
+      ambience.el.pause();
+      ambience.el.volume = 0;
+    }
+    return;
+  }
+  const level = ambienceLevel();
+  if (level > 0) {
     if (!ambience.el) {
-      ambience.el = makeEl(SFX.street, AMBIENCE_VOLUME);
+      ambience.el = makeEl(SFX.street, 0);
       ambience.el.loop = true;
     }
-    if (ambience.el.paused) tryPlay(ambience.el);
-  } else {
-    ambience.el?.pause();
+    const el = ambience.el;
+    if (el.paused) {
+      ambience.target = level;
+      // Fades in once it's actually playing — autoplay rules block it until
+      // the first tap, so this is retried on every call until then.
+      if (ambience.starting) return;
+      ambience.starting = true;
+      clearInterval(ambience.timer);
+      el.volume = 0;
+      el.play()
+        .then(() => {
+          if (ambience.target > 0) fadeAmbience(ambience.target, AMBIENCE_FADE_IN_MS);
+          else el.pause(); // faded out again while it was starting
+        })
+        .catch(() => {})
+        .finally(() => (ambience.starting = false));
+    } else if (ambience.target !== level) {
+      // Up from a dip or a fade-out, or down into a dip.
+      const ms = level > ambience.target ? AMBIENCE_FADE_IN_MS : AMBIENCE_FADE_OUT_MS;
+      ambience.target = level;
+      fadeAmbience(level, ms);
+    }
+  } else if (ambience.el && ambience.target !== 0) {
+    ambience.target = 0;
+    fadeAmbience(0, AMBIENCE_FADE_OUT_MS, () => ambience.el.pause());
   }
 }
 
@@ -184,10 +326,28 @@ export function setAmbience(on) {
   syncAmbience();
 }
 
-/** Something else is making noise (the radio) — step the ambience aside. */
-export function duckAmbience(ducked) {
-  ambience.ducked = ducked;
+/**
+ * Something else has the stage (key: whatever's asking, e.g. "radio") —
+ * mode "dip" turns the ambience down, "mute" fades it out, and a falsy mode
+ * lets go. It comes back once every key has let go.
+ */
+export function duckAmbience(key, mode) {
+  if (mode) ambience.ducks.set(key, mode);
+  else ambience.ducks.delete(key);
   syncAmbience();
+}
+
+/**
+ * Turn the ambience down ("dip": a popup open, the canvas up) or off
+ * ("mute") while `active`.
+ */
+export function useDuckAmbience(active, mode = "dip") {
+  useEffect(() => {
+    if (!active) return undefined;
+    const key = Symbol("duck");
+    duckAmbience(key, mode);
+    return () => duckAmbience(key, false);
+  }, [active, mode]);
 }
 
 // ---- Button presses ---------------------------------------------------------
@@ -213,13 +373,18 @@ let installed = false;
 export function installClickSounds() {
   if (installed) return; // already installed (StrictMode / HMR)
   installed = true;
-  poolFor("click"); // warm the pop up front so the first tap isn't late
+  // Decode what Web Audio can up front, so the first tap isn't late; warm an
+  // <audio> pool for the pop only if it can't go through Web Audio.
+  Object.keys(SFX).forEach(decodeCue);
+  if (!canDecode("click")) poolFor("click");
   // Capture phase, so a handler that stops propagation still pops.
   document.addEventListener("click", onClick, true);
+  document.addEventListener("pointerdown", wakeAudio, true);
+  document.addEventListener("keydown", wakeAudio, true);
   document.addEventListener("visibilitychange", syncAmbience);
-  // The accessibility menu's Sound switch flips data-sound on <html>.
+  // The Settings menu's Background music switch flips data-music on <html>.
   new MutationObserver(syncAmbience).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-sound"],
+    attributeFilter: ["data-music"],
   });
 }

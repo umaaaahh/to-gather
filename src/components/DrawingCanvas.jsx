@@ -1,6 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { startLoop } from "../lib/sounds";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { ASSETS } from "../lib/assets";
+import { startLoop, usePopupSound } from "../lib/sounds";
 import "./DrawingCanvas.css";
+
+// The "you'll lose your drawing" warnings, for Back and Clear.
+const CONFIRMS = {
+  leave: {
+    title: "Leave your drawing?",
+    text: "If you go back now, your drawing will be lost.",
+    action: "Leave",
+  },
+  clear: {
+    title: "Clear your drawing?",
+    text: "This rubs out everything on the page.",
+    action: "Clear",
+    sfx: "crumple",
+  },
+};
 
 // Internal raster resolution (square). The canvas is displayed scaled to fit
 // the phone width; all drawing happens at this fixed resolution
@@ -64,6 +80,11 @@ export default function DrawingCanvas({
   const [brushKey, setBrushKey] = useState("m");
   const [canUndo, setCanUndo] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Which warning is up: null | "leave" | "clear" (see CONFIRMS). Only once
+  // something's been drawn — there's nothing to lose before that.
+  const [confirm, setConfirm] = useState(null);
+  const askLeave = () => (hasDrawingRef.current ? setConfirm("leave") : onCancel());
+  const askClear = () => hasDrawingRef.current && setConfirm("clear");
 
   // Keep the selected colour valid if the palette prop changes (zone swap).
   useEffect(() => {
@@ -283,7 +304,8 @@ export default function DrawingCanvas({
             onClick={() => setTool("brush")}
             aria-pressed={tool === "brush"}
           >
-            ✏️ Brush
+            <img className="dc-tool-icon" src={ASSETS.brushIcon} alt="" draggable={false} />
+            Brush
           </button>
           <button
             type="button"
@@ -291,7 +313,8 @@ export default function DrawingCanvas({
             onClick={() => setTool("eraser")}
             aria-pressed={tool === "eraser"}
           >
-            🧽 Eraser
+            <img className="dc-tool-icon" src={ASSETS.eraserIcon} alt="" draggable={false} />
+            Eraser
           </button>
         </div>
 
@@ -332,7 +355,7 @@ export default function DrawingCanvas({
 
         <div className="dc-actions">
           {onCancel && (
-            <button type="button" className="dc-btn" onClick={onCancel}>
+            <button type="button" className="dc-btn" onClick={askLeave}>
               Back
             </button>
           )}
@@ -345,7 +368,7 @@ export default function DrawingCanvas({
           >
             Undo
           </button>
-          <button type="button" className="dc-btn" onClick={clearAll} disabled={busy} data-sfx="crumple">
+          <button type="button" className="dc-btn" onClick={askClear} disabled={busy}>
             Clear
           </button>
           <button
@@ -356,6 +379,58 @@ export default function DrawingCanvas({
             data-sfx="submit"
           >
             Done
+          </button>
+        </div>
+      </div>
+
+      {confirm && (
+        <ConfirmPopup
+          {...CONFIRMS[confirm]}
+          onKeep={() => setConfirm(null)}
+          onConfirm={() => {
+            setConfirm(null);
+            if (confirm === "leave") onCancel();
+            else clearAll();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// A small popup over the canvas: keep drawing (the default, focused) or go
+// ahead and lose it. Escape or tapping outside keeps drawing.
+function ConfirmPopup({ title, text, action, sfx, onKeep, onConfirm }) {
+  const titleId = useId();
+  const keepRef = useRef(null);
+  usePopupSound(true);
+
+  useEffect(() => {
+    keepRef.current?.focus({ preventScroll: true });
+    const onKey = (e) => e.key === "Escape" && onKeep();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onKeep]);
+
+  return (
+    <div className="ui-backdrop dc-confirm-backdrop" onClick={onKeep}>
+      <div
+        className="ui-card dc-confirm"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id={titleId} className="ui-title dc-confirm-title">
+          {title}
+        </h2>
+        <p className="dc-confirm-text">{text}</p>
+        <div className="dc-confirm-actions">
+          <button type="button" className="dc-btn" ref={keepRef} onClick={onKeep}>
+            Keep drawing
+          </button>
+          <button type="button" className="px-btn" onClick={onConfirm} data-sfx={sfx}>
+            {action}
           </button>
         </div>
       </div>

@@ -4,6 +4,11 @@ import { startLoop } from "../lib/sounds";
 import LoadingLogo from "./LoadingLogo";
 import "./Boombox.css";
 
+// Length of the station / power press sounds as played (lib/sounds.js skips
+// their silent start, CUE_START_MS), so the tuning static starts once
+// they've finished rather than over the top of them.
+const PRESS_SOUND_MS = 1000;
+
 // Local community radio, streamed live. `pos` is where the tuner needle sits
 // on the dial for that station.
 const STATIONS = [
@@ -265,8 +270,17 @@ export default function Boombox({ onNowPlaying }) {
     handleStation(current ?? STATIONS[0]);
   }
 
-  // Dial static while a station tunes in, until the stream starts.
-  useEffect(() => (status === "tuning" ? startLoop("tuning") : undefined), [status]);
+  // Dial static while a station tunes in, until the stream starts — once
+  // the button's press sound (radioButton / radioPower) has finished.
+  useEffect(() => {
+    if (status !== "tuning") return undefined;
+    let stop = null;
+    const timer = setTimeout(() => (stop = startLoop("tuning")), PRESS_SOUND_MS);
+    return () => {
+      clearTimeout(timer);
+      stop?.();
+    };
+  }, [status]);
 
   let nowPlaying;
   if (status === "live" && current) {

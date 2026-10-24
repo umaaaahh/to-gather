@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ASSETS } from "../lib/assets";
+import { useDuckAmbience, usePopupSound } from "../lib/sounds";
 import RibbonTitle from "./RibbonTitle";
 import "./StreetStats.css";
 
@@ -82,6 +83,8 @@ const Critter = ({ flip }) => (
 // with a cream paper card of yellow crayon tiles inside.
 export default function StreetStatsLayer({ open, onClose }) {
   const closeRef = useRef(null);
+  usePopupSound(open);
+  useDuckAmbience(open);
   const [tab, setTab] = useState("age");
   const [age, setAge] = useState(4); // 20-24, the tallest bar
   const [row, setRow] = useState(0);

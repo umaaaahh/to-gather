@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ASSETS, STREET_SIGN_CROP, cropImgStyle } from "../lib/assets";
+import { useDuckAmbience, usePopupSound } from "../lib/sounds";
 import RibbonTitle from "./RibbonTitle";
 import "./StreetHistory.css";
 
@@ -65,6 +66,8 @@ const signPieceStyle = (crop) => ({
 // hand-drawn timeline inside.
 export default function StreetHistoryLayer({ open, onClose }) {
   const closeRef = useRef(null);
+  usePopupSound(open);
+  useDuckAmbience(open);
 
   useEffect(() => {
     if (!open) return;

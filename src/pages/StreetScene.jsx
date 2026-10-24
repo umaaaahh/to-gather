@@ -989,7 +989,7 @@ export default function StreetScene({
             className="notice-board-button"
             onClick={() => setEventsOpen(true)}
             disabled={mode !== "view"}
-            data-sfx="noticeBoard"
+            data-sfx="none" // What's on plays its own sound as it opens
             aria-label="What's on in the community"
             style={{
               bottom: NOTICE_BOARD.bottom,

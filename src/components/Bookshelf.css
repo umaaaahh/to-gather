@@ -267,6 +267,30 @@
   rotate: 0.4deg;
 }
 
+/* The book just recommended glows brand blue (--ui-blue and its light
+   tint) as the shelf scrolls down to it. Lasts as long as its harp sound
+   (bookAdded in lib/sounds.js, 2s), which starts with it. */
+.shelf-book[data-just-added] {
+  animation: shelf-just-added 2s ease-in-out both;
+}
+
+@keyframes shelf-just-added {
+  0%,
+  100% {
+    background: #fff;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  20%,
+  65% {
+    background: #dfeafc;
+    box-shadow:
+      4px 4px 0 var(--ink),
+      0 0 14px 6px rgba(143, 180, 240, 1),
+      0 0 34px 16px rgba(47, 111, 214, 0.75),
+      inset 0 0 18px 4px rgba(143, 180, 240, 0.8);
+  }
+}
+
 /* ---- Top 5: rank numbers, with #1 made the star of the shelf ---- */
 .shelf-book.ranked {
   grid-template-columns: auto auto 1fr auto;
@@ -413,6 +437,10 @@
    lib/a11y.js) sets html[data-motion="reduced"]. */
 html[data-motion="reduced"] .shelf-crayon {
   transition: none;
+}
+
+html[data-motion="reduced"] .shelf-book[data-just-added] {
+  animation: none;
 }
 
 /* LoadingLogo while a book search is in flight. */

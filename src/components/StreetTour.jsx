@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "../lib/a11y";
 import { ASSETS } from "../lib/assets";
-import { playSound, warmSound } from "../lib/sounds";
+import { playSound, useDuckAmbience, warmSound } from "../lib/sounds";
 // Alpha-only silhouette of the notice board art, bundled so it's same-origin:
 // a CSS mask-image needs CORS, which the asset bucket doesn't send.
 import noticeBoardMask from "../assets/notice-board-mask.png";
@@ -325,6 +325,10 @@ export default function StreetTour({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The street ambience stays turned down through the intro tour (not the
+  // one-bubble cheer), and comes up once it's done.
+  useDuckAmbience(steps === TOUR_STEPS);
+
   // The hop starts straight away — get its sound loading now.
   useEffect(() => warmSound("hop"), []);
 
@@ -339,7 +343,6 @@ export default function StreetTour({
     if (leaving || i < 0 || i >= steps.length || i === step) return;
     setDir(i > step ? "next" : "prev");
     setStep(i);
-    playSound("bubble");
     // Off to (or back from) another spot on the road: hop the way there.
     if (steps[i].kangarooAt !== current.kangarooAt) {
       setMoving(true);
@@ -458,6 +461,9 @@ export default function StreetTour({
             className="tour-bubble"
             data-dir={dir}
             aria-live="polite"
+            // Its sound as it appears: the first one pops in once the
+            // kangaroo has landed, later ones slide in.
+            onAnimationStart={(e) => e.target === e.currentTarget && playSound("bubble")}
             style={{
               left: layout.bubbleShift,
               top: -layout.bubbleLift,

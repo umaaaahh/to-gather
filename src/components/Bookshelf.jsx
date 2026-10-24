@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import RibbonTitle from "./RibbonTitle";
 import LoadingLogo from "./LoadingLogo";
 import { addBook, addToBook, setVote, subscribeMyVotes, subscribeShelf } from "../lib/shelfStore";
-import { playSound } from "../lib/sounds";
+import { playSound, useDuckAmbience, usePopupSound } from "../lib/sounds";
+import { prefersReducedMotion } from "../lib/a11y";
 import "./Bookshelf.css";
 
 // Book details (search, covers, links) come from Google Books. The shelf
@@ -86,7 +87,7 @@ function toBook(item) {
  * Community bookshelf: search Google Books, recommend a book with a short
  * reason, and vote on everyone's picks. Rendered inside BookshelfLayer.
  */
-function Bookshelf() {
+function Bookshelf({ open }) {
   const [shelfBooks, setShelfBooks] = useState(null); // null while loading
   const [loadFailed, setLoadFailed] = useState(false);
   const [voted, setVoted] = useState(() => new Set());
@@ -106,6 +107,18 @@ function Bookshelf() {
   const [postingNote, setPostingNote] = useState(null);
   const [noteStatus, setNoteStatus] = useState({});
   const reasonRef = useRef(null);
+  // The book just recommended ({ id }, new each time), which the shelf
+  // scrolls down to and lights up in the full list once it's there.
+  const [justAdded, setJustAdded] = useState(null);
+  const scrolledTo = useRef(null);
+  const shelfRef = useRef(null);
+  // Closing the shelf only hides it, and a hidden glow would replay on
+  // reopening — so closing clears the just-added book.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setJustAdded(null);
+  }
   const books = shelfBooks || [];
 
   useEffect(
@@ -151,6 +164,16 @@ function Bookshelf() {
     if (picked) reasonRef.current?.focus();
   }, [picked]);
 
+  // Scroll down to a just-recommended book, once (re-checked as the shelf
+  // updates, since a new book shows up a moment after it's saved).
+  useEffect(() => {
+    if (!justAdded || scrolledTo.current === justAdded) return;
+    const el = shelfRef.current?.querySelector(`[data-shelf-entry="${CSS.escape(justAdded.id)}"]`);
+    if (!el) return;
+    scrolledTo.current = justAdded;
+    el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+  }, [justAdded, shelfBooks]);
+
   function pick(book) {
     setPicked(book);
     setReason("");
@@ -187,6 +210,7 @@ function Bookshelf() {
         setStatus(`Added "${book.title}" to the shelf!`);
       }
       playSound("bookAdded");
+      setJustAdded({ id: onShelf ? onShelf.id : book.id }); // addBook keys it by book.id
       resetForm();
     } catch (err) {
       console.warn("Shelf save failed:", err);
@@ -251,7 +275,7 @@ function Bookshelf() {
   );
 
   return (
-    <div className="bookshelf">
+    <div className="bookshelf" ref={shelfRef}>
       <p className="shelf-sub">
         Books recommended by people who stopped by. Add one you loved, and vote for the ones
         you've enjoyed too.
@@ -403,6 +427,8 @@ function Bookshelf() {
       <li
         key={book.id}
         className={`shelf-book${rank ? " ranked" : ""}${rank === 1 ? " first" : ""}`}
+        data-shelf-entry={list === "all" ? book.id : undefined}
+        data-just-added={(list === "all" && justAdded?.id === book.id) || undefined}
       >
         {rank && (
           <span className="shelf-rank" aria-label={`Number ${rank}`}>
@@ -517,6 +543,8 @@ function Bookshelf() {
  * @param {() => void} onClose
  */
 export default function BookshelfLayer({ open, onClose }) {
+  usePopupSound(open);
+  useDuckAmbience(open);
   const [opened, setOpened] = useState(open);
   if (open && !opened) setOpened(true);
   return (
@@ -537,7 +565,7 @@ export default function BookshelfLayer({ open, onClose }) {
           >
             ×
           </button>
-          <div className="ui-card bookshelf-modal">{opened && <Bookshelf />}</div>
+          <div className="ui-card bookshelf-modal">{opened && <Bookshelf open={open} />}</div>
         </div>
       </div>
     </div>

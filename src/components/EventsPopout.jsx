@@ -12,6 +12,7 @@ import {
   startOfDay,
   upcomingShows,
 } from "../lib/events";
+import { playSound, useDuckAmbience } from "../lib/sounds";
 import RibbonTitle from "./RibbonTitle";
 import "./EventsPopout.css";
 
@@ -39,6 +40,11 @@ export default function EventsPopout({ initial, onClose }) {
   });
   const closeRef = useRef(null);
   const listRef = useRef(null);
+
+  // Its sound as it pops up, however it was opened (the notice board, or
+  // the kangaroo's "Let's go!").
+  useEffect(() => playSound("noticeBoard"), []);
+  useDuckAmbience(true);
 
   useEffect(() => {
     closeRef.current?.focus({ preventScroll: true });

@@ -16,6 +16,11 @@
 // full A4 artboard with the stem in one corner, wrong scale for a template.
 import leafOutlineSvg from "../assets/leaf-outline.svg";
 import stemOutlineSvg from "../assets/Stem.svg";
+// Same again for the UI sounds that must start on the tap (the click pop,
+// popups opening): lib/sounds.js plays them through Web Audio, which starts
+// instantly but has to fetch the file, so it needs CORS too.
+import clickPopMp3 from "../assets/sounds/click-pop.mp3";
+import popupOpenMp3 from "../assets/sounds/popup-open.mp3";
 
 const BASE =
   import.meta.env.VITE_ASSET_BASE_URL ||
@@ -56,15 +61,38 @@ export const ASSETS = {
   streetStats: url("street stats.png"),
   // Crayon kangaroo head, either side of the street stats "tap a bar" hint.
   kangarooHead: url("Kangaroo L.svg"),
+  // Pixel pencil and eraser on the drawing canvas's tool buttons (see
+  // DrawingCanvas).
+  brushIcon: url("Sound/dot2026_1024_1840_22.png"),
+  eraserIcon: url("dot2026_1024_1842_55.png"),
   // UI pop played on every button press (see lib/sounds.js).
-  clickPop: url("floraphonic-minimal-pop-click-ui-1-198301.mp3"),
-  // "Your drawing is on the street!" sparkle (see DrawingArrival).
-  revealSound: url("Sound/lucadialessandro-cute-sound-for-videos-397053.mp3"),
+  // Bundled, see above — the bucket's floraphonic-minimal-pop-click-ui-1-198301.mp3.
+  clickPop: clickPopMp3,
+  // "Your drawing is on the street!" (see DrawingArrival). 3.8s, so it ends
+  // just before the glow's harp.
+  revealSound: url(
+    "Sound/diogodasilvasimoes-magical-notification-tone-soft-fantasy-digital-alert-438278.mp3",
+  ),
+  // Every other popup opening: Radio, The Shelf, About, Stats (usePopupSound
+  // in lib/sounds.js). Bundled, see above — the bucket's
+  // Sound/freesound_community-plastic-wow-4-83016.mp3.
+  popupOpenSound: popupOpenMp3,
+  // The notice board, opening What's on (see EventsPopout).
+  noticeBoardSound: url("Sound/tithuh-level-up-523624.mp3"),
   // The boombox's station keys and its power button (see Boombox).
   radioButtonSound: url("Sound/dragon-studio-button-press-386165.mp3"),
   radioPowerSound: url("Sound/dragon-studio-button-press-2-386176.mp3"),
-  // The boombox in the street's window, opening the radio (see StreetScene).
-  radioOpenSound: url("Sound/dragon-studio-button-press-3-386171.mp3"),
+  // Static while a radio station tunes in (see Boombox).
+  radioStaticSound: url("Sound/freesound_community-fm-radio-static-82334.mp3"),
+  // Each tour speech bubble popping or sliding in (see StreetTour).
+  bubbleSound: url("Sound/u_iozlfd2w96-bubble-pop-283674.mp3"),
+  // The kangaroo cheering a just-landed drawing (see StreetScene).
+  cheerSound: url("Sound/floraphonic-cute-character-wee-1-188162.mp3"),
+  // Harp flourish: a new drawing glowing on the street (see DrawingArrival),
+  // and a book recommendation added to the Shelf (see Bookshelf).
+  harpSound: url("Sound/chrysalyn-cheerful-traditional-harp-positive-ui-alert-540977.mp3"),
+  // Looping background music under the street (see lib/sounds.js).
+  streetAmbience: url("Sound/zephiramusic-cute-lofi-613381.mp3"),
   // One jump per hop of the tour kangaroo (see StreetTour).
   kangarooHopSound: url("Sound/jump-1.mp3"),
 };

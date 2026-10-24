@@ -4,7 +4,9 @@ import { useSyncExternalStore } from "react";
 // and applied as attributes on <html>, which the stylesheets respond to:
 //   data-text="md|lg|xl"   text size (--text-scale in popup.css)
 //   data-motion="reduced"  reduce motion (only when reduced)
-//   data-sound="off"       no sound effects or ambience (lib/sounds.js); the radio is separate
+//   data-sound="off"       no sound effects (lib/sounds.js)
+//   data-music="off"       no background music under the street (lib/sounds.js);
+//                          the radio is separate from both
 //   data-contrast="high"   high contrast (popup.css)
 //   data-font="readable"   Atkinson Hyperlegible everywhere (popup.css)
 //
@@ -16,13 +18,16 @@ import { useSyncExternalStore } from "react";
 
 const KEY = "to-gather-a11y";
 
-export const DEFAULTS = { text: "md", motion: null, sound: true, contrast: false, font: false };
+export const DEFAULTS = { text: "md", motion: null, sound: true, music: true, contrast: false, font: false };
 
 const osMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
 function read() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    // Saved before music had its own switch: Sound off meant music off too.
+    if (saved.music === undefined && saved.sound === false) saved.music = false;
+    return { ...DEFAULTS, ...saved };
   } catch {
     return { ...DEFAULTS }; // storage blocked or corrupt: defaults still work
   }
@@ -44,6 +49,7 @@ function apply(s) {
   set("text", s.text);
   set("motion", motionReduced(s) && "reduced");
   set("sound", !s.sound && "off");
+  set("music", !s.music && "off");
   set("contrast", s.contrast && "high");
   set("font", s.font && "readable");
 }
@@ -88,3 +94,4 @@ export function useA11ySettings() {
 // For JS-driven motion and sound, which can't see the stylesheets.
 export const prefersReducedMotion = () => document.documentElement.dataset.motion === "reduced";
 export const soundOn = () => document.documentElement.dataset.sound !== "off";
+export const musicOn = () => document.documentElement.dataset.music !== "off";

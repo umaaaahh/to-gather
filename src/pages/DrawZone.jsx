@@ -2,6 +2,7 @@ import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import DrawingCanvas from "../components/DrawingCanvas";
 import { ZONE_CONFIG, resolveZone } from "../lib/zones";
 import { saveDrawingInBackground } from "../lib/drawingsStore";
+import { useDuckAmbience, usePopupSound } from "../lib/sounds";
 import "./DrawZone.css";
 
 // zoneId is "tree" | "stem" | "free", pulled from the route. Rendered as a child route of the street (see
@@ -11,6 +12,9 @@ export default function DrawZone() {
   const navigate = useNavigate();
   // From StreetScene's useOutlet — resets the street to its clean view.
   const { onSubmitted } = useOutletContext() ?? {};
+  // The same opening sound as the street's popups, as the canvas opens.
+  usePopupSound(true);
+  useDuckAmbience(true);
 
   const key = resolveZone(zoneId);
   const zone = ZONE_CONFIG[key];

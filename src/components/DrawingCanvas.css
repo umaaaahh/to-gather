@@ -121,6 +121,15 @@
     background 0.15s ease;
 }
 
+/* Pixel-art tool icons (the pencil and eraser), the height of the label and
+   kept crisp rather than smoothed. */
+.dc-tool-icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  image-rendering: pixelated;
+}
+
 .dc-tool:active,
 .dc-size:active,
 .dc-btn:active:not(:disabled) {
@@ -179,6 +188,57 @@
 .dc-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* ---- "You'll lose your drawing" popup (Back / Clear) ----------------- */
+/* The shared popup backdrop and card (popup.css). Fixed so it covers the
+   whole frame even when the overlay is scrolled on a short screen — the
+   street frame's size containment makes it the containing block. */
+.dc-confirm-backdrop {
+  position: fixed;
+  z-index: 50; /* above the drawing overlay */
+}
+
+.dc-confirm {
+  max-width: 20rem;
+  padding: 1.25rem 1.25rem 1rem;
+  text-align: center;
+}
+
+.dc-confirm-title {
+  font-size: calc(1.7rem * var(--text-scale));
+}
+
+.dc-confirm-text {
+  margin: 0.6rem 0 1rem;
+  font-family: var(--font-body);
+  font-size: calc(1rem * var(--text-scale));
+  line-height: 1.4;
+}
+
+.dc-confirm-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.dc-confirm-actions > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.dc-confirm-actions .px-btn {
+  --u: 3px;
+  white-space: nowrap;
+}
+
+/* "Keep drawing" wraps onto two lines on the narrowest phones rather than
+   being clipped (.dc-btn is nowrap + overflow hidden for the toolbar). */
+.dc-confirm-actions .dc-btn {
+  align-self: stretch;
+  white-space: normal;
+  line-height: 1.05;
+  padding: 0.35rem 0.5rem;
 }
 
 /* Reduced motion: the OS setting or the accessibility menu (see

@@ -8,7 +8,7 @@ const TEXT_SIZES = [
   { value: "xl", label: "A++", name: "130%" },
 ];
 
-// The settings menu (all accessibility, for now): a slim pixel cog tab
+// The settings menu (accessibility, then sound): a slim pixel cog tab
 // pinned to the top centre of every
 // screen (first in tab order, above the street, popups, Acknowledgement and
 // tour), dropping down a pixel panel of settings that apply as they change
@@ -91,7 +91,6 @@ export default function AccessMenu() {
           checked={motionReduced(settings)}
           onChange={(on) => setSetting("motion", on ? "reduced" : "full")}
         />
-        <SwitchRow label="Sound" checked={settings.sound} onChange={(on) => setSetting("sound", on)} />
         <SwitchRow
           label="High contrast"
           checked={settings.contrast}
@@ -101,6 +100,19 @@ export default function AccessMenu() {
           label="Easier-to-read font"
           checked={settings.font}
           onChange={(on) => setSetting("font", on)}
+        />
+
+        {/* The radio isn't here: it has its own power and volume. */}
+        <h3 className="access-subtitle">Sound</h3>
+        <SwitchRow
+          label="Sound effects"
+          checked={settings.sound}
+          onChange={(on) => setSetting("sound", on)}
+        />
+        <SwitchRow
+          label="Background music"
+          checked={settings.music}
+          onChange={(on) => setSetting("music", on)}
         />
 
         <button type="button" className="px-btn px-btn--cream access-reset" onClick={resetSettings}>
