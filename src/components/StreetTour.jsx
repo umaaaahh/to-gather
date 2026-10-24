@@ -39,7 +39,9 @@ const EDGE_GAP = 12;
 // look: true makes a step look-only (the spotlight is blocked too), for
 // things that would leave the street and cut the tour short if tapped.
 // kangarooAt: "right" hops the kangaroo along the road to the right of the
-// screen, instead of mid-screen. targetAt: "left" always pans the street so
+// screen, instead of mid-screen; "target" stands it beside the target, on
+// whichever side has more room (pinKangaroo: and stays where it first
+// lands, rather than following the target). targetAt: "left" always pans the street so
 // the target sits at the left of the screen, wherever it was left — the two
 // together keep the kangaroo's bubble clear of what it's pointing out.
 const TOUR_STEPS = [
@@ -68,13 +70,22 @@ const TOUR_STEPS = [
   },
 ];
 
-// The kangaroo's one-bubble cheer once a new drawing has landed in the
-// street, pointing at the notice board. Tapping the board opens what's on
-// and sends the kangaroo off.
+// The kangaroo's cheer once a new drawing has landed in the street: a well
+// done over the street, then Next to the notice board. Tapping the board
+// (or "Let's go!") opens what's on and sends the kangaroo off.
 export const DRAWING_DONE_STEPS = [
   {
-    text: "Great work leaving your mark on the community! Check out what's going on in the real world to let this community leave its mark on you!",
+    text: "Good job, you've left your unique mark on this digital community!",
+    // The drawing that just landed (StreetScene marks it), else the street
+    target: ["[data-landed] .scatter-item-img", ".scene-ground"],
+    look: true,
+    kangarooAt: "target",
+    pinKangaroo: true, // a character drawing walks off; the kangaroo stays put
+  },
+  {
+    text: "Now leave your mark on the real-life community by getting involved in real-life events going on around here!",
     target: [".notice-board-art"],
+    kangarooAt: "target", // hops over to stand by the board
     doneWhen: ".notice-board-button",
     boardCutout: true,
   },
@@ -101,8 +112,9 @@ function spotlightRect(sceneBox, el, padTop = 0) {
   return { left, top, width: right - left, height: bottom - top };
 }
 
-// Everything the overlay positions, measured from the live scene.
-function measureTourLayout(scene, step) {
+// Everything the overlay positions, measured from the live scene. pinnedX,
+// if given, is where the kangaroo already stands for this step.
+function measureTourLayout(scene, step, pinnedX = null) {
   const sceneBox = scene.getBoundingClientRect();
   const el = findTarget(scene, step.target);
   const spot = el ? spotlightRect(sceneBox, el, step.padTop) : null;
@@ -128,10 +140,31 @@ function measureTourLayout(scene, step) {
   }
 
   // Where along the road the kangaroo stands (its centre, px from the
-  // frame's left): mid-screen, or at the right (kangarooAt).
+  // frame's left): mid-screen, at the right, or beside the target
+  // (kangarooAt).
   const kangarooW = scene.querySelector(".tour-kangaroo")?.offsetWidth ?? 0;
   const edge = kangarooW / 2 + EDGE_GAP;
-  const kangarooX = step.kangarooAt === "right" ? sceneBox.width - edge : sceneBox.width / 2;
+  let kangarooX = sceneBox.width / 2;
+  if (step.kangarooAt === "right") kangarooX = sceneBox.width - edge;
+  if (step.kangarooAt === "target" && el) {
+    if (pinnedX !== null) kangarooX = pinnedX;
+    else {
+      const r = el.getBoundingClientRect();
+      const left = r.left - sceneBox.left;
+      const right = r.right - sceneBox.left;
+      let nextTo = sceneBox.width - right > left ? right + edge : left - edge;
+      // Not behind the notice board, where it'd be hidden: step out past
+      // whichever side of it is nearer and still on screen.
+      if (board && nextTo + edge > board.left && nextTo - edge < board.left + board.width) {
+        const beforeBoard = board.left - edge;
+        const afterBoard = board.left + board.width + edge;
+        const fits = (x) => x >= edge && x <= sceneBox.width - edge;
+        const options = [beforeBoard, afterBoard].filter(fits);
+        if (options.length) nextTo = options.sort((a, b) => Math.abs(a - nextTo) - Math.abs(b - nextTo))[0];
+      }
+      kangarooX = clamp(nextTo, edge, Math.max(sceneBox.width - edge, edge));
+    }
+  }
 
   // The bubble follows the kangaroo but stays on screen; its tail makes up
   // the difference, so it still points at the kangaroo's head.
@@ -240,17 +273,34 @@ export default function StreetTour({
 
   // Re-measureTourLayout every frame: the street art loads in late, the user can
   // resize or rotate, and the street may be panning towards the target.
+  // A pinKangaroo step picks the kangaroo's spot once, on the first frame
+  // it has a size, and stays there — a drawing that walks about (the
+  // characters) would otherwise have it sliding along after it. Other
+  // steps keep re-measuring, so the street panning to a target is followed.
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return undefined;
     let raf;
+    let pinnedX = null;
     const tick = () => {
-      const next = measureTourLayout(scene, current);
+      const next = measureTourLayout(scene, current, pinnedX);
+      if (current.pinKangaroo && pinnedX === null && scene.querySelector(".tour-kangaroo")?.offsetWidth) {
+        pinnedX = next.kangarooX;
+      }
       setLayout((prev) => (sameLayout(prev, next) ? prev : next));
       raf = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(raf);
+  }, [sceneRef, current]);
+
+  // Tells the street when the bubble is about the notice board
+  // (data-tour-board), so the cheer can bring back its What's on label.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene || !current.boardCutout) return undefined;
+    scene.dataset.tourBoard = "";
+    return () => delete scene.dataset.tourBoard;
   }, [sceneRef, current]);
 
   // Pan the street to the target if none of it is on screen. (Only then —
@@ -344,7 +394,8 @@ export default function StreetTour({
     setDir(i > step ? "next" : "prev");
     setStep(i);
     // Off to (or back from) another spot on the road: hop the way there.
-    if (steps[i].kangarooAt !== current.kangarooAt) {
+    // Two "target" steps stand by different things, so that's a move too.
+    if (steps[i].kangarooAt !== current.kangarooAt || steps[i].kangarooAt === "target") {
       setMoving(true);
       clearTimeout(moveTimer.current);
       moveTimer.current = setTimeout(() => setMoving(false), MOVE_MS);
@@ -402,6 +453,7 @@ export default function StreetTour({
           <div
             className="tour-spotlight"
             data-hidden={(current.boardCutout && layout.board) || undefined}
+            data-follow={current.kangarooAt === "target" || undefined}
             style={layout.spot}
           />
           {current.boardCutout && layout.board && (

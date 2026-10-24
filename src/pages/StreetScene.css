@@ -997,6 +997,20 @@ html[data-motion="reduced"] .notice-board-button:enabled:active .px-btn.street-t
   display: none;
 }
 
+/* While the kangaroo cheers a new drawing, the street's labels and the
+   sun's Draw ribbon step aside so only it is talking. visibility, not
+   display, so The Shelf's ledge keeps holding the books up. */
+.street-scene[data-cheering] .street-tag-anchor,
+.street-scene[data-cheering] .sun-button-label {
+  visibility: hidden;
+}
+
+/* ...except the board's What's on, back for the bubble about the board
+   (StreetTour sets data-tour-board). */
+.street-scene[data-cheering][data-tour-board] .notice-board-button .street-tag-anchor {
+  visibility: visible;
+}
+
 /* A ledge label is what the picture stands on, so it keeps its space while
    hidden; otherwise the books would drop down into it. */
 .street-surprise-button:disabled .street-tag-anchor.ledge {

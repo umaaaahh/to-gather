@@ -75,7 +75,7 @@ const VOLUME = 0.5;
 // 50% gives half this.
 const AMBIENCE_VOLUME_MAX = 0.1;
 // Cues that sit louder or quieter than VOLUME (0–1).
-const CUE_VOLUME = { click: 0.8, hop: 0.045, tuning: 0.3, noticeBoard: 0.25 };
+const CUE_VOLUME = { click: 0.8, hop: 0.045, tuning: 0.3, noticeBoard: 0.25, cheer: 0.12 };
 // A cue's level right now: its mix above, scaled by the Settings menu's
 // Sound effects volume (100% plays it as mixed; the default 50% at half).
 const cueLevel = (name, base = CUE_VOLUME[name] ?? VOLUME) => base * soundVolume();

@@ -619,6 +619,10 @@ const FLOWER_INSET_X = 2;
 const LEAF_WIND = true;
 const FLOWER_WIND = true;
 
+// Flowers stack by their roots (zIndex = yPct × 10, so up to 1000); the
+// newest one goes above all of them.
+const NEWEST_FLOWER_Z = 1001;
+
 // Deterministic 0..1 from an integer seed. Same item index -> same spot on
 // every render, so adding item N never reshuffles items 0..N-1.
 function stableRandom(seed) {
@@ -731,6 +735,8 @@ function placeDrawings(
     return {
       key: i,
       url,
+      // urls run oldest to newest, so the last is the latest one added
+      newest: i === urls.length - 1,
       boxId: box.id,
       flip: !!box.flip,
       xPct: bx + ((insetX + u * (100 - insetX * 2)) / 100) * bw,
@@ -838,7 +844,8 @@ export default function StreetScene({
   // thumbUrl } — thumbUrl arrives once the save lands, and marks which
   // scene item is the new one (hidden until the entrance hands over).
   const [arrival, setArrival] = useState(null);
-  // The kangaroo's well-done message, once that entrance has landed.
+  // The kangaroo's well-done message, once that entrance has landed: the
+  // landed drawing's url (or true if it never showed up), false when not.
   const [cheering, setCheering] = useState(false);
   const endCheer = useCallback(() => setCheering(false), []);
   const openEvents = useCallback(() => setEventsOpen(true), []);
@@ -897,6 +904,9 @@ export default function StreetScene({
   // moment the save lands. Once the entrance hands over it switches to the
   // thumbnail; the browser keeps showing the old image until that's loaded.
   const itemSrc = (item) => (isArriving(item) ? arrival.imageUrl : item.url);
+  // While the kangaroo cheers, the drawing that just landed is marked
+  // data-landed, so it can stand next to it (`cheering` is its url).
+  const isLanded = (item) => typeof cheering === "string" && item.url === cheering;
   useEffect(() => {
     if (!saveFailed) return undefined;
     const timer = setTimeout(() => setSaveFailed(false), 5000);
@@ -957,6 +967,7 @@ export default function StreetScene({
       className="street-scene"
       data-mode={mode}
       data-drawing={drawingCanvasOverlay ? "" : undefined}
+      data-cheering={cheering && !showTour ? "" : undefined}
       ref={sceneRef}
     >
       {/* A row of tiles in repeating sets of three, so the drift loop is
@@ -1045,9 +1056,17 @@ export default function StreetScene({
                         style={{ ...box, transform: t.flip ? "scaleX(-1)" : undefined }}
                       />
 
+                      {/* The tree holding the newest leaf comes up above the
+                         in-front trees (6), so no other tree's leaves cover
+                         it. 7 is the tap boxes' layer, but leaves ignore
+                         taps (pointer-events: none), so they still work. */}
                       <div
                         className={`scatter${t.inFront ? " scatter--front" : ""}`}
-                        style={{ ...box, "--item-w": treeLeafWidth(t) }}
+                        style={{
+                          ...box,
+                          "--item-w": treeLeafWidth(t),
+                          zIndex: t.leaves.some((l) => l.newest) ? 7 : undefined,
+                        }}
                       >
                         {SHOW_LEAF_BOXES &&
                           t.leafBoxes.map((leafBox) => {
@@ -1076,6 +1095,7 @@ export default function StreetScene({
                           <div
                             key={`leaf-${leaf.key}`}
                             data-arrival={isArriving(leaf) ? "" : undefined}
+                            data-landed={isLanded(leaf) ? "" : undefined}
                             className={`scatter-item${LEAF_WIND ? " scatter-item--wind" : ""}${
                               leaf.flip ? " scatter-item--flip" : ""
                             }${isArriving(leaf) ? " scatter-item--arriving" : ""}`}
@@ -1083,6 +1103,8 @@ export default function StreetScene({
                               left: `${leaf.xPct}%`,
                               top: `${leaf.yPct}%`,
                               "--item-rot": `${leaf.rot.toFixed(1)}deg`,
+                              // the newest leaf over every other leaf on its tree
+                              zIndex: leaf.newest ? 1 : undefined,
                               // spread the sway so leaves don't move in lockstep
                               animationDelay: `${-(((leaf.key * 0.53) % 3.4)).toFixed(2)}s`,
                             }}
@@ -1218,10 +1240,10 @@ export default function StreetScene({
               </button>
 
               {/* The kangaroo by the sign — tap it to replay the street
-                 tour. Hidden while the tour runs, since the tour's kangaroo
-                 is the one talking; just scenery (disabled) once Draw
-                 reveals the zone hotspots, like the notice board. */}
-              {!showTour && (
+                 tour. Hidden while the tour or the cheer runs, since that
+                 kangaroo is the one talking; just scenery (disabled) once
+                 Draw reveals the zone hotspots, like the notice board. */}
+              {!showTour && !cheering && (
                 <button
                   type="button"
                   className="street-surprise-button street-kangaroo-button"
@@ -1263,6 +1285,7 @@ export default function StreetScene({
                       <div
                         key={`flower-${item.key}`}
                         data-arrival={isArriving(item) ? "" : undefined}
+                        data-landed={isLanded(item) ? "" : undefined}
                         className={`scatter-item scatter-item--rooted${FLOWER_WIND ? " scatter-item--wind" : ""}${
                           isArriving(item) ? " scatter-item--arriving" : ""
                         }`}
@@ -1270,8 +1293,9 @@ export default function StreetScene({
                           left: `${item.xPct}%`,
                           top: `${item.yPct}%`,
                           "--item-rot": `${item.rot.toFixed(1)}deg`,
-                          // front-row flowers (lower roots) draw over back-row ones
-                          zIndex: Math.round(item.yPct * 10),
+                          // front-row flowers (lower roots) draw over back-row
+                          // ones, but the newest flower is in front of them all
+                          zIndex: item.newest ? NEWEST_FLOWER_Z : Math.round(item.yPct * 10),
                           // spread the sway so flowers don't move in lockstep
                           animationDelay: `${-(((item.key * 0.53) % 3.4)).toFixed(2)}s`,
                         }}
@@ -1347,6 +1371,7 @@ export default function StreetScene({
                   <div
                     key={`character-${item.key}`}
                     data-arrival={isArriving(item) ? "" : undefined}
+                    data-landed={isLanded(item) ? "" : undefined}
                     className={`scatter-item scatter-item--rooted scatter-item--walking${
                       isArriving(item) ? " scatter-item--arriving" : ""
                     }`}
@@ -1479,7 +1504,9 @@ export default function StreetScene({
           onDone={() => {
             setArrival(null);
             playSound("cheer");
-            setCheering(true);
+            // The landed drawing's url, so the kangaroo can find it (true if
+            // it never turned up in the scene: it just cheers mid-screen).
+            setCheering(arrival.thumbUrl ?? true);
           }}
         />
       )}

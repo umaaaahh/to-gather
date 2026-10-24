@@ -301,6 +301,13 @@
   transition-timing-function: ease;
 }
 
+/* Following a drawing that can walk about (the cheer's first bubble): the
+   glide would restart every frame and never get going, so the lit box
+   sticks to it instead. */
+.tour-spotlight[data-follow] {
+  transition-property: opacity;
+}
+
 /* The bubble's left follows the kangaroo along the road, at its pace. */
 .tour-bubble {
   transition-duration: 0.45s, 1.5s, 0.45s, 0.45s, 0.45s;
