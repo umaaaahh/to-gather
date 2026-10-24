@@ -4,6 +4,7 @@ import LoadingLogo from "./LoadingLogo";
 import { addBook, addToBook, setVote, subscribeMyVotes, subscribeShelf } from "../lib/shelfStore";
 import { playSound, useDuckAmbience, usePopupSound } from "../lib/sounds";
 import { prefersReducedMotion } from "../lib/a11y";
+import { hasBadWords, maskBadWords } from "../lib/profanity";
 import "./Bookshelf.css";
 
 // Book details (search, covers, links) come from Google Books. The shelf
@@ -16,6 +17,8 @@ import "./Bookshelf.css";
 // VITE_GOOGLE_BOOKS_KEY.
 const GOOGLE_BOOKS_KEY = import.meta.env.VITE_GOOGLE_BOOKS_KEY || "";
 const REASON_MAX = 140;
+// Shown instead of posting a note with a bad word in it (see lib/profanity.js).
+const BAD_WORDS_MSG = "Let's keep the shelf friendly. Try saying that another way!";
 
 // Only the volume fields toBook reads, to keep responses small.
 const VOLUME_FIELDS =
@@ -49,10 +52,13 @@ const findOnShelf = (books, book) =>
   books.find((b) => b.id === book.id) ||
   books.find((b) => sameBookKey(b) === sameBookKey(book));
 
-const safeCover = (url) =>
-  typeof url === "string" && url.startsWith("https://books.google") ? url : null;
-const safeLink = (url) =>
-  typeof url === "string" && /^https:\/\/(books|play)\.google\./.test(url) ? url : null;
+// The host has to end right after the country part, so
+// books.google.evil.com doesn't pass. Mirrors isGoogleUrl in firestore.rules.
+const isGoogleUrl = (url, hosts) =>
+  typeof url === "string" &&
+  new RegExp(`^https://(${hosts})\\.google\\.(com|com\\.[a-z]{2}|co\\.[a-z]{2}|[a-z]{2})/`).test(url);
+const safeCover = (url) => (isGoogleUrl(url, "books") ? url : null);
+const safeLink = (url) => (isGoogleUrl(url, "books|play") ? url : null);
 
 // Books without a cover get a coloured crayon block with their initial
 const COVER_COLOURS = ["#ef5a4c", "#2f6fd6", "#ffd23f", "#6fd38a", "#c9a4ff", "#ff9f3f"];
@@ -71,13 +77,16 @@ function Cover({ url, alt = "", title = "" }) {
   );
 }
 
+// Titles with bad words are real books, so they're masked rather than
+// blocked — the same masking subscribeShelf applies, so findOnShelf still
+// matches them against the shelf.
 function toBook(item) {
   const v = item.volumeInfo || {};
   const img = v.imageLinks || {};
   return {
     id: item.id,
-    title: (v.title || "Untitled").slice(0, 200),
-    authors: (v.authors || []).join(", ").slice(0, 200),
+    title: maskBadWords((v.title || "Untitled").slice(0, 200)),
+    authors: maskBadWords((v.authors || []).join(", ").slice(0, 200)),
     cover: (img.thumbnail || img.smallThumbnail || "").replace(/^http:/, "https:"),
     link: (v.canonicalVolumeLink || v.infoLink || "").replace(/^http:/, "https:"),
   };
@@ -192,6 +201,11 @@ function Bookshelf({ open }) {
   // onto the existing entry instead of adding a copy.
   async function saveBook(book) {
     const note = reason.trim().slice(0, REASON_MAX);
+    if (hasBadWords(note)) {
+      playSound("oops");
+      setStatus(BAD_WORDS_MSG);
+      return;
+    }
     const onShelf = findOnShelf(books, book);
     const addVote = onShelf && !voted.has(onShelf.id);
 
@@ -232,6 +246,11 @@ function Bookshelf({ open }) {
   async function postNote(bookId, key) {
     const note = (noteDrafts[key] || "").trim().slice(0, REASON_MAX);
     if (!note || postingNote) return;
+    if (hasBadWords(note)) {
+      playSound("oops");
+      setNoteStatus((s) => ({ ...s, [key]: BAD_WORDS_MSG }));
+      return;
+    }
     setPostingNote(key);
     setNoteStatus((s) => ({ ...s, [key]: "" }));
     try {

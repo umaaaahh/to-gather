@@ -15,6 +15,7 @@
 // not at all (firestore.rules rejects one without the other).
 
 import { auth, db } from "./firebase";
+import { maskBadWords } from "./profanity";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import {
   collection,
@@ -80,13 +81,24 @@ function watchBooksAndNotes(bookQuery, noteQuery, onChange, onError) {
 /**
  * Live shelf: calls onChange with every book (most-voted first), each with
  * its notes as `reasons` (oldest first), whenever anything changes.
+ * Bad words in titles, authors and notes come back masked, however they got
+ * in (the app blocks them in notes, but the rules can't); the admin feed
+ * below keeps the raw text for moderating.
  * Returns an unsubscribe function.
  */
 export function subscribeShelf(onChange, onError) {
   return watchBooksAndNotes(
     query(collection(db, BOOKS), orderBy("votes", "desc"), limit(BOOK_LIMIT)),
     query(collection(db, NOTES), orderBy("createdAt", "asc"), limit(NOTE_LIMIT)),
-    (books) => onChange(books.map(({ notes, ...b }) => ({ ...b, reasons: notes.map((n) => n.text) }))),
+    (books) =>
+      onChange(
+        books.map(({ notes, ...b }) => ({
+          ...b,
+          title: maskBadWords(b.title),
+          authors: maskBadWords(b.authors),
+          reasons: notes.map((n) => maskBadWords(n.text)),
+        })),
+      ),
     onError,
   );
 }
