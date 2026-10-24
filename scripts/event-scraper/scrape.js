@@ -17,7 +17,7 @@ import * as cheerio from 'cheerio';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TZ = 'Australia/Melbourne';
-const COLS = ['id', 'title', 'date', 'start_time', 'end_time', 'location', 'genre', 'description', 'link', 'link_label', 'address'];
+const COLS = ['id', 'title', 'date', 'start_time', 'end_time', 'location', 'genre', 'description', 'link', 'link_label', 'address', 'image'];
 const GENRES = ['Music', 'Comedy', 'Theatre & Cabaret', 'Food & Drink', 'Games & Play', 'Arts & Making', 'Talks & Community'];
 
 // ---------- args ----------
@@ -237,6 +237,8 @@ function fromJsonLd($, pageUrl) {
       types: [].concat(e['@type'] || []),
       location: typeof loc === 'string' ? loc : clean(loc.name),
       address: typeof addr === 'string' ? clean(addr) : clean([addr?.streetAddress, addr?.addressLocality].filter(Boolean).join(', ')),
+      // image can be a URL, an ImageObject, or a list of either
+      image: absolute([].concat(e.image || []).map((i) => (typeof i === 'string' ? i : i?.url || i?.contentUrl)).find(Boolean), pageUrl),
     };
   });
 }
@@ -382,6 +384,9 @@ function readEventPage(html, ev, v) {
       if (parts.length && parts[0].length <= 80 && !/image credit|courtesy/i.test(parts[0])) { ev.location = parts[0]; ev.address = ev.address || parts.slice(1, 3).join(', '); return false; }
     });
   }
+  // The share image venues publish for links, used as the card's thumbnail
+  const ogImage = $('meta[property="og:image"]').attr('content') || $('meta[name="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content');
+  ev.image = absolute(clean(ogImage), ev.link) || ld?.image || ev.image || '';
   const og = clean($('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content'));
   if (og && (!ev.description || ev.description.length < 40)) ev.description = og;
   ev.pageText = text.slice(0, 3000);
@@ -471,6 +476,7 @@ function recurringEvents(v) {
         types: [],
         genre: r.genre,
         link_label: r.link_label,
+        image: r.image || v.image,
       });
     }
   }
@@ -510,6 +516,7 @@ function toRow(e, v) {
     link,
     link_label: link ? (e.link_label || v.link_label || 'More info') : '',
     address,
+    image: e.image || '',
   };
   if (v.filter) {
     const hay = [row.title, row.description, row.location, row.address, e.pageText].join(' ');

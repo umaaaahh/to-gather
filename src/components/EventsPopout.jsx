@@ -19,6 +19,19 @@ import "./EventsPopout.css";
 // Most genre dots a calendar day shows.
 const MAX_DOTS = 4;
 
+// Which "Coming up" section a date falls in: Today, Tomorrow, the rest of
+// this week (to Sunday), next week, then one section per month.
+function sectionFor(date, today) {
+  const days = Math.round((startOfDay(date) - today) / 864e5);
+  const toSunday = (7 - today.getDay()) % 7;
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days <= toSunday) return "Later this week";
+  if (days <= toSunday + 7) return "Next week";
+  const month = MONTH_NAMES[date.getMonth()];
+  return date.getFullYear() === today.getFullYear() ? month : `${month} ${date.getFullYear()}`;
+}
+
 const mapsLink = (address) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
@@ -99,6 +112,15 @@ export default function EventsPopout({ initial, onClose }) {
   const items = day
     ? daySessions.map((e) => ({ session: e, show: showsByKey.get(e.showId) ?? { ...e, sessions: [] } }))
     : shows.map((s) => ({ session: s.sessions[0], show: s }));
+  // A picked day is one unlabelled section; otherwise split by when it's on.
+  // Shows are already soonest first, so sections come out in order.
+  const sections = [];
+  for (const item of items) {
+    const label = day ? null : sectionFor(item.session.date, today);
+    const last = sections[sections.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else sections.push({ label, items: [item] });
+  }
 
   let heading;
   if (day) heading = shortDate(day);
@@ -211,96 +233,116 @@ export default function EventsPopout({ initial, onClose }) {
               </p>
             )}
 
-            <ul className="ep-list">
-              {items.map(({ session, show }) => {
-                const expanded = openKey === session.showId;
-                const nextDates = show.sessions.filter((s) => s.id !== session.id && isUpcoming(s, now));
-                return (
-                  <li
-                    key={session.id}
-                    className="ep-card"
-                    data-key={session.showId}
-                    data-open={expanded ? "" : undefined}
-                    style={{ "--genre": genreColor(session.genre) }}
-                  >
-                    <button
-                      type="button"
-                      className="ep-card-head"
-                      aria-expanded={expanded}
-                      onClick={() => toggle(session.showId)}
-                    >
-                      <span className="ep-card-date">
-                        {day ? (
-                          <span className="ep-card-time">{session.startLabel}</span>
-                        ) : (
-                          <>
-                            <span className="ep-card-day">{session.date.getDate()}</span>
-                            <span className="ep-card-month">
-                              {MONTH_NAMES[session.date.getMonth()].slice(0, 3)}
-                            </span>
-                          </>
-                        )}
-                      </span>
-                      <span className="ep-card-main">
-                        {!genre && <span className="ep-card-genre">{session.genre}</span>}
-                        <span className="ep-card-title">{session.title}</span>
-                        <span className="ep-card-meta">
-                          {day ? session.timeLabel : `${DAY_NAMES[session.date.getDay()]} ${session.timeLabel}`}
-                          {" · "}
-                          {session.location}
-                        </span>
-                        {!day && show.sessions.length > 1 && (
-                          <span className="ep-card-more">
-                            +{show.sessions.length - 1} more date{show.sessions.length > 2 ? "s" : ""}
+            {sections.map(({ label, items: sectionItems }) => (
+              <section key={label ?? "day"} className="ep-section" aria-label={label ?? undefined}>
+                {label && <h4 className="ep-section-title">{label}</h4>}
+                <ul className="ep-list">
+                  {sectionItems.map(({ session, show }) => {
+                    const expanded = openKey === session.showId;
+                    const nextDates = show.sessions.filter((s) => s.id !== session.id && isUpcoming(s, now));
+                    return (
+                      <li
+                        key={session.id}
+                        className="ep-card"
+                        data-key={session.showId}
+                        data-open={expanded ? "" : undefined}
+                        style={{ "--genre": genreColor(session.genre) }}
+                      >
+                        <button
+                          type="button"
+                          className="ep-card-head"
+                          aria-expanded={expanded}
+                          onClick={() => toggle(session.showId)}
+                        >
+                          <span className="ep-card-date">
+                            {day ? (
+                              <span className="ep-card-time">{session.startLabel}</span>
+                            ) : (
+                              <>
+                                <span className="ep-card-day">{session.date.getDate()}</span>
+                                <span className="ep-card-month">
+                                  {MONTH_NAMES[session.date.getMonth()].slice(0, 3)}
+                                </span>
+                              </>
+                            )}
                           </span>
-                        )}
-                      </span>
-                    </button>
-
-                    {expanded && (
-                      <div className="ep-card-detail">
-                        {show.description && <p className="ep-card-desc">{show.description}</p>}
-                        {session.address && (
-                          <a
-                            className="ep-card-address"
-                            href={mapsLink(session.address)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {session.address}
-                          </a>
-                        )}
-                        {nextDates.length > 0 && (
-                          <div className="ep-card-dates">
-                            <span className="ep-card-dates-label">
-                              {day ? "Also on" : "Other dates"}
+                          <span className="ep-card-main">
+                            {!genre && <span className="ep-card-genre">{session.genre}</span>}
+                            <span className="ep-card-title">{session.title}</span>
+                            <span className="ep-card-meta">
+                              {day ? session.timeLabel : `${DAY_NAMES[session.date.getDay()]} ${session.timeLabel}`}
+                              {" · "}
+                              {session.location}
                             </span>
-                            <ul>
-                              {nextDates.slice(0, 8).map((s) => (
-                                <li key={s.id}>
-                                  {shortDate(s.date)}, {s.startLabel}
-                                </li>
-                              ))}
-                              {nextDates.length > 8 && <li>+{nextDates.length - 8} more</li>}
-                            </ul>
+                            {!day && show.sessions.length > 1 && (
+                              <span className="ep-card-more">
+                                +{show.sessions.length - 1} more date{show.sessions.length > 2 ? "s" : ""}
+                              </span>
+                            )}
+                          </span>
+                          {(session.image || show.image) && (
+                            // The venue's own share image, linked from their site. A dead
+                            // link just hides itself and the card closes up.
+                            <img
+                              className="ep-card-thumb"
+                              src={session.image || show.image}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                e.currentTarget.hidden = true;
+                              }}
+                            />
+                          )}
+                        </button>
+
+                        {expanded && (
+                          <div className="ep-card-detail">
+                            {show.description && <p className="ep-card-desc">{show.description}</p>}
+                            {session.address && (
+                              <a
+                                className="ep-card-address"
+                                href={mapsLink(session.address)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {session.address}
+                              </a>
+                            )}
+                            {nextDates.length > 0 && (
+                              <div className="ep-card-dates">
+                                <span className="ep-card-dates-label">
+                                  {day ? "Also on" : "Other dates"}
+                                </span>
+                                <ul>
+                                  {nextDates.slice(0, 8).map((s) => (
+                                    <li key={s.id}>
+                                      {shortDate(s.date)}, {s.startLabel}
+                                    </li>
+                                  ))}
+                                  {nextDates.length > 8 && <li>+{nextDates.length - 8} more</li>}
+                                </ul>
+                              </div>
+                            )}
+                            {session.link && (
+                              <a
+                                className="ep-card-link"
+                                href={session.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {session.linkLabel} ↗
+                              </a>
+                            )}
                           </div>
                         )}
-                        {session.link && (
-                          <a
-                            className="ep-card-link"
-                            href={session.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {session.linkLabel} ↗
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
           </div>
         </div>
       </div>

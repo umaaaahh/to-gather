@@ -193,6 +193,19 @@
   color: var(--ui-muted);
 }
 
+/* "Today", "Next week", "November"… */
+.ep-section + .ep-section {
+  margin-top: 1rem;
+}
+
+.ep-section-title {
+  margin: 0 0.1rem 0.4rem;
+  font-family: var(--ui-font);
+  font-size: calc(1.1rem * var(--text-scale));
+  font-weight: 700;
+  color: var(--ui-ink);
+}
+
 .ep-list {
   display: flex;
   flex-direction: column;
@@ -236,8 +249,9 @@
   justify-content: center;
   width: 3rem;
   border-radius: 8px;
-  background: var(--genre, var(--ui-orange-ink));
-  color: #fdf3e3;
+  /* Same for every card: colour means genre, and the date isn't one */
+  background: var(--ui-orange-soft);
+  color: var(--ui-orange-ink);
 }
 
 .ep-card-day {
@@ -284,6 +298,22 @@
 .ep-card-meta {
   font-size: calc(0.75rem * var(--text-scale));
   color: var(--ui-muted);
+}
+
+/* Venue's share image, cropped square. Decorative: the title says what it is. */
+.ep-card-thumb {
+  flex: none;
+  align-self: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border: 2px solid var(--ui-ink);
+  border-radius: 8px;
+  background: var(--ui-paper-soft);
+  object-fit: cover;
+}
+
+.ep-card-thumb[hidden] {
+  display: none;
 }
 
 .ep-card-more {

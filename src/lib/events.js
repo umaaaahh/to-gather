@@ -1,7 +1,7 @@
 // Events for the notice board, read from src/data/events.csv (exported from
 // the events spreadsheet — replace the file to update the listings).
 // Columns: id,title,date,start_time,end_time,location,genre,description,
-// link,link_label,address.
+// link,link_label,address,image (a thumbnail URL; the scraper fills it in).
 import csv from "../data/events.csv?raw";
 
 export const MONTH_NAMES = [
@@ -130,6 +130,7 @@ function toEvent(r) {
     description: r.description,
     link: cleanLink(r.link),
     linkLabel: r.link_label || "More info",
+    image: r.image || "",
     // Repeat sessions of the same show share a key.
     showId: `${r.title}|${r.location}`,
   };
