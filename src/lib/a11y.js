@@ -5,6 +5,8 @@ import { useSyncExternalStore } from "react";
 //   data-text="md|lg|xl"   text size (--text-scale in popup.css)
 //   data-motion="reduced"  reduce motion (only when reduced)
 //   data-sound="off"       no sound effects (lib/sounds.js)
+//   data-sound-volume="50" sound effects volume, 0–100 (lib/sounds.js; no
+//                          visual effect, so index.html doesn't mirror it)
 //   data-music="off"       no background music under the street (lib/sounds.js);
 //                          the radio is separate from both
 //   data-music-volume="50" background music volume, 0–100 (lib/sounds.js; no
@@ -24,6 +26,7 @@ export const DEFAULTS = {
   text: "md",
   motion: null,
   sound: true,
+  soundVolume: 50, // half the cues' mix in sounds.js
   music: true,
   musicVolume: 50,
   contrast: false,
@@ -59,6 +62,7 @@ function apply(s) {
   set("text", s.text);
   set("motion", motionReduced(s) && "reduced");
   set("sound", !s.sound && "off");
+  root.dataset.soundVolume = String(s.soundVolume); // set() would drop a 0
   set("music", !s.music && "off");
   root.dataset.musicVolume = String(s.musicVolume); // set() would drop a 0
   set("contrast", s.contrast && "high");
@@ -106,8 +110,12 @@ export function useA11ySettings() {
 export const prefersReducedMotion = () => document.documentElement.dataset.motion === "reduced";
 export const soundOn = () => document.documentElement.dataset.sound !== "off";
 export const musicOn = () => document.documentElement.dataset.music !== "off";
-/** The music volume setting, 0–1. */
-export const musicVolume = () => {
-  const v = Number(document.documentElement.dataset.musicVolume);
-  return Number.isFinite(v) ? Math.min(Math.max(v, 0), 100) / 100 : DEFAULTS.musicVolume / 100;
+// A 0–100 volume attribute on <html> as 0–1, or the default if it's missing.
+const volumeSetting = (attr, fallback) => {
+  const v = Number(document.documentElement.dataset[attr]);
+  return Number.isFinite(v) ? Math.min(Math.max(v, 0), 100) / 100 : fallback / 100;
 };
+/** The music volume setting, 0–1. */
+export const musicVolume = () => volumeSetting("musicVolume", DEFAULTS.musicVolume);
+/** The sound effects volume setting, 0–1. */
+export const soundVolume = () => volumeSetting("soundVolume", DEFAULTS.soundVolume);

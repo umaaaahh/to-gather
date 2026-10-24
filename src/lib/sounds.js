@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { musicOn, musicVolume, soundOn } from "./a11y";
+import { musicOn, musicVolume, soundOn, soundVolume } from "./a11y";
 import { ASSETS } from "./assets";
 
 // Every sound the site plays, wired through here so the Settings menu's
@@ -76,6 +76,9 @@ const VOLUME = 0.5;
 const AMBIENCE_VOLUME_MAX = 0.1;
 // Cues that sit louder or quieter than VOLUME (0–1).
 const CUE_VOLUME = { click: 0.8, hop: 0.045, tuning: 0.3, noticeBoard: 0.25 };
+// A cue's level right now: its mix above, scaled by the Settings menu's
+// Sound effects volume (100% plays it as mixed; the default 50% at half).
+const cueLevel = (name, base = CUE_VOLUME[name] ?? VOLUME) => base * soundVolume();
 // Cues cut off after this many ms, for files that run longer than the moment
 // they go with. These also skip preloading the whole file, so a long one
 // isn't downloaded up front. None need it right now.
@@ -174,7 +177,7 @@ function playBuffer(name) {
   const source = ctx.createBufferSource();
   source.buffer = buf;
   const gain = ctx.createGain();
-  gain.gain.value = CUE_VOLUME[name] ?? VOLUME;
+  gain.gain.value = cueLevel(name);
   source.connect(gain).connect(ctx.destination);
   source.start(0, (CUE_START_MS[name] ?? 0) / 1000);
   const maxMs = CUE_MAX_MS[name];
@@ -189,6 +192,7 @@ export function playSound(name) {
   const pool = poolFor(name);
   const el = pool.els[pool.next];
   pool.next = (pool.next + 1) % pool.els.length;
+  el.volume = cueLevel(name); // set per play: the pool outlives slider changes
   el.currentTime = (CUE_START_MS[name] ?? 0) / 1000;
   const maxMs = CUE_MAX_MS[name];
   if (maxMs) {
@@ -224,7 +228,7 @@ export function usePopupSound(open, name = "popupOpen") {
  */
 export function startLoop(name, volume = CUE_VOLUME[name] ?? VOLUME) {
   if (!hasSound(name) || !soundOn()) return () => {};
-  const el = makeEl(SFX[name], volume);
+  const el = makeEl(SFX[name], cueLevel(name, volume));
   el.loop = true;
   tryPlay(el);
   return () => {

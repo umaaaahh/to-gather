@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { motionReduced, resetSettings, setSetting, useA11ySettings } from "../lib/a11y";
+import { playSound } from "../lib/sounds";
 import "./AccessMenu.css";
 
 const TEXT_SIZES = [
@@ -109,6 +110,14 @@ export default function AccessMenu() {
           checked={settings.sound}
           onChange={(on) => setSetting("sound", on)}
         />
+        <SliderRow
+          label="Effects volume"
+          value={settings.soundVolume}
+          disabled={!settings.sound}
+          onChange={(v) => setSetting("soundVolume", v)}
+          // A pop at the new level once the drag ends, so you can hear it.
+          onCommit={() => playSound("click")}
+        />
         <SwitchRow
           label="Background music"
           checked={settings.music}
@@ -163,9 +172,10 @@ function PxSwitch({ labelledBy, checked, onChange }) {
   );
 }
 
-// .px-slider: a 0–100 range (the music volume) drawn like the switches — a
-// pixel track that fills blue up to a square knob.
-function SliderRow({ label, value, disabled, onChange }) {
+// .px-slider: a 0–100 range (the volumes) drawn like the switches — a
+// pixel track that fills blue up to a square knob. onCommit runs when a
+// drag or a key press is done, not on every step.
+function SliderRow({ label, value, disabled, onChange, onCommit }) {
   const id = useId();
   return (
     <div className="access-row">
@@ -184,6 +194,9 @@ function SliderRow({ label, value, disabled, onChange }) {
         aria-valuetext={`${value}%`}
         style={{ "--fill": `${value}%` }}
         onChange={(e) => onChange(Number(e.target.value))}
+        onPointerUp={onCommit}
+        // Only the keys that move it, not Tab passing through
+        onKeyUp={(e) => /^(Arrow|Page|Home|End)/.test(e.key) && onCommit?.()}
       />
     </div>
   );

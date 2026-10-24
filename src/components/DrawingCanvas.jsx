@@ -429,7 +429,7 @@ function ConfirmPopup({ title, text, action, sfx, onKeep, onConfirm }) {
           <button type="button" className="dc-btn" ref={keepRef} onClick={onKeep}>
             Keep drawing
           </button>
-          <button type="button" className="px-btn" onClick={onConfirm} data-sfx={sfx}>
+          <button type="button" className="dc-btn dc-confirm-go" onClick={onConfirm} data-sfx={sfx}>
             {action}
           </button>
         </div>

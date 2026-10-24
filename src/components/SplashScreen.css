@@ -67,8 +67,33 @@
   color: var(--ui-orange-ink);
 }
 
-.splash-country .px-btn {
+/* Continue: hand-drawn rather than pixel, like the rest of this card (and
+   the drawing canvas's Clear / Leave). */
+.splash-continue {
   margin-top: 0.4rem;
+  min-height: 44px;
+  padding: 0.35rem 1.6rem;
+  border: 2.5px solid var(--ui-ink);
+  border-radius: var(--ui-btn-radius);
+  background: var(--ui-orange);
+  color: #fff;
+  font-family: var(--ui-font);
+  font-size: calc(1.4rem * var(--text-scale));
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--ui-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.splash-continue:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--ui-ink);
+}
+
+.splash-continue:focus-visible {
+  outline: 3px solid var(--ui-blue);
+  outline-offset: 2px;
 }
 
 /* Reduced motion: the OS setting or the accessibility menu (see

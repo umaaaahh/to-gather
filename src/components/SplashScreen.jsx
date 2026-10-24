@@ -92,7 +92,7 @@ export default function SplashScreen({ onDone }) {
           Strait Islander people here today.
         </p>
         <p className="splash-country-always">Always was, always will be, Aboriginal land.</p>
-        <button type="button" className="px-btn" onClick={finish} data-sfx="welcome">
+        <button type="button" className="splash-continue" onClick={finish} data-sfx="welcome">
           Continue
         </button>
       </section>

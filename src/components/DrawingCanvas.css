@@ -227,13 +227,15 @@
   min-width: 0;
 }
 
-.dc-confirm-actions .px-btn {
-  --u: 3px;
-  white-space: nowrap;
+/* Clear / Leave: the same hand-drawn button as "Keep drawing", filled
+   orange so it reads as the action. */
+.dc-confirm-actions .dc-confirm-go {
+  background: var(--ui-orange);
+  color: #fff;
 }
 
-/* "Keep drawing" wraps onto two lines on the narrowest phones rather than
-   being clipped (.dc-btn is nowrap + overflow hidden for the toolbar). */
+/* Both wrap onto two lines on the narrowest phones rather than being
+   clipped (.dc-btn is nowrap + overflow hidden for the toolbar). */
 .dc-confirm-actions .dc-btn {
   align-self: stretch;
   white-space: normal;
