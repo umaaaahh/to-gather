@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "../lib/a11y";
 import { ASSETS } from "../lib/assets";
-import { playSound } from "../lib/sounds";
+import { playSound, warmSound } from "../lib/sounds";
 // Alpha-only silhouette of the notice board art, bundled so it's same-origin:
 // a CSS mask-image needs CORS, which the asset bucket doesn't send.
 import noticeBoardMask from "../assets/notice-board-mask.png";
@@ -21,6 +21,11 @@ const SCROLL_DONE_PX = 60;
 // Pause between doing a step and the next bubble, so the user sees their
 // swipe/tap land first.
 const ADVANCE_MS = 700;
+// Hopping between spots along the road (a step's kangarooAt). Must match
+// the left transition and tour-hops-move in StreetTour.css.
+const MOVE_MS = 1500;
+// Gap (px) the kangaroo, and a targetAt target, keep from the screen edges.
+const EDGE_GAP = 12;
 
 // Each step spotlights the first selector that matches something in the
 // scene. padTop stretches the spotlight
@@ -33,6 +38,10 @@ const ADVANCE_MS = 700;
 // itself: "scroll" = the street gets panned, a selector = that gets tapped.
 // look: true makes a step look-only (the spotlight is blocked too), for
 // things that would leave the street and cut the tour short if tapped.
+// kangarooAt: "right" hops the kangaroo along the road to the right of the
+// screen, instead of mid-screen. targetAt: "left" always pans the street so
+// the target sits at the left of the screen, wherever it was left — the two
+// together keep the kangaroo's bubble clear of what it's pointing out.
 const TOUR_STEPS = [
   {
     text: "Welcome to To Gather, Cardigan Street's digital fun hub! Doodle, explore and see what's on. Scroll along the street to start.",
@@ -43,6 +52,8 @@ const TOUR_STEPS = [
     text: "Hidden details are everywhere! Find community radio to listen to while you draw, or book picks from other users.",
     target: [".window-boombox", ".window-books"],
     look: true,
+    kangarooAt: "right",
+    targetAt: "left",
   },
   {
     text: "Ready to draw? Tap the sun, then pick a drawing zone!",
@@ -116,8 +127,59 @@ function measureTourLayout(scene, step) {
     }
   }
 
-  return { spot, board, kangarooBottom: sceneBox.height - feetY };
+  // Where along the road the kangaroo stands (its centre, px from the
+  // frame's left): mid-screen, or at the right (kangarooAt).
+  const kangarooW = scene.querySelector(".tour-kangaroo")?.offsetWidth ?? 0;
+  const edge = kangarooW / 2 + EDGE_GAP;
+  const kangarooX = step.kangarooAt === "right" ? sceneBox.width - edge : sceneBox.width / 2;
+
+  // The bubble follows the kangaroo but stays on screen; its tail makes up
+  // the difference, so it still points at the kangaroo's head.
+  const guideEl = scene.querySelector(".tour-guide");
+  const bubbleEl = scene.querySelector(".tour-bubble");
+  const guideW = guideEl?.clientWidth ?? 0;
+  const bubbleW = bubbleEl?.offsetWidth ?? 0;
+  const dx = kangarooX - sceneBox.width / 2;
+  const maxShift = Math.max((guideW - bubbleW) / 2, 0);
+  const bubbleShift = clamp(dx, -maxShift, maxShift);
+  const maxTail = Math.max(bubbleW / 2 - 24, 0);
+  const tailShift = clamp(dx - bubbleShift, -maxTail, maxTail);
+
+  // On a targetAt step, if the bubble would still cover the target (a
+  // narrow or short screen), it rises until it sits above it — but no
+  // higher than just under the Skip button. Measured from where the bubble
+  // sits before it's lifted: the top of the guide, which the lift (a
+  // relative `top`) doesn't move.
+  let bubbleLift = 0;
+  if (step.targetAt && spot && guideEl && bubbleEl) {
+    const top = guideEl.getBoundingClientRect().top - sceneBox.top;
+    const bottom = top + bubbleEl.offsetHeight;
+    const left = guideEl.getBoundingClientRect().left - sceneBox.left + maxShift + bubbleShift;
+    const right = left + bubbleW;
+    const covers =
+      left < spot.left + spot.width &&
+      right > spot.left &&
+      top < spot.top + spot.height &&
+      bottom > spot.top;
+    if (covers) {
+      const skip = scene.querySelector(".tour-skip")?.getBoundingClientRect();
+      const ceiling = (skip ? skip.bottom - sceneBox.top : 0) + EDGE_GAP;
+      bubbleLift = clamp(bottom - spot.top + EDGE_GAP, 0, Math.max(top - ceiling, 0));
+    }
+  }
+
+  return {
+    spot,
+    board,
+    kangarooBottom: sceneBox.height - feetY,
+    kangarooX: Math.round(kangarooX),
+    bubbleShift: Math.round(bubbleShift),
+    bubbleLift: Math.round(bubbleLift),
+    tailShift: Math.round(tailShift),
+  };
 }
+
+const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 
 // The board stands at the front of the street, so the kangaroo should hop
 // behind it — but the kangaroo lives up in the tour overlay, above the whole
@@ -165,6 +227,12 @@ export default function StreetTour({
   const [dir, setDir] = useState("enter");
   const [leaving, setLeaving] = useState(false);
   const [layout, setLayout] = useState(null);
+  // Hopping between spots along the road (see kangarooAt).
+  const [moving, setMoving] = useState(false);
+  const movingRef = useRef(false);
+  movingRef.current = moving;
+  const moveTimer = useRef(null);
+  useEffect(() => () => clearTimeout(moveTimer.current), []);
   const swipeStartX = useRef(null);
 
   const current = steps[step];
@@ -187,7 +255,8 @@ export default function StreetTour({
 
   // Pan the street to the target if none of it is on screen. (Only then —
   // the whole-street target of step 1 is never "centred", and the first
-  // tree hangs off the start of the street, so it can't be.)
+  // tree hangs off the start of the street, so it can't be.) A targetAt
+  // step always pans, to put the target at that side of the screen.
   useEffect(() => {
     const scene = sceneRef.current;
     const el = scene && findTarget(scene, current.target);
@@ -195,11 +264,15 @@ export default function StreetTour({
     if (!scroller) return;
     const view = scroller.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    if (r.right > view.left && r.left < view.right) return;
-    scroller.scrollBy({
-      left: r.left + r.width / 2 - (view.left + view.width / 2),
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-    });
+    let left;
+    if (current.targetAt === "left") {
+      left = r.left - (view.left + EDGE_GAP + SPOT_PAD);
+      if (Math.abs(left) < 2) return;
+    } else {
+      if (r.right > view.left && r.left < view.right) return;
+      left = r.left + r.width / 2 - (view.left + view.width / 2);
+    }
+    scroller.scrollBy({ left, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, [sceneRef, current]);
 
   // Move on once the user actually does a step. A tap can also finish a
@@ -252,13 +325,12 @@ export default function StreetTour({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The kangaroo's hop in, as it arrives.
-  useEffect(() => playSound("hopIn"), []);
+  // The hop starts straight away — get its sound loading now.
+  useEffect(() => warmSound("hop"), []);
 
   // Kangaroo hops back off, then the tour unmounts.
   useEffect(() => {
     if (!leaving) return undefined;
-    playSound("hopOut");
     const timer = setTimeout(onDone, prefersReducedMotion() ? 0 : LEAVE_MS);
     return () => clearTimeout(timer);
   }, [leaving, onDone]);
@@ -268,6 +340,12 @@ export default function StreetTour({
     setDir(i > step ? "next" : "prev");
     setStep(i);
     playSound("bubble");
+    // Off to (or back from) another spot on the road: hop the way there.
+    if (steps[i].kangarooAt !== current.kangarooAt) {
+      setMoving(true);
+      clearTimeout(moveTimer.current);
+      moveTimer.current = setTimeout(() => setMoving(false), MOVE_MS);
+    }
   }
 
   const finish = () => setLeaving(true);
@@ -284,6 +362,18 @@ export default function StreetTour({
 
   function onPointerDown(e) {
     swipeStartX.current = e.clientX;
+  }
+
+  // A jump sound as each hop starts — hopping in, the small hops while it
+  // stands about, hopping along the road, and hopping off. Each of these
+  // animations starts, then iterates, once per hop. A small hop that comes
+  // round mid-move is hidden under the move's hops, so it stays quiet.
+  // (Reduced motion turns the hops off, so they stay quiet too.)
+  const HOP_ANIMATIONS = ["tour-hops", "tour-idle", "tour-hops-move", "tour-hops-off"];
+  function onHop(e) {
+    if (!HOP_ANIMATIONS.includes(e.animationName)) return;
+    if (e.animationName === "tour-idle" && movingRef.current) return;
+    playSound("hop");
   }
 
   function onPointerUp(e) {
@@ -343,12 +433,18 @@ export default function StreetTour({
 
       {layout && (
         <div className="tour-kangaroo-layer" style={behindBoardMask(layout.board)}>
-          <div className="tour-kangaroo" style={{ bottom: layout.kangarooBottom }}>
+          <div
+            className="tour-kangaroo"
+            data-moving={moving || undefined}
+            style={{ bottom: layout.kangarooBottom, "--kangaroo-x": `${layout.kangarooX}px` }}
+          >
             <img
               className="tour-kangaroo-img"
               src={ASSETS.kangaroo}
               alt=""
               draggable="false"
+              onAnimationStart={onHop}
+              onAnimationIteration={onHop}
             />
           </div>
         </div>
@@ -357,7 +453,17 @@ export default function StreetTour({
       {layout && (
         <div className="tour-guide" style={{ bottom: layout.kangarooBottom }}>
           {/* Keyed on the step so each new bubble remounts and animates in. */}
-          <div key={step} className="tour-bubble" data-dir={dir} aria-live="polite">
+          <div
+            key={step}
+            className="tour-bubble"
+            data-dir={dir}
+            aria-live="polite"
+            style={{
+              left: layout.bubbleShift,
+              top: -layout.bubbleLift,
+              "--tail-dx": `${layout.tailShift}px`,
+            }}
+          >
             <p className="tour-step">{current.text}</p>
 
             <div className="tour-nav">

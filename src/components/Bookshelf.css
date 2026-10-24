@@ -373,6 +373,26 @@
   line-height: 1.2;
 }
 
+/* The "add your note" box at the bottom of a book's opened notes. */
+.shelf-add-note {
+  margin-top: 4px;
+}
+
+.shelf-add-note .shelf-input {
+  font-size: calc(0.95rem * var(--text-scale));
+  padding: 8px 12px;
+}
+
+.shelf-add-note .shelf-confirm-actions {
+  margin-top: 8px;
+}
+
+.shelf-note-status {
+  font-family: var(--ui-font);
+  font-weight: 700;
+  font-size: calc(0.95rem * var(--text-scale));
+}
+
 .shelf-empty {
   padding: 28px;
   text-align: center;

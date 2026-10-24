@@ -100,6 +100,11 @@ function Bookshelf() {
   const [picked, setPicked] = useState(null);
   const [reason, setReason] = useState("");
   const [status, setStatus] = useState("");
+  // Notes being written on books already on the shelf, keyed like openNotes,
+  // plus the one being posted and any per-book message.
+  const [noteDrafts, setNoteDrafts] = useState({});
+  const [postingNote, setPostingNote] = useState(null);
+  const [noteStatus, setNoteStatus] = useState({});
   const reasonRef = useRef(null);
   const books = shelfBooks || [];
 
@@ -197,6 +202,24 @@ function Bookshelf() {
       if (!next.delete(id)) next.add(id);
       return next;
     });
+  }
+
+  // Post a note on a book already on the shelf, from its opened notes.
+  async function postNote(bookId, key) {
+    const note = (noteDrafts[key] || "").trim().slice(0, REASON_MAX);
+    if (!note || postingNote) return;
+    setPostingNote(key);
+    setNoteStatus((s) => ({ ...s, [key]: "" }));
+    try {
+      await addToBook(bookId, { note });
+      setNoteDrafts((d) => ({ ...d, [key]: "" }));
+      setNoteStatus((s) => ({ ...s, [key]: "Thanks! Your note is on the shelf." }));
+    } catch (err) {
+      console.warn("Shelf note failed:", err);
+      setNoteStatus((s) => ({ ...s, [key]: "That didn't save. Try again in a moment." }));
+    } finally {
+      setPostingNote(null);
+    }
   }
 
   // Add or remove this visitor's vote
@@ -400,23 +423,26 @@ function Bookshelf() {
           <div className="shelf-author">{book.authors || "Unknown author"}</div>
         </div>
         <div className="shelf-actions">
-          {book.reasons.length > 0 && (
-            <button
-              className={`shelf-crayon shelf-tally shelf-notes-btn${notesOpen ? " voted" : ""}`}
-              type="button"
-              aria-expanded={notesOpen}
-              aria-controls={`shelf-notes-${list}-${book.id}`}
-              aria-label={`${notesOpen ? "Hide" : "Show"} ${book.reasons.length} notes about ${book.title}`}
-              onClick={() => toggleNotes(notesKey)}
-            >
-              <svg className="shelf-bubble" viewBox="0 0 24 22" aria-hidden="true">
-                <path d="M4 2.5h16a2.5 2.5 0 0 1 2.5 2.5v9a2.5 2.5 0 0 1-2.5 2.5H10l-5 4v-4H4A2.5 2.5 0 0 1 1.5 14V5A2.5 2.5 0 0 1 4 2.5z" />
-              </svg>
-              <span className="num" aria-hidden="true">
-                {book.reasons.length}
-              </span>
-            </button>
-          )}
+          {/* Always there: shows the notes, and the box to add one. */}
+          <button
+            className={`shelf-crayon shelf-tally shelf-notes-btn${notesOpen ? " voted" : ""}`}
+            type="button"
+            aria-expanded={notesOpen}
+            aria-controls={`shelf-notes-${list}-${book.id}`}
+            aria-label={
+              book.reasons.length
+                ? `${notesOpen ? "Hide" : "Show"} ${book.reasons.length} notes about ${book.title}`
+                : `${notesOpen ? "Close" : "Add"} a note about ${book.title}`
+            }
+            onClick={() => toggleNotes(notesKey)}
+          >
+            <svg className="shelf-bubble" viewBox="0 0 24 22" aria-hidden="true">
+              <path d="M4 2.5h16a2.5 2.5 0 0 1 2.5 2.5v9a2.5 2.5 0 0 1-2.5 2.5H10l-5 4v-4H4A2.5 2.5 0 0 1 1.5 14V5A2.5 2.5 0 0 1 4 2.5z" />
+            </svg>
+            <span className="num" aria-hidden="true">
+              {book.reasons.length || "+"}
+            </span>
+          </button>
           <button
             className={`shelf-crayon shelf-tally shelf-vote${isVoted ? " voted" : ""}`}
             type="button"
@@ -439,6 +465,41 @@ function Bookshelf() {
                 “{r}”
               </p>
             ))}
+            <form
+              className="shelf-add-note"
+              onSubmit={(e) => {
+                e.preventDefault();
+                postNote(book.id, notesKey);
+              }}
+            >
+              <input
+                className="shelf-input"
+                type="text"
+                maxLength={REASON_MAX}
+                aria-label={`Your note about ${book.title}`}
+                placeholder={book.reasons.length ? "Add your note..." : "Be the first to say why it's good..."}
+                value={noteDrafts[notesKey] || ""}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  setNoteDrafts((d) => ({ ...d, [notesKey]: text }));
+                }}
+              />
+              <div className="shelf-confirm-actions">
+                <button
+                  className="shelf-crayon"
+                  type="submit"
+                  disabled={postingNote === notesKey || !(noteDrafts[notesKey] || "").trim()}
+                >
+                  {postingNote === notesKey ? "Posting..." : "Post note"}
+                </button>
+                <span className="shelf-note-status" role="status">
+                  {noteStatus[notesKey]}
+                </span>
+                <span className="shelf-counter">
+                  {(noteDrafts[notesKey] || "").length}/{REASON_MAX}
+                </span>
+              </div>
+            </form>
           </div>
         )}
       </li>

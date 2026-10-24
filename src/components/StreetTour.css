@@ -61,7 +61,7 @@
   right: 0.75rem;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center; /* the kangaroo stands mid-screen */
   pointer-events: none;
 }
 
@@ -85,12 +85,21 @@
   aspect-ratio: 1172 / 1342; /* the kangaroo art */
 }
 
-/* Hops in from off the right edge along the road. The three hop arcs on the
-   image below run over the same 1.5s. */
+/* Hops in from off the right edge along the road to the middle of the
+   screen. The four hop arcs on the image below run over the same 2s, and
+   each landing plays a bounce (see StreetTour.jsx). */
 .tour-kangaroo {
+  /* --kangaroo-x (its centre, px from the left) is set inline: mid-screen,
+     or at the right for a kangarooAt step. From there to just past
+     the right edge (the frame is a size container, see .street-scene). */
+  --kangaroo-offscreen: calc(100cqw - var(--kangaroo-x, 50cqw) + var(--kangaroo-w) / 2 + 1rem);
+
   position: absolute;
-  right: 0.75rem; /* matches .tour-guide's inset */
-  animation: tour-hop-in 1.5s linear both;
+  left: calc(var(--kangaroo-x, 50cqw) - var(--kangaroo-w) / 2);
+  animation: tour-hop-in 2s linear both;
+  /* Hopping along the road to a new spot, with tour-hops-move below on the
+     image. Keep in step with MOVE_MS in StreetTour.jsx. */
+  transition: left 1.5s linear;
 }
 
 .tour-kangaroo-img {
@@ -100,20 +109,32 @@
   transform-origin: 50% 100%; /* squash onto its feet */
   filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.25));
   animation:
-    tour-hops 0.5s ease-in-out 3,
-    tour-idle 2.8s ease-in-out 1.5s infinite;
+    tour-hops 0.5s ease-in-out 4,
+    tour-idle 2.8s ease-in-out 4s infinite;
 }
 
 .tour[data-leaving] .tour-kangaroo {
   animation: tour-hop-out 0.9s linear both; /* keep in sync with LEAVE_MS */
 }
 
-.tour[data-leaving] .tour-kangaroo-img {
-  animation: tour-hops 0.45s ease-in-out 2;
+/* Hops along the road while it moves. The first two animations stay listed
+   (unchanged, so they aren't restarted); the move's hops go last, so they
+   win while they run. */
+.tour:not([data-leaving]) .tour-kangaroo[data-moving] .tour-kangaroo-img {
+  animation:
+    tour-hops 0.5s ease-in-out 4,
+    tour-idle 2.8s ease-in-out 4s infinite,
+    tour-hops-move 0.5s ease-in-out 3;
 }
 
-/* Speech bubble above the kangaroo; the tail points down at its head, which
-   is half a kangaroo in from the right edge. */
+/* Its own name, not tour-hops: an animation keeping its name isn't restarted,
+   and tour-hops has long finished by now, so it wouldn't hop at all. */
+.tour[data-leaving] .tour-kangaroo-img {
+  animation: tour-hops-off 0.45s ease-in-out 2;
+}
+
+/* Speech bubble above the kangaroo; the tail points down at its head. Both
+   follow the kangaroo along the road: left and --tail-dx are set inline. */
 .tour-bubble {
   position: relative;
   box-sizing: border-box;
@@ -124,7 +145,7 @@
   border-radius: var(--ui-card-radius);
   background: var(--tour-cream);
   box-shadow: 5px 5px 0 var(--tour-line);
-  transform-origin: calc(100% - var(--kangaroo-w) / 2) 100%; /* grows out of the tail */
+  transform-origin: 50% 100%; /* grows out of the tail */
 }
 
 /* Tail: an outline triangle with a fill triangle laid over it. */
@@ -138,13 +159,13 @@
 }
 
 .tour-bubble::before {
-  right: calc(var(--kangaroo-w) / 2 - 14px);
+  right: calc(50% - 14px - var(--tail-dx, 0px));
   border-width: 20px 14px 0;
   border-top-color: var(--tour-line);
 }
 
 .tour-bubble::after {
-  right: calc(var(--kangaroo-w) / 2 - 10px);
+  right: calc(50% - 10px - var(--tail-dx, 0px));
   border-width: 15px 10px 0;
   border-top-color: var(--tour-cream);
 }
@@ -152,7 +173,7 @@
 /* First bubble: the kangaroo lands, then starts talking. Later bubbles
    slide in from the side you swiped towards. */
 .tour-bubble[data-dir="enter"] {
-  animation: tour-pop-in 0.4s ease-out 1.5s both;
+  animation: tour-pop-in 0.4s ease-out 2s both;
 }
 
 .tour-bubble[data-dir="next"] {
@@ -280,6 +301,12 @@
   transition-timing-function: ease;
 }
 
+/* The bubble's left follows the kangaroo along the road, at its pace. */
+.tour-bubble {
+  transition-duration: 0.45s, 1.5s, 0.45s, 0.45s, 0.45s;
+  transition-timing-function: ease, linear, ease, ease, ease;
+}
+
 .tour[data-leaving] .tour-dim,
 .tour[data-leaving] .tour-spotlight,
 .tour[data-leaving] .tour-bubble,
@@ -296,7 +323,7 @@
 
 @keyframes tour-hop-in {
   from {
-    transform: translateX(calc(100% + 2rem));
+    transform: translateX(var(--kangaroo-offscreen));
   }
   to {
     transform: translateX(0);
@@ -308,11 +335,13 @@
     transform: translateX(0);
   }
   to {
-    transform: translateX(calc(100% + 2rem));
+    transform: translateX(var(--kangaroo-offscreen));
   }
 }
 
-/* One hop: crouch, spring up, land in a squash. */
+/* One hop: crouch, spring up, land in a squash. tour-hops-move and
+   tour-hops-off are the same hop under their own names, for hopping along
+   the road and for leaving (see .tour-kangaroo-img above). */
 @keyframes tour-hops {
   0%,
   100% {
@@ -326,17 +355,44 @@
   }
 }
 
-/* Standing about: a small hop every few seconds. */
+@keyframes tour-hops-move {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.06, 0.92);
+  }
+  20% {
+    transform: translateY(0) scale(1);
+  }
+  55% {
+    transform: translateY(-34px) scale(0.97, 1.04);
+  }
+}
+
+@keyframes tour-hops-off {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.06, 0.92);
+  }
+  20% {
+    transform: translateY(0) scale(1);
+  }
+  55% {
+    transform: translateY(-34px) scale(0.97, 1.04);
+  }
+}
+
+/* Standing about: a small hop every few seconds. The hop is at the start
+   of each cycle, so each repeat can play its jump sound (StreetTour.jsx). */
 @keyframes tour-idle {
   0%,
-  70%,
+  30%,
   100% {
     transform: translateY(0);
   }
-  80% {
+  10% {
     transform: translateY(-10px);
   }
-  90% {
+  20% {
     transform: translateY(0) scale(1.03, 0.97);
   }
 }
@@ -369,11 +425,14 @@ html[data-motion="reduced"] .tour-kangaroo,
 html[data-motion="reduced"] .tour-kangaroo-img,
 html[data-motion="reduced"] .tour[data-leaving] .tour-kangaroo,
 html[data-motion="reduced"] .tour[data-leaving] .tour-kangaroo-img,
+html[data-motion="reduced"] .tour:not([data-leaving]) .tour-kangaroo[data-moving] .tour-kangaroo-img,
 html[data-motion="reduced"] .tour-bubble[data-dir] {
   animation: none;
 }
 
 html[data-motion="reduced"] .tour-spotlight,
-html[data-motion="reduced"] .tour-dot {
+html[data-motion="reduced"] .tour-dot,
+html[data-motion="reduced"] .tour-kangaroo,
+html[data-motion="reduced"] .tour-bubble {
   transition: none;
 }

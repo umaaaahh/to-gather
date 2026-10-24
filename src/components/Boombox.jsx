@@ -419,7 +419,7 @@ export default function Boombox({ onNowPlaying }) {
           className={`boombox-power${active ? " on" : ""}`}
           onClick={handlePower}
           aria-pressed={!!active}
-          data-sfx="radioButton"
+          data-sfx="radioPower"
         >
           <span className="boombox-power-icon" aria-hidden="true">
             ⏻

@@ -60,6 +60,13 @@ export const ASSETS = {
   clickPop: url("floraphonic-minimal-pop-click-ui-1-198301.mp3"),
   // "Your drawing is on the street!" sparkle (see DrawingArrival).
   revealSound: url("Sound/lucadialessandro-cute-sound-for-videos-397053.mp3"),
+  // The boombox's station keys and its power button (see Boombox).
+  radioButtonSound: url("Sound/dragon-studio-button-press-386165.mp3"),
+  radioPowerSound: url("Sound/dragon-studio-button-press-2-386176.mp3"),
+  // The boombox in the street's window, opening the radio (see StreetScene).
+  radioOpenSound: url("Sound/dragon-studio-button-press-3-386171.mp3"),
+  // One jump per hop of the tour kangaroo (see StreetTour).
+  kangarooHopSound: url("Sound/jump-1.mp3"),
 };
 
 // Where the street sign sits in its 595x842 file (the rest is empty page).

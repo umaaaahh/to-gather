@@ -30,15 +30,14 @@ export const SFX = {
   sunDraw: null, // the sun's Draw — bright twinkle as the zones appear
   sunBack: null, // the sun's Back — the same twinkle, falling
   noticeBoard: null, // What's on — paper flutter, pin pushed into cork
-  radioOpen: null, // the window boombox — a quick burst of radio static
+  radioOpen: ASSETS.radioOpenSound, // the window boombox, opening the radio
   bookOpen: null, // The Shelf — a book pulled off the shelf, pages riffled
   signCreak: null, // About — a metal street sign creaking on its post
   neonBuzz: null, // Stats — neon tube flickering on with a buzz
   openCanvas: null, // a tree / flower bed / free zone — paper unrolled flat
 
   // ---- Kangaroo tour ------------------------------------------------------
-  hopIn: null, // the kangaroo bounding in (two or three soft thumps)
-  hopOut: null, // the kangaroo bounding off
+  hop: ASSETS.kangarooHopSound, // each hop of the kangaroo, in or off
   bubble: null, // each new speech bubble — a little blip
   cheer: null, // the kangaroo cheering a just-landed drawing
 
@@ -55,7 +54,8 @@ export const SFX = {
   landed: null, // it lands and glows — a warm chime
 
   // ---- Popups -------------------------------------------------------------
-  radioButton: null, // the boombox's station / power keys — chunky tape-deck clunk
+  radioButton: ASSETS.radioButtonSound, // the boombox's station keys
+  radioPower: ASSETS.radioPowerSound, // the boombox's power button
   tuning: null, // LOOP while a station is tuning in — dial static
   vote: null, // The Shelf's vote button — a light tick
   bookAdded: null, // a book saved to the shelf — a soft thud as it's shelved
@@ -67,6 +67,12 @@ export const SFX = {
 
 const VOLUME = 0.5;
 const AMBIENCE_VOLUME = 0.25;
+// Cues that sit louder or quieter than VOLUME (0–1).
+const CUE_VOLUME = { click: 0.8, hop: 0.35 };
+// Cues cut off after this many ms, for files that run longer than the moment
+// they go with. These also skip preloading the whole file, so a long one
+// isn't downloaded up front. None need it right now.
+const CUE_MAX_MS = {};
 
 // Things that count as a press. Range inputs (the radio volume) and the
 // drawing canvas are deliberately left out — they'd pop on every drag.
@@ -84,15 +90,22 @@ const pools = new Map();
 function poolFor(name) {
   let pool = pools.get(name);
   if (!pool) {
-    pool = { next: 0, els: Array.from({ length: POOL_SIZE }, () => makeEl(SFX[name], VOLUME)) };
+    const clipped = name in CUE_MAX_MS;
+    pool = {
+      next: 0,
+      // A clipped cue only plays once at a time (a hop), so one element does.
+      els: Array.from({ length: clipped ? 1 : POOL_SIZE }, () =>
+        makeEl(SFX[name], CUE_VOLUME[name] ?? VOLUME, clipped ? "metadata" : "auto"),
+      ),
+    };
     pools.set(name, pool);
   }
   return pool;
 }
 
-function makeEl(src, volume) {
+function makeEl(src, volume, preload = "auto") {
   const el = new Audio(src);
-  el.preload = "auto";
+  el.preload = preload;
   el.volume = volume;
   return el;
 }
@@ -111,7 +124,22 @@ export function playSound(name) {
   const el = pool.els[pool.next];
   pool.next = (pool.next + 1) % pool.els.length;
   el.currentTime = 0;
+  const maxMs = CUE_MAX_MS[name];
+  if (maxMs) {
+    // Timed from when it actually starts sounding, not from the play() call —
+    // a long file can take longer than maxMs to start streaming.
+    clearTimeout(el.clipTimer);
+    el.onplaying = () => {
+      clearTimeout(el.clipTimer);
+      el.clipTimer = setTimeout(() => el.pause(), maxMs);
+    };
+  }
   tryPlay(el);
+}
+
+/** Start loading a cue before it's needed (e.g. as the tour opens). */
+export function warmSound(name) {
+  if (hasSound(name)) poolFor(name).els.forEach((el) => el.load());
 }
 
 /**
