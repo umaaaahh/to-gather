@@ -226,7 +226,7 @@ const CLOUD_TILES = 6;
 //            (bigger = further right; around -14 stands it on the grass in
 //            front of the street sign)
 //   height — board size, grows upward from its feet; width follows automatically
-const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("left", -22), height: 40 };
+const NOTICE_BOARD_POS = { bottom: 0, left: fromStreetStart("left", -23.2), height: 48 };
 
 // Width = height x the art's 600:900 ratio, converted through the
 // scene-ground's 660:285 aspect, so the tap target hugs the board.
@@ -385,14 +385,18 @@ const treeHotspotBox = (t) => {
 // A pulsing button tucked into one of the house windows, view-mode only —
 // it disappears once Draw is tapped and the zone hotspots take over the
 // screen. Box is a % of .scene-ground, same coordinate system as everything
-// else above; `left` is from the left building's edge so it stays on its window.
-const WINDOW_RADIO = resolveAnchor({ top: "78%", anchor: "left", left: "12.3%", width: "8%", height: "14%" });
+// else above; `left` is from the left building's edge so it stays on its window
+// (the orange building's ground-floor window).
+const WINDOW_RADIO = resolveAnchor({ top: "80.5%", anchor: "left", left: "32%", width: "7%", height: "14%" });
 
 // A second window surprise, same pattern as WINDOW_RADIO above — a different
 // window pane so the two don't compete for attention. Opens the community
 // bookshelf popup (see Bookshelf.jsx), the same way the boombox opens the
-// radio.
-const WINDOW_BOOK = resolveAnchor({ top: "81%", anchor: "left", left: "32.5%", width: "6%", height: "14%" });
+// radio. It sits in the middle pane of the right building's long upper
+// window, so `left` is from the right building's edge; that pane is shorter
+// than the books, so they stand on their label at the pane's bottom edge
+// (the label is the ledge; the box's bottom is the label's bottom).
+const WINDOW_BOOK = resolveAnchor({ top: "70.5%", anchor: "right", left: "37.1%", width: "6%", height: "14%" });
 
 // Street sign — a third tappable surprise, same glow as the window ones;
 // opens the About popup (see StreetHistory.jsx). It stands on the footpath between the first tree and the left building.
@@ -440,16 +444,21 @@ const STREET_KANGAROO = {
 // under them and scale with the street. Pass the button's own box width
 // ("8%"). `drop` sinks a label into its button's box, as a % of the box's
 // height (for window art that sits low in a tall box); bigger = closer.
+// `ledge` puts the label under the picture instead, as the ledge it sits on
+// (the button needs the "ledge-button" class to stack them). `shift` slides
+// the label sideways off centre, as a % of the street like `left` (negative =
+// left).
 const STREET_TAG_WIDTH = 10;
-function StreetTag({ text, buttonWidth, drop = 0 }) {
+function StreetTag({ text, buttonWidth, drop = 0, ledge = false, shift = 0 }) {
   const w = (STREET_TAG_WIDTH / parseFloat(buttonWidth)) * 100;
+  const offset = (shift / parseFloat(buttonWidth)) * 100;
   return (
     <span
-      className="street-tag-anchor"
+      className={`street-tag-anchor${ledge ? " ledge" : ""}`}
       aria-hidden="true"
       // Centred with `left` rather than a transform (old iOS Safari drops
       // transforms on animated items).
-      style={{ width: `${w}%`, left: `${(100 - w) / 2}%`, bottom: `${100 - drop}%` }}
+      style={ledge ? { width: `${w}%` } : { width: `${w}%`, left: `${(100 - w) / 2 + offset}%`, bottom: `${100 - drop}%` }}
     >
       <span className="px-btn street-tag">{text}</span>
     </span>
@@ -981,10 +990,8 @@ export default function StreetScene({
             }}
           >
             <img className="notice-board-art" src={ASSETS.noticeBoard} alt="" />
-            <span className="notice-board-text" aria-hidden="true">
-              Real world events!
-            </span>
-            <StreetTag text="What's on" buttonWidth={NOTICE_BOARD.width} drop={8} />
+            {/* The label sits on the whiteboard (y 30–60% of the art). */}
+            <StreetTag text="What's on" buttonWidth={NOTICE_BOARD.width} drop={51} />
           </button>
 
           <div className="scene-ground">
@@ -1144,7 +1151,7 @@ export default function StreetScene({
                  opens the bookshelf. */}
               <button
                 type="button"
-                className="street-surprise-button"
+                className="street-surprise-button ledge-button"
                 onClick={onOpenBookshelf}
                 disabled={mode !== "view"}
                 aria-label="Open the community bookshelf"
@@ -1156,7 +1163,7 @@ export default function StreetScene({
                 }}
               >
                 <img className="window-books" src={ASSETS.books} alt="" draggable="false" />
-                <StreetTag text="The Shelf" buttonWidth={WINDOW_BOOK.width} drop={20} />
+                <StreetTag text="The Shelf" buttonWidth={WINDOW_BOOK.width} ledge />
               </button>
 
               {/* Street sign — same pattern as the boombox above. */}
@@ -1177,7 +1184,7 @@ export default function StreetScene({
                     style={cropImgStyle({ crop: STREET_SIGN_CROP })}
                   />
                 </span>
-                <StreetTag text="About" buttonWidth={STREET_SIGN.width} />
+                <StreetTag text="About" buttonWidth={STREET_SIGN.width} shift={1} drop={1.25} />
               </button>
 
               {/* Neon stats poster on the shopfront — same pattern as the

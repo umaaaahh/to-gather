@@ -769,39 +769,28 @@ html[data-motion="reduced"] .zone--label-only .zone-label.px-btn {
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  /* The writing is sized in cqw (a % of the board's width), so it fits the
-     whiteboard however big the board is drawn. */
-  container-type: inline-size;
+  container: notice-board / inline-size;
 }
 
-/* "Real world events!" in marker on the whiteboard, which is x 15–85%,
-   y 30–60% of the board art. */
-.notice-board-text {
-  position: absolute;
-  left: 15%;
-  right: 15%;
-  top: 30%;
-  height: 30%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3cqw;
-  color: #c0483a; /* red whiteboard marker */
-  font-family: var(--ui-font);
-  font-size: 13cqw;
-  font-weight: 700;
-  line-height: 0.95;
-  text-align: center;
-  text-wrap: balance;
-  rotate: -3deg;
-  /* The board's centre, so a press shrinks it in step with the art. */
-  transform-origin: 50% 66.7%;
-  pointer-events: none;
-  user-select: none;
+/* The "What's on" label sits on the whiteboard (drop={51} in StreetScene.jsx),
+   but labels never go under 2px art pixels, so on a small or landscape
+   phone it's wider than the whiteboard — there it goes back above the board,
+   like the other labels. Bigger text sizes widen it, so they switch sooner
+   (and the largest always sits above). !important beats the inline `bottom`. */
+@container notice-board (max-width: 120px) {
+  .street-tag-anchor {
+    bottom: 92% !important;
+  }
 }
 
-.notice-board-button:enabled:active .notice-board-text {
-  transform: scale(0.9);
+@container notice-board (max-width: 135px) {
+  html[data-text="lg"] .street-tag-anchor {
+    bottom: 92% !important;
+  }
+}
+
+html[data-text="xl"] .notice-board-button .street-tag-anchor {
+  bottom: 92% !important;
 }
 
 /* Outside view mode it's just scenery: let taps fall through to whatever's
@@ -883,6 +872,26 @@ html[data-motion="reduced"] .zone--label-only .zone-label.px-btn {
   container-type: inline-size;
   pointer-events: none;
   user-select: none;
+}
+
+/* Label as a ledge: the picture stands on it, both pinned to the bottom of
+   the button's box (see StreetTag's `ledge`). */
+.street-surprise-button.ledge-button {
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.ledge-button > img {
+  flex: none;
+}
+
+.street-tag-anchor.ledge {
+  position: static;
+  flex: none;
+}
+
+.street-tag-anchor.ledge .px-btn.street-tag {
+  margin-bottom: var(--u);
 }
 
 /* 2px art pixels on a phone, ~3px on an iPad or monitor; never under 2px
