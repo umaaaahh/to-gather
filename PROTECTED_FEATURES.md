@@ -1,46 +1,52 @@
-*(DRAFT, pending owner review)*
-
 # Protected Features
 
-Features below were **VERIFIED working** during the 2026-09-21 audit (see `PROJECT_STATE.md`). A fix, refactor, or dependency bump could break any of these silently — re-verify with the listed steps before/after touching the related files.
+Updated 2026-10-24. Things that work and are easy to break silently. Re-check the listed way before and after touching the related files.
 
 ---
 
-### 1. Local dev pipeline (install / build / lint / dev server)
-**Why protected:** the whole team's ability to work on the app at all.
-**Files:** [package.json](package.json), [vite.config.js](vite.config.js), [.oxlintrc.json](.oxlintrc.json)
-**Re-verify:**
+### 1. Build, lint and rules tests
+**Files:** `package.json`, `vite.config.js`, `.oxlintrc.json`, `firestore.rules`, `storage.rules`, `tests/rules.test.mjs`
 ```
-npm install     # expect "found 0 vulnerabilities", no peer-dep errors
-npm run build   # expect "✓ built in ~3s", dist/ assets emitted
-npm run lint    # expect no output (clean)
-npm run dev     # expect "VITE ... ready", curl http://localhost:<port>/ returns 200
+npm run build        # builds, only the >500 kB chunk warning
+npm run lint         # warnings only, no errors
+npm run test:rules   # all rules tests pass (39 on 2026-10-24); needs Java for the emulators
 ```
+`test:rules` runs under the emulator-only project `demo-to-gather` so the Storage rules' Firestore lookup sees the seeded `admins` doc. Never point it at `to-gather-54dd7`.
 
-### 2. Firebase Firestore/Storage backend is live and reachable
-**Why protected:** every drawing-publish feature depends on this; it's a real production-like backend with 206 real documents already in it (not a mock).
-**Files:** [src/lib/firebase.js](src/lib/firebase.js), [.env](.env)
-**Re-verify (read-only — do NOT write/delete against this project casually, it holds real data):**
-Run a small Node script from inside the repo (so `firebase` resolves from `node_modules`) that calls `getDocs(query(collection(db, "drawings"), orderBy("createdAt","asc")))` using the config in `firebase.js` + the API key from `.env`, and confirm it returns documents without throwing a permission error.
+### 2. Admin access
+**Files:** `firestore.rules`, `storage.rules`, `src/pages/admin/`
+Admin = a doc at `admins/{uid}` in Firestore, added by hand in the console. Any rules change must keep: no client can write `admins`; anonymous and other email/password accounts can't delete. Removing Uma's `admins` doc locks her out of `/admin` deletes.
 
-### 3. Drawing → publish pipeline for all three zones (tree / stem / free)
-**Why protected:** this is the core user-facing loop of the app.
-**Files:** [src/pages/DrawZone.jsx](src/pages/DrawZone.jsx), [src/lib/drawingsStore.js](src/lib/drawingsStore.js), [src/lib/zones.js](src/lib/zones.js), [src/components/DrawingCanvas.jsx](src/components/DrawingCanvas.jsx)
-**Evidence at audit time:** live Firestore query returned 84 `tree`, 51 `stem`, and 71 `free` documents, each with a resolvable Storage download URL.
-**Re-verify:** in a browser, open `/draw/tree` (or `/draw/stem`, `/draw/free`), draw something, tap Done, confirm no error toast appears and the app navigates back to `/`; then re-run the read-only Firestore check above and confirm the document count increased by one in the matching zone.
+### 3. Draw → save → arrival loop (all three zones)
+**Files:** `src/pages/DrawZone.jsx`, `src/components/DrawingCanvas.jsx`, `src/lib/drawingsStore.js`, `src/lib/zones.js`, `src/components/DrawingArrival.jsx`, `src/pages/StreetScene.jsx`
+**Check in a browser:** draw on `/draw/tree`, `/draw/stem`, `/draw/free`, press Done → back on the street, the drawing flies to its spot and the kangaroo cheers. No "didn't save" toast.
+**Coupled numbers:** `ZONE_LIMITS` in `drawingsStore.js` must match the tree / bed / character capacities in StreetScene (tree 290 = 65+150+65 + 10 buffer, stem 70 = 30+30 + 10, free 114). Trees and beds load oldest-first so leaves never move — don't flip that.
+**Rules coupling:** `isDrawingUrl` in `firestore.rules` assumes the bucket `to-gather-54dd7.firebasestorage.app` and paths `drawings/{zone}/[A-Za-z0-9_-]+.png`. Changing the bucket or the id scheme in `saveDrawing` breaks every save.
 
-### 4. Firestore/Storage security rules currently deployed publicly allow reads
-**Why protected:** if this flips to requiring auth, every read path in the app (scene rendering, scatter layout) breaks with permission-denied errors.
-**Files:** [firestore.rules](firestore.rules), [storage.rules](storage.rules)
-**Re-verify:** the same read-only Firestore script from #2 — a permission error there means the live rules changed from what's committed.
-**Caution:** do not attempt to verify the `create`/`delete` rules by actually writing/deleting against production; that risks damaging real data. Test rule changes against the Firebase emulator suite instead.
+### 4. Shelf voting integrity
+**Files:** `src/lib/shelfStore.js`, `firestore.rules`
+Every vote change is a batch: the `shelfVotes` doc and the book's `votes` ±1 together. The rules reject one without the other. Covered by the Shelf section of the rules tests.
 
-### 5. `/canvas-test` standalone harness (no-Firebase drawing test page)
-**Why protected:** it's the fastest way to sanity-check `DrawingCanvas` in isolation without touching the live backend.
-**Files:** [src/pages/CanvasTest.jsx](src/pages/CanvasTest.jsx), [src/App.jsx](src/App.jsx)
-**Re-verify:** navigate to `/canvas-test`, pick a zone from the dropdown, draw, tap Done — confirm a PNG preview and a working "download png" link appear below the canvas.
+### 5. Shelf bad-word filter
+**Files:** `src/lib/profanity.js`, `src/lib/shelfStore.js` (`subscribeShelf`), `src/components/Bookshelf.jsx`
+**Check:** posting a note with a swear word shows "Let's keep the shelf friendly…"; a title like "…Not Giving a F*ck" shows masked. `toBook` and `subscribeShelf` must mask the same way, or "already on the shelf" matching breaks for those books. Admin (`subscribeAdminShelf`) stays unmasked on purpose.
 
-### 6. Notice board calendar rendering
-**Why protected:** self-contained, easy to accidentally break while wiring it up to real Firestore `events` data later.
-**Files:** [src/pages/NoticeBoard.jsx](src/pages/NoticeBoard.jsx), [src/pages/NoticeBoard.css](src/pages/NoticeBoard.css)
-**Re-verify:** navigate to `/notices`, confirm the current month renders with the correct day-of-week alignment, event dots appear on days with events, and month prev/next arrows update the grid and events list together.
+### 6. Splash and tour start-up
+**Files:** `src/components/SplashScreen.jsx`, `src/lib/drawingsStore.js` (`whenDrawingsLoaded`), `src/components/StreetTour.jsx`
+The splash waits for the first drawings snapshot (bounded by MAX_MS). A listener that never resolves must still call `zoneLoaded`, or the splash sits at its maximum every visit.
+
+### 7. Older iOS Safari layout
+**Files:** `src/pages/StreetScene.css` (`.scatter-item`, `.street-scroll`)
+On Uma's iPhone 13 mini, animated items positioned with the `translate` property render one item-height too low. Desktop Chromium/WebKit don't reproduce it. Keep `.scatter-item` as a zero-size flex anchor, and `overscroll-behavior-x: none` on `.street-scroll`. Check on the real phone after layout changes.
+
+### 8. Settings applied before paint
+**Files:** `index.html` (inline script), `src/lib/a11y.js`
+The inline script mirrors `apply()` in `a11y.js` so saved settings (text size, motion, contrast, font, sound/music) never flash defaults. Change one, change both.
+
+### 9. Same-origin bundled assets
+**Files:** `src/lib/assets.js`
+Leaf and stem templates, the click pop and the popup sound are bundled (not from R2) because the bucket sends no CORS headers: canvas export and Web Audio need same-origin. Moving them to the bucket silently drops templates from exported drawings.
+
+### 10. `/canvas-test` harness
+**Files:** `src/pages/CanvasTest.jsx`
+Fastest way to test `DrawingCanvas` without Firebase. If it gets gated to dev-only, keep it working under `npm run dev`.

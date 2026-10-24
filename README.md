@@ -1,16 +1,19 @@
-# React + Vite
+# to-gather
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A hand-drawn Cardigan St, Carlton, that the people who visit it help finish. Tap the sun, draw a leaf, a flower or a character, and it joins the street for everyone. The street also has what's on nearby, local radio, a community bookshelf, and a bit of the street's history.
 
-Currently, two official plugins are available:
+## Run it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+You need Node 20+ and a `.env` with `VITE_FIREBASE_API_KEY` and `VITE_FIREBASE_APP_ID` (optionally `VITE_GOOGLE_BOOKS_KEY`).
 
-## React Compiler
+```
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `npm run build` builds to `dist/`, which Cloudflare serves (`wrangler.toml`).
+- `npm run test:rules` tests the Firebase security rules against the local emulators (needs Java).
+- `firebase deploy --only firestore:rules,storage` deploys the rules.
+- Events live in `src/data/events.csv`; `scripts/event-scraper` refreshes them (see its README).
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Moderation is at `/admin`.
