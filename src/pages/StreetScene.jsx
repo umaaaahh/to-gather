@@ -208,9 +208,10 @@ const roadTileStyle = {
 };
 
 // Cloud tiles in the drifting sky (.clouds in StreetScene.css). Each is
-// ~0.42 street widths, so 6 covers an ultrawide monitor plus the tile
-// sliding off the left; a phone only ever shows 2.
-const CLOUD_TILES = 6;
+// ~0.42 street widths, so 9 covers an ultrawide monitor plus the set of
+// three sliding off the left; a phone only ever shows 2. Keep it a
+// multiple of 3, the size of the repeating set.
+const CLOUD_TILES = 9;
 
 // ---- Notice board fixture --------------------------------------------------
 // Scene furniture that opens the what's-on pop-out (EventsPopout), the same
@@ -958,7 +959,8 @@ export default function StreetScene({
       data-drawing={drawingCanvasOverlay ? "" : undefined}
       ref={sceneRef}
     >
-      {/* Two tiles side by side so the drift loop is seamless. */}
+      {/* A row of tiles in repeating sets of three, so the drift loop is
+         seamless (see .clouds). */}
       <div className="clouds">
         {Array.from({ length: CLOUD_TILES }, (_, i) => (
           <img key={i} className="cloud-tile" src={ASSETS.clouds} alt="" />

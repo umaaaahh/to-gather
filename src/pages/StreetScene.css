@@ -8,6 +8,10 @@
   height: 100dvh;
   margin: 0 auto;
   overflow: hidden; /* frame clips the clouds and the ends of the street */
+  /* Trees, clouds and the tappable bits (board, sign, radio, books, street
+     stats): a soft shadow down and to the right, as if the sun's at the top
+     left. */
+  --scenery-shadow: drop-shadow(3px 4px 3px rgba(0, 0, 0, 0.28));
   /* The frame is a size container, so the street, clouds and sun can be
      sized against whichever of the screen's width or height is tighter
      (cqw / cqh) — see --scene-width. */
@@ -85,11 +89,13 @@
   --overlay-offset-y: -50%;
 }
 
-/* Cloud track: a row of CLOUD_TILES tiles drifting left forever. Each
-   loop moves exactly one tile, landing tile 2 where tile 1 started, so
-   there's no seam. Tiles scale with the street (--cloud-tile), and there
-   are enough of them to cover even an ultrawide screen plus the one
-   sliding off. */
+/* Cloud track: a row of CLOUD_TILES slots drifting left forever. Every
+   slot is one --cloud-tile wide, but the cloud in it is sized, nudged,
+   raised/lowered and flipped by its place in a repeating set of three
+   (below), so the sky doesn't look stamped out. Each loop moves exactly
+   one set, landing slot 4 where slot 1 started, so there's no seam. Tiles
+   scale with the street, and there are enough to cover an ultrawide
+   screen plus the set sliding off. */
 .clouds {
   --cloud-tile: calc(var(--scene-width) * 0.42);
   position: absolute;
@@ -97,30 +103,58 @@
   left: 0;
   z-index: 1;
   display: flex;
+  align-items: flex-start; /* each cloud keeps its own height */
   pointer-events: none;
   user-select: none;
-  animation: clouds-drift 70s linear infinite;
+  /* 70s a slot, as before, so they drift at the same speed */
+  animation: clouds-drift 210s linear infinite;
 }
 
+/* --s: size (a share of the slot), --x: gap before it, --y: drop below
+   the track's top (both in slots; negative raises it), --flip: -1 mirrors
+   it. Margins, not translate, place it: old iOS Safari drops translate on
+   animated elements. The left + width + right always add up to one slot. */
 .cloud-tile {
+  --s: 1;
+  --x: 0;
+  --y: 0;
+  --flip: 1;
   flex: none;
-  width: var(--cloud-tile);
-  /* gentle vertical bob, offset every other tile so they don't bob in unison */
+  width: calc(var(--cloud-tile) * var(--s));
+  margin-top: calc(var(--cloud-tile) * var(--y));
+  margin-left: calc(var(--cloud-tile) * var(--x));
+  margin-right: calc(var(--cloud-tile) * (1 - var(--s) - var(--x)));
+  transform: scaleX(var(--flip)); /* still flipped with the bob off */
+  /* gentle vertical bob, each of the three at its own pace */
   animation: clouds-bob 7s ease-in-out infinite;
+  filter: var(--scenery-shadow);
 }
 
-.cloud-tile:nth-child(even) {
-  animation-delay: -3.5s;
+.cloud-tile:nth-child(3n + 2) {
+  --s: 0.62;
+  --x: 0.22;
+  --y: 0.13;
+  --flip: -1;
+  animation-duration: 9s;
+  animation-delay: -3s;
+}
+
+.cloud-tile:nth-child(3n) {
+  --s: 0.8;
+  --x: 0.06;
+  --y: -0.07;
+  animation-duration: 8s;
+  animation-delay: -5.5s;
 }
 
 @keyframes clouds-drift {
   from { transform: translateX(0); }
-  to { transform: translateX(calc(-1 * var(--cloud-tile))); }
+  to { transform: translateX(calc(-3 * var(--cloud-tile))); }
 }
 
 @keyframes clouds-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1.5%); }
+  0%, 100% { transform: scaleX(var(--flip)) translateY(0); }
+  50% { transform: scaleX(var(--flip)) translateY(-1.5%); }
 }
 
 /* Reduced motion: the clouds hold still. */
@@ -366,10 +400,11 @@ html[data-motion="reduced"] .zone {
    is full. */
 .crayon-tree {
   transition: filter 0.4s ease, opacity 0.4s ease;
+  filter: var(--scenery-shadow);
 }
 
 .crayon-tree--locked {
-  filter: grayscale(1);
+  filter: grayscale(1) var(--scenery-shadow);
   opacity: 0.5;
 }
 
@@ -408,6 +443,18 @@ html[data-motion="reduced"] .zone {
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+}
+
+/* These glow with a filter animation (street-surprise-pulse), which would
+   replace a plain filter, so the pulse adds --pulse-shadow in front of its
+   glow; the plain filter covers them while they're not pulsing. */
+.notice-board-art,
+.street-sign,
+.window-boombox,
+.window-books,
+.street-poster {
+  filter: var(--scenery-shadow);
+  --pulse-shadow: var(--scenery-shadow);
 }
 
 /* ---- Scattered zone contributions -----------------------------------------
@@ -950,6 +997,13 @@ html[data-motion="reduced"] .notice-board-button:enabled:active .px-btn.street-t
   display: none;
 }
 
+/* A ledge label is what the picture stands on, so it keeps its space while
+   hidden; otherwise the books would drop down into it. */
+.street-surprise-button:disabled .street-tag-anchor.ledge {
+  display: flex;
+  visibility: hidden;
+}
+
 /* Disabled (contribute mode) they're just scenery: let taps fall through
    to the zone hotspots behind, like the notice board. */
 .street-surprise-button:disabled {
@@ -1010,10 +1064,10 @@ html[data-motion="reduced"] .notice-board-button:enabled:active .px-btn.street-t
 
 @keyframes street-surprise-pulse {
   0%, 100% {
-    filter: drop-shadow(0 0 3px rgba(255, 85, 0, 0.45));
+    filter: var(--pulse-shadow,) drop-shadow(0 0 3px rgba(255, 85, 0, 0.45));
   }
   50% {
-    filter: drop-shadow(0 0 9px rgba(255, 85, 0, 0.9));
+    filter: var(--pulse-shadow,) drop-shadow(0 0 9px rgba(255, 85, 0, 0.9));
   }
 }
 
