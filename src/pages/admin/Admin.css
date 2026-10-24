@@ -191,3 +191,119 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Section tabs (Drawings / Shelf) under the header. */
+.admin-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.admin-tab {
+  padding: 0.5rem 1rem;
+  color: #555;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  font-size: calc(0.95rem * var(--text-scale));
+}
+
+.admin-tab.active {
+  color: #2f6b4f;
+  border-bottom-color: #2f6b4f;
+  font-weight: 600;
+}
+
+/* Admin > Shelf */
+.admin-summary {
+  margin: 0 0 0.75rem;
+  color: #555;
+  font-size: calc(0.9rem * var(--text-scale));
+}
+
+.admin-books {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 720px;
+}
+
+.admin-book {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem;
+}
+
+.admin-book-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.admin-book-cover {
+  width: 48px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: #eee;
+}
+
+.admin-book-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-book-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-book-title a {
+  color: inherit;
+}
+
+.admin-book-sub {
+  font-size: calc(0.8rem * var(--text-scale));
+  color: #666;
+}
+
+.admin-notes {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0 0 0 1rem;
+  border-left: 3px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.admin-note-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-note-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-notes-empty {
+  margin: 0.5rem 0 0;
+}
+
+.admin-delete-btn--small {
+  padding: 0.2rem 0.5rem;
+  font-size: calc(0.75rem * var(--text-scale));
+}

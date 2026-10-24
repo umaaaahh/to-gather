@@ -1,64 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
-import { auth } from "../lib/firebase";
-import { deleteDrawing, subscribeAdminDrawings } from "../lib/drawingsStore";
-import LoadingLogo from "../components/LoadingLogo";
-import "./Admin.css";
+import { deleteDrawing, subscribeAdminDrawings } from "../../lib/drawingsStore";
+import LoadingLogo from "../../components/LoadingLogo";
 
-function LoginForm({ onError }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setBusy(true);
-    onError(null);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch {
-      onError("Sign-in failed — check the email and password.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form className="admin-login" onSubmit={handleSubmit}>
-      <h1>Admin sign-in</h1>
-      <label>
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="username"
-          required
-        />
-      </label>
-      <label>
-        Password
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
-      <button type="submit" disabled={busy}>
-        {busy ? "Signing in…" : "Sign in"}
-      </button>
-    </form>
-  );
-}
-
-function DrawingsList() {
+// Admin > Drawings: every street drawing, with single and bulk delete.
+export default function DrawingsAdmin() {
   const [drawings, setDrawings] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [deletingId, setDeletingId] = useState(null);
@@ -174,46 +119,5 @@ function DrawingsList() {
         ))}
       </ul>
     </>
-  );
-}
-
-export default function Admin() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(undefined); // undefined = still checking
-  const [authError, setAuthError] = useState(null);
-
-  // Shelf visitors get an anonymous sign-in (see shelfStore.js); that isn't
-  // an admin, so it shows the login form like being signed out.
-  useEffect(() => onAuthStateChanged(auth, (u) => setUser(u && !u.isAnonymous ? u : null)), []);
-
-  return (
-    <div className="admin-page">
-      <header className="admin-header">
-        <button className="admin-back" onClick={() => navigate("/")} aria-label="Back to street">
-          ‹
-        </button>
-        <h1 className="admin-title">Admin</h1>
-        {user && (
-          <button className="admin-signout" onClick={() => signOut(auth)}>
-            Sign out
-          </button>
-        )}
-      </header>
-
-      {user === undefined && <LoadingLogo className="admin-loading" label="Checking sign-in" />}
-
-      {user === null && (
-        <>
-          {authError && (
-            <p role="alert" className="admin-error">
-              {authError}
-            </p>
-          )}
-          <LoginForm onError={setAuthError} />
-        </>
-      )}
-
-      {user && <DrawingsList />}
-    </div>
   );
 }

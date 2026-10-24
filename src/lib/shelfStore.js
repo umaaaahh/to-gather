@@ -18,7 +18,9 @@ import { auth, db } from "./firebase";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import {
   collection,
+  deleteDoc,
   doc,
+  getDocs,
   increment,
   limit,
   onSnapshot,
@@ -38,21 +40,18 @@ const VOTES = "shelfVotes";
 const BOOK_LIMIT = 500;
 const NOTE_LIMIT = 2000;
 
-/**
- * Live shelf: calls onChange with every book (most-voted first), each with
- * its notes as `reasons` (oldest first), whenever anything changes.
- * Returns an unsubscribe function.
- */
-export function subscribeShelf(onChange, onError) {
+// Live books from bookQuery, each with its notes from noteQuery as
+// `notes: [{ id, text, uid, createdAt }]`. Returns an unsubscribe function.
+function watchBooksAndNotes(bookQuery, noteQuery, onChange, onError) {
   let books = null;
   let notesByBook = null;
   const emit = () => {
     if (!books || !notesByBook) return;
-    onChange(books.map((b) => ({ ...b, reasons: notesByBook.get(b.id) || [] })));
+    onChange(books.map((b) => ({ ...b, notes: notesByBook.get(b.id) || [] })));
   };
 
   const unsubBooks = onSnapshot(
-    query(collection(db, BOOKS), orderBy("votes", "desc"), limit(BOOK_LIMIT)),
+    bookQuery,
     (snap) => {
       books = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       emit();
@@ -60,13 +59,13 @@ export function subscribeShelf(onChange, onError) {
     onError,
   );
   const unsubNotes = onSnapshot(
-    query(collection(db, NOTES), orderBy("createdAt", "asc"), limit(NOTE_LIMIT)),
+    noteQuery,
     (snap) => {
       notesByBook = new Map();
       for (const d of snap.docs) {
-        const { bookId, text } = d.data();
-        if (!notesByBook.has(bookId)) notesByBook.set(bookId, []);
-        notesByBook.get(bookId).push(text);
+        const note = { id: d.id, ...d.data() };
+        if (!notesByBook.has(note.bookId)) notesByBook.set(note.bookId, []);
+        notesByBook.get(note.bookId).push(note);
       }
       emit();
     },
@@ -76,6 +75,60 @@ export function subscribeShelf(onChange, onError) {
     unsubBooks();
     unsubNotes();
   };
+}
+
+/**
+ * Live shelf: calls onChange with every book (most-voted first), each with
+ * its notes as `reasons` (oldest first), whenever anything changes.
+ * Returns an unsubscribe function.
+ */
+export function subscribeShelf(onChange, onError) {
+  return watchBooksAndNotes(
+    query(collection(db, BOOKS), orderBy("votes", "desc"), limit(BOOK_LIMIT)),
+    query(collection(db, NOTES), orderBy("createdAt", "asc"), limit(NOTE_LIMIT)),
+    (books) => onChange(books.map(({ notes, ...b }) => ({ ...b, reasons: notes.map((n) => n.text) }))),
+    onError,
+  );
+}
+
+/**
+ * Admin: every book (newest first) with all its notes as
+ * `notes: [{ id, text, uid, createdAt }]` (oldest first), uncapped.
+ */
+export function subscribeAdminShelf(onChange, onError) {
+  return watchBooksAndNotes(
+    query(collection(db, BOOKS), orderBy("createdAt", "desc")),
+    query(collection(db, NOTES), orderBy("createdAt", "asc")),
+    onChange,
+    onError,
+  );
+}
+
+/** Admin: remove one note. */
+export function deleteNote(noteId) {
+  return deleteDoc(doc(db, NOTES, noteId));
+}
+
+// Firestore caps a batch at 500 writes.
+const BATCH_MAX = 500;
+
+/**
+ * Admin: take a book off the shelf along with its notes and votes. The votes
+ * have to go too, or anyone who'd voted for it could never add it again.
+ * The book goes last, so if this fails part-way it's still listed to retry.
+ */
+export async function deleteBook(bookId) {
+  const [notes, votes] = await Promise.all([
+    getDocs(query(collection(db, NOTES), where("bookId", "==", bookId))),
+    getDocs(query(collection(db, VOTES), where("bookId", "==", bookId))),
+  ]);
+  const refs = [...notes.docs, ...votes.docs].map((d) => d.ref);
+  for (let i = 0; i < refs.length; i += BATCH_MAX) {
+    const batch = writeBatch(db);
+    for (const ref of refs.slice(i, i + BATCH_MAX)) batch.delete(ref);
+    await batch.commit();
+  }
+  await deleteDoc(doc(db, BOOKS, bookId));
 }
 
 /**

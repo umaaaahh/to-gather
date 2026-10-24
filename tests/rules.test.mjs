@@ -22,9 +22,11 @@ import {
   addDoc,
   deleteDoc,
   increment,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
 } from "firebase/firestore";
 import { ref, uploadBytes, deleteObject } from "firebase/storage";
@@ -306,9 +308,27 @@ async function shelfTests(testEnv, { anon, admin, visitor, visitorB }) {
     await assertFails(addDoc(notes, { ...note, text: "hi", bookId: "no-such-book" }));
   });
 
+  await check("admin can read everyone's votes on a book (Shelf)", async () => {
+    await assertSucceeds(
+      getDocs(query(collection(admin.firestore(), "shelfVotes"), where("bookId", "==", "book1"))),
+    );
+    await assertFails(
+      getDocs(query(collection(visitor.firestore(), "shelfVotes"), where("bookId", "==", "book1"))),
+    );
+  });
+
   await check("visitor can't delete books or notes; admin can (Shelf)", async () => {
     await assertFails(deleteDoc(doc(visitor.firestore(), "shelfBooks", "book1")));
-    await assertSucceeds(deleteDoc(doc(admin.firestore(), "shelfBooks", "book1")));
+    // Mirrors shelfStore.js's deleteBook: votes and notes, then the book.
+    const db = admin.firestore();
+    const [votes, notes] = await Promise.all([
+      getDocs(query(collection(db, "shelfVotes"), where("bookId", "==", "book1"))),
+      getDocs(query(collection(db, "shelfNotes"), where("bookId", "==", "book1"))),
+    ]);
+    const batch = writeBatch(db);
+    for (const d of [...votes.docs, ...notes.docs]) batch.delete(d.ref);
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(deleteDoc(doc(db, "shelfBooks", "book1")));
   });
 }
 

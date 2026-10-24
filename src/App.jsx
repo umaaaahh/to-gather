@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import StreetScene from "./pages/StreetScene";
 import DrawZone from "./pages/DrawZone";
 import NoticeBoard from "./pages/NoticeBoard";
 import CanvasTest from "./pages/CanvasTest";
-import Admin from "./pages/Admin";
+import Admin from "./pages/admin/Admin";
+import DrawingsAdmin from "./pages/admin/DrawingsAdmin";
+import ShelfAdmin from "./pages/admin/ShelfAdmin";
 import SplashScreen from "./components/SplashScreen";
 import AccessMenu from "./components/AccessMenu";
 import RadioLayer from "./components/RadioLayer";
@@ -69,7 +71,11 @@ export default function App() {
         </Route>
         <Route path="/notices" element={<NoticeBoard />} />
         <Route path="/canvas-test" element={<CanvasTest />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<Admin />}>
+          <Route index element={<Navigate to="drawings" replace />} />
+          <Route path="drawings" element={<DrawingsAdmin />} />
+          <Route path="shelf" element={<ShelfAdmin />} />
+        </Route>
       </Routes>
       <RadioLayer open={radioOpen} onOpen={openRadio} onClose={closeRadio} />
       <BookshelfLayer open={shelfOpen} onClose={closeShelf} />

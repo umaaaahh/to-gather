@@ -78,8 +78,9 @@ service cloud.firestore {
     }
 
     match /shelfVotes/{voteId} {
-      // Only your own votes, so the shelf can show which books you've voted for.
-      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      // Only your own votes, so the shelf can show which books you've voted
+      // for. The admin reads them all, to clear a book's votes when deleting it.
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['uid', 'bookId', 'createdAt'])
