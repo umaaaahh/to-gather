@@ -178,13 +178,14 @@ function measureTourLayout(scene, step, pinnedX = null) {
   const maxTail = Math.max(bubbleW / 2 - 24, 0);
   const tailShift = clamp(dx - bubbleShift, -maxTail, maxTail);
 
-  // On a targetAt step, if the bubble would still cover the target (a
-  // narrow or short screen), it rises until it sits above it — but no
-  // higher than just under the Skip button. Measured from where the bubble
-  // sits before it's lifted: the top of the guide, which the lift (a
-  // relative `top`) doesn't move.
+  // On a targetAt step, or one where the kangaroo stands by its target (the
+  // cheer's new drawing, which is often a leaf right where the bubble
+  // sits), if the bubble would cover the target it rises until it sits
+  // above it — but no higher than just under the Skip button. Measured from
+  // where the bubble sits before it's lifted: the top of the guide, which
+  // the lift (a relative `top`) doesn't move.
   let bubbleLift = 0;
-  if (step.targetAt && spot && guideEl && bubbleEl) {
+  if ((step.targetAt || step.kangarooAt === "target") && spot && guideEl && bubbleEl) {
     const top = guideEl.getBoundingClientRect().top - sceneBox.top;
     const bottom = top + bubbleEl.offsetHeight;
     const left = guideEl.getBoundingClientRect().left - sceneBox.left + maxShift + bubbleShift;

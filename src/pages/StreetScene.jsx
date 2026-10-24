@@ -256,8 +256,8 @@ const NOTICE_BOARD = {
 // Leaves fill tree 1's boxes in order, then tree 2's, and so on (see
 // placeDrawings). Tree 2 gets a full canopy (78 / 28 / 43 = 149, the old
 // tree's split); trees 1 and 3 are half off-screen, so they only get two
-// boxes over the part that shows, at half capacity (75 each).
-// Capacities sum to 299 — keep drawingsStore.js's ZONE_LIMITS.tree at that
+// boxes over the part that shows, capped at 65 each; tree 2 takes 150.
+// Capacities sum to 280 — keep drawingsStore.js's ZONE_LIMITS.tree at that
 // plus its overflow buffer.
 // `left` is measured from the tree's `anchor` (see STREET_ANCHORS): the end
 // trees hang off the ends of the road, tree 2 off the middle of the gap.
@@ -296,7 +296,9 @@ const CRAYON_TREES = [
     // Left third is off the start of the street — right side only.
     leafBoxes: [
       { id: "top-right", top: "-10%", left: "37.5%", width: "40%", height: "45%", capacity: 30, flip: true },
-      { id: "low-right", top: "22%", left: "55%", width: "50%", height: "45%", capacity: 45, flip: true },
+      // 35 (was 45) caps the tree at 65; cut from this box so the full top
+      // box's leaves, and the order leaves land in here, don't move.
+      { id: "low-right", top: "22%", left: "55%", width: "50%", height: "45%", capacity: 35, flip: true },
     ],
   },
   {
@@ -313,7 +315,7 @@ const CRAYON_TREES = [
     leafBoxes: [
       { id: "top-left", top: "-5%", left: "10%", width: "75%", height: "45%", capacity: 78 },
       { id: "top-right", top: "3%", left: "75%", width: "40%", height: "35%", capacity: 28, flip: true },
-      { id: "low-right", top: "25%", left: "-8%", width: "50%", height: "40%", capacity: 43, flip: true },
+      { id: "low-right", top: "25%", left: "-8%", width: "50%", height: "40%", capacity: 44, flip: true },
     ],
   },
   {
@@ -328,8 +330,8 @@ const CRAYON_TREES = [
     // Right third is past the end of the road — left side only. Last tree,
     // so its last box also takes the overflow buffer.
     leafBoxes: [
-      { id: "top-left", top: "-10%", left: "10%", width: "55%", height: "45%", capacity: 45 },
-      { id: "low-left", top: "25%", left: "2%", width: "45%", height: "40%", capacity: 30 },
+      { id: "top-left", top: "-10%", left: "10%", width: "55%", height: "45%", capacity: 39 },
+      { id: "low-left", top: "25%", left: "2%", width: "45%", height: "40%", capacity: 26 },
     ],
   },
 ]
