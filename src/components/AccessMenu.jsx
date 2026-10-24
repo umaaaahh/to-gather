@@ -114,6 +114,12 @@ export default function AccessMenu() {
           checked={settings.music}
           onChange={(on) => setSetting("music", on)}
         />
+        <SliderRow
+          label="Music volume"
+          value={settings.musicVolume}
+          disabled={!settings.music}
+          onChange={(v) => setSetting("musicVolume", v)}
+        />
 
         <button type="button" className="px-btn px-btn--cream access-reset" onClick={resetSettings}>
           Reset
@@ -154,6 +160,32 @@ function PxSwitch({ labelledBy, checked, onChange }) {
         <span className="px-switch-knob" />
       </span>
     </button>
+  );
+}
+
+// .px-slider: a 0–100 range (the music volume) drawn like the switches — a
+// pixel track that fills blue up to a square knob.
+function SliderRow({ label, value, disabled, onChange }) {
+  const id = useId();
+  return (
+    <div className="access-row">
+      <span id={id} className="access-label">
+        {label}
+      </span>
+      <input
+        type="range"
+        className="px-slider"
+        min="0"
+        max="100"
+        step="5"
+        value={value}
+        disabled={disabled}
+        aria-labelledby={id}
+        aria-valuetext={`${value}%`}
+        style={{ "--fill": `${value}%` }}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </div>
   );
 }
 

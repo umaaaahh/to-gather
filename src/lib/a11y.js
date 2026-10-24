@@ -7,6 +7,8 @@ import { useSyncExternalStore } from "react";
 //   data-sound="off"       no sound effects (lib/sounds.js)
 //   data-music="off"       no background music under the street (lib/sounds.js);
 //                          the radio is separate from both
+//   data-music-volume="50" background music volume, 0–100 (lib/sounds.js; no
+//                          visual effect, so index.html doesn't mirror it)
 //   data-contrast="high"   high contrast (popup.css)
 //   data-font="readable"   Atkinson Hyperlegible everywhere (popup.css)
 //
@@ -18,7 +20,15 @@ import { useSyncExternalStore } from "react";
 
 const KEY = "to-gather-a11y";
 
-export const DEFAULTS = { text: "md", motion: null, sound: true, music: true, contrast: false, font: false };
+export const DEFAULTS = {
+  text: "md",
+  motion: null,
+  sound: true,
+  music: true,
+  musicVolume: 50,
+  contrast: false,
+  font: false,
+};
 
 const osMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
@@ -50,6 +60,7 @@ function apply(s) {
   set("motion", motionReduced(s) && "reduced");
   set("sound", !s.sound && "off");
   set("music", !s.music && "off");
+  root.dataset.musicVolume = String(s.musicVolume); // set() would drop a 0
   set("contrast", s.contrast && "high");
   set("font", s.font && "readable");
 }
@@ -95,3 +106,8 @@ export function useA11ySettings() {
 export const prefersReducedMotion = () => document.documentElement.dataset.motion === "reduced";
 export const soundOn = () => document.documentElement.dataset.sound !== "off";
 export const musicOn = () => document.documentElement.dataset.music !== "off";
+/** The music volume setting, 0–1. */
+export const musicVolume = () => {
+  const v = Number(document.documentElement.dataset.musicVolume);
+  return Number.isFinite(v) ? Math.min(Math.max(v, 0), 100) / 100 : DEFAULTS.musicVolume / 100;
+};

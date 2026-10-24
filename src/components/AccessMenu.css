@@ -274,6 +274,69 @@ body:has(.splash[data-phase="showing"]) .access-menu {
   margin-top: calc(var(--u) * 2);
 }
 
+/* ---- .px-slider ---- */
+/* The music volume: a pixel track like .px-switch-track, filled blue up to
+   --fill (set inline), with a square knob like .px-switch-knob. The input
+   is 44px tall for the tap target; the drawn track sits in its middle. */
+.px-slider {
+  flex: 0 1 calc(var(--u) * 34);
+  min-width: 0;
+  height: 44px;
+  margin: 0 var(--u);
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.px-slider::-webkit-slider-runnable-track {
+  height: calc(var(--u) * 4);
+  background: linear-gradient(to right, var(--blue) var(--fill), var(--cream-hi) var(--fill));
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 rgba(0, 0, 0, 0.15),
+    var(--px-outline);
+}
+
+.px-slider::-moz-range-track {
+  height: calc(var(--u) * 4);
+  background: linear-gradient(to right, var(--blue) var(--fill), var(--cream-hi) var(--fill));
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 rgba(0, 0, 0, 0.15),
+    var(--px-outline);
+}
+
+.px-slider::-webkit-slider-thumb {
+  width: calc(var(--u) * 6);
+  height: calc(var(--u) * 7);
+  margin-top: calc(var(--u) * -1.5); /* centre on the 4u track */
+  border: 0;
+  border-radius: 0;
+  background: var(--cream);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--cream-lo),
+    inset var(--u) var(--u) 0 #ffffff,
+    var(--px-outline);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.px-slider::-moz-range-thumb {
+  width: calc(var(--u) * 6);
+  height: calc(var(--u) * 7);
+  border: 0;
+  border-radius: 0;
+  background: var(--cream);
+  box-shadow:
+    inset 0 calc(var(--u) * -1) 0 var(--cream-lo),
+    inset var(--u) var(--u) 0 #ffffff,
+    var(--px-outline);
+}
+
+.px-slider:disabled {
+  cursor: default;
+  filter: grayscale(1) opacity(0.5);
+}
+
 /* ---- .px-switch ---- */
 .px-switch {
   flex: none;

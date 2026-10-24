@@ -26,7 +26,9 @@ export default function RadioLayer({ open, onOpen, onClose }) {
   const handleNowPlaying = useCallback(
     (station, playing) => {
       setRadio(station ? { station, playing } : null);
-      duckAmbience("radio", station && playing && "mute"); // the street goes quiet under the music
+      // The street's music goes quiet as soon as a station is on — tuning in
+      // as well as playing — and comes back once it's paused, off or failed.
+      duckAmbience("radio", station && "mute");
     },
     [],
   );

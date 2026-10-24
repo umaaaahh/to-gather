@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { musicOn, soundOn } from "./a11y";
+import { musicOn, musicVolume, soundOn } from "./a11y";
 import { ASSETS } from "./assets";
 
 // Every sound the site plays, wired through here so the Settings menu's
@@ -71,9 +71,11 @@ export const SFX = {
 };
 
 const VOLUME = 0.5;
-const AMBIENCE_VOLUME = 0.05;
+// The street music at the Settings menu's Music volume of 100%; its default
+// 50% gives half this.
+const AMBIENCE_VOLUME_MAX = 0.1;
 // Cues that sit louder or quieter than VOLUME (0–1).
-const CUE_VOLUME = { click: 0.8, hop: 0.045, tuning: 0.3 };
+const CUE_VOLUME = { click: 0.8, hop: 0.045, tuning: 0.3, noticeBoard: 0.25 };
 // Cues cut off after this many ms, for files that run longer than the moment
 // they go with. These also skip preloading the whole file, so a long one
 // isn't downloaded up front. None need it right now.
@@ -245,7 +247,9 @@ export function startLoop(name, volume = CUE_VOLUME[name] ?? VOLUME) {
 
 const AMBIENCE_FADE_IN_MS = 1500;
 const AMBIENCE_FADE_OUT_MS = 700;
-const AMBIENCE_DIP = 0.25; // of AMBIENCE_VOLUME, while something's open
+const AMBIENCE_DIP = 0.25; // of its level, while something's open
+// Following the Music volume slider: quick, so it tracks the drag.
+const AMBIENCE_VOLUME_FADE_MS = 120;
 // ducks: key -> "dip" | "mute". target: the volume it's at or fading
 // towards (0 = fading out / stopped). starting: a play() is in flight.
 const ambience = { wanted: false, ducks: new Map(), el: null, target: 0, timer: null, starting: false };
@@ -255,7 +259,8 @@ function ambienceLevel() {
   if (!ambience.wanted) return 0;
   const modes = [...ambience.ducks.values()];
   if (modes.includes("mute")) return 0;
-  return modes.length ? AMBIENCE_VOLUME * AMBIENCE_DIP : AMBIENCE_VOLUME;
+  const full = AMBIENCE_VOLUME_MAX * musicVolume();
+  return modes.length ? full * AMBIENCE_DIP : full;
 }
 
 function fadeAmbience(to, ms, then) {
@@ -273,8 +278,11 @@ function fadeAmbience(to, ms, then) {
   }, 30);
 }
 
-function syncAmbience() {
+// fadeMs overrides the fade time (the volume slider); anything else passed
+// in (it's also an event listener) is ignored.
+function syncAmbience(fadeMs) {
   if (!hasSound("street")) return;
+  const quick = typeof fadeMs === "number" ? fadeMs : null;
   if (!musicOn() || document.hidden) {
     // Off straight away, not faded: the visitor asked for quiet, or can't
     // hear it anyway (and a hidden tab throttles the fade's timer).
@@ -309,14 +317,14 @@ function syncAmbience() {
         .catch(() => {})
         .finally(() => (ambience.starting = false));
     } else if (ambience.target !== level) {
-      // Up from a dip or a fade-out, or down into a dip.
-      const ms = level > ambience.target ? AMBIENCE_FADE_IN_MS : AMBIENCE_FADE_OUT_MS;
+      // Up from a dip or a fade-out, down into a dip, or the volume slider.
+      const ms = quick ?? (level > ambience.target ? AMBIENCE_FADE_IN_MS : AMBIENCE_FADE_OUT_MS);
       ambience.target = level;
       fadeAmbience(level, ms);
     }
   } else if (ambience.el && ambience.target !== 0) {
     ambience.target = 0;
-    fadeAmbience(0, AMBIENCE_FADE_OUT_MS, () => ambience.el.pause());
+    fadeAmbience(0, quick ?? AMBIENCE_FADE_OUT_MS, () => ambience.el.pause());
   }
 }
 
@@ -382,9 +390,13 @@ export function installClickSounds() {
   document.addEventListener("pointerdown", wakeAudio, true);
   document.addEventListener("keydown", wakeAudio, true);
   document.addEventListener("visibilitychange", syncAmbience);
-  // The Settings menu's Background music switch flips data-music on <html>.
-  new MutationObserver(syncAmbience).observe(document.documentElement, {
+  // The Settings menu's Background music switch and Music volume slider set
+  // data-music and data-music-volume on <html>.
+  new MutationObserver((records) => {
+    const slider = records.every((r) => r.attributeName === "data-music-volume");
+    syncAmbience(slider ? AMBIENCE_VOLUME_FADE_MS : undefined);
+  }).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-music"],
+    attributeFilter: ["data-music", "data-music-volume"],
   });
 }
