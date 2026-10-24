@@ -1,18 +1,26 @@
 rules_version = '2';
 
 service firebase.storage {
+  // The accounts listed in Firestore's admins/{uid}, same as isAdmin() in
+  // firestore.rules.
+  function isAdmin() {
+    return request.auth != null
+      && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+  }
+
   match /b/{bucket}/o {
     match /drawings/{zone}/{fileName} {
       allow read: if true;
 
-      allow write: if zone in ['tree', 'stem', 'free']
+      // New files only: a drawing's file never changes after upload, and its
+      // path is public in Firestore, so allowing overwrites would let anyone
+      // swap out a drawing already on the street.
+      allow create: if resource == null
+        && zone in ['tree', 'stem', 'free']
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType == 'image/png';
 
-      // admin-only (Uma's Firebase Auth account). Shelf visitors are signed in
-      // anonymously, so they're ruled out explicitly.
-      allow delete: if request.auth != null
-        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      allow delete: if isAdmin();
     }
   }
 }

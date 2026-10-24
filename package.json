@@ -8,10 +8,11 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:rules": "firebase emulators:exec --only firestore,storage \"node tests/rules.test.mjs\""
+    "test:rules": "firebase emulators:exec --project demo-to-gather --only firestore,storage \"node tests/rules.test.mjs\""
   },
   "dependencies": {
     "firebase": "^12.18.0",
+    "obscenity": "^0.4.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"

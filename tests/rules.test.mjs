@@ -2,9 +2,10 @@
 // only (never production). Invoke via `npm run test:rules`, which wraps this
 // in `firebase emulators:exec`.
 //
-// Checks that reads stay public, creates stay public (with validation), and
-// delete requires an authenticated, non-anonymous (admin) user for both
-// Firestore docs and Storage objects. Then the Shelf: one vote per person,
+// Checks that reads stay public, creates stay public (with validation, and
+// only pointing at our own uploads), uploaded files can't be overwritten, and
+// delete needs an account listed in admins/{uid}, for both Firestore docs and
+// Storage objects — any other sign-in, anonymous or email/password, is refused. Then the Shelf: one vote per person,
 // vote counts that can't drift, and validated books and notes.
 
 import { readFileSync } from "node:fs";
@@ -31,8 +32,20 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, deleteObject } from "firebase/storage";
 
-const PROJECT_ID = "to-gather-rules-test";
+// Matches --project in the test:rules script, so the Storage rules' Firestore
+// lookup (isAdmin) sees the admins seeded here. demo- projects are
+// emulator-only and never reach production.
+const PROJECT_ID = "demo-to-gather";
 const PNG_BYTES = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]); // PNG magic bytes
+
+const FIRESTORE_RULES = readFileSync("firestore.rules", "utf8");
+const STORAGE_RULES = readFileSync("storage.rules", "utf8");
+
+const ADMIN_UID = "uma-uid";
+
+// A download URL the way saveDrawing gets one back from Storage.
+const drawingUrl = (path) =>
+  `https://firebasestorage.googleapis.com/v0/b/to-gather-54dd7.firebasestorage.app/o/${encodeURIComponent(path)}?alt=media&token=abc`;
 
 let passed = 0;
 async function check(name, fn) {
@@ -45,12 +58,12 @@ async function main() {
   const testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
-      rules: readFileSync("firestore.rules", "utf8"),
+      rules: FIRESTORE_RULES,
       host: "127.0.0.1",
       port: 8080,
     },
     storage: {
-      rules: readFileSync("storage.rules", "utf8"),
+      rules: STORAGE_RULES,
       host: "127.0.0.1",
       port: 9199,
     },
@@ -63,11 +76,13 @@ async function main() {
     const seededThumbPath = "drawings/tree/seed-thumb.png";
 
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      // As if added by hand in the Firebase console.
+      await setDoc(doc(ctx.firestore(), "admins", ADMIN_UID), {});
       const ref_ = await addDoc(collection(ctx.firestore(), "drawings"), {
         zone: "tree",
-        url: "https://example.com/seed.png",
+        url: drawingUrl(seededPath),
         path: seededPath,
-        thumbUrl: "https://example.com/seed-thumb.png",
+        thumbUrl: drawingUrl(seededThumbPath),
         thumbPath: seededThumbPath,
         createdAt: new Date(),
       });
@@ -81,11 +96,23 @@ async function main() {
     });
 
     const anon = testEnv.unauthenticatedContext();
-    const admin = testEnv.authenticatedContext("uma-uid");
+    const admin = testEnv.authenticatedContext(ADMIN_UID);
     // A shelf visitor: signed in, but anonymously.
     const visitorToken = { firebase: { sign_in_provider: "anonymous" } };
     const visitor = testEnv.authenticatedContext("visitor-a", visitorToken);
     const visitorB = testEnv.authenticatedContext("visitor-b", visitorToken);
+    // Someone who made their own email/password account with the public API
+    // key: signed in, not anonymous, and still not the admin.
+    const stranger = testEnv.authenticatedContext("stranger", {
+      email: "stranger@example.com",
+      firebase: { sign_in_provider: "password" },
+    });
+
+    await check("nobody can add themselves to admins, or read the list", async () => {
+      await assertFails(setDoc(doc(stranger.firestore(), "admins", "stranger"), {}));
+      await assertFails(setDoc(doc(visitor.firestore(), "admins", "visitor-a"), {}));
+      await assertFails(getDoc(doc(stranger.firestore(), "admins", ADMIN_UID)));
+    });
 
     await check("unauthenticated read succeeds (Firestore)", async () => {
       await assertSucceeds(getDoc(doc(anon.firestore(), "drawings", seededId)));
@@ -96,13 +123,34 @@ async function main() {
       await assertSucceeds(
         addDoc(collection(anon.firestore(), "drawings"), {
           zone: "stem",
-          url: "https://example.com/new.png",
-          path: "drawings/stem/new.png",
-          thumbUrl: "https://example.com/new-thumb.png",
-          thumbPath: "drawings/stem/new-thumb.png",
+          url: drawingUrl("drawings/stem/1-new.png"),
+          path: "drawings/stem/1-new.png",
+          thumbUrl: drawingUrl("drawings/stem/1-new-thumb.png"),
+          thumbPath: "drawings/stem/1-new-thumb.png",
           createdAt: serverTimestamp(),
         }),
       );
+    });
+
+    await check("create rejected when an image is hosted elsewhere (Firestore)", async () => {
+      const drawings = collection(anon.firestore(), "drawings");
+      const valid = {
+        zone: "stem",
+        url: drawingUrl("drawings/stem/2-new.png"),
+        path: "drawings/stem/2-new.png",
+        thumbUrl: drawingUrl("drawings/stem/2-new-thumb.png"),
+        thumbPath: "drawings/stem/2-new-thumb.png",
+        createdAt: serverTimestamp(),
+      };
+      await assertFails(addDoc(drawings, { ...valid, url: "https://example.com/new.png" }));
+      await assertFails(addDoc(drawings, { ...valid, thumbUrl: "https://example.com/new-thumb.png" }));
+      // Another bucket, and our bucket but outside drawings/{zone}/.
+      await assertFails(
+        addDoc(drawings, { ...valid, url: valid.url.replace("to-gather-54dd7", "someone-else") }),
+      );
+      await assertFails(addDoc(drawings, { ...valid, url: drawingUrl("other/2-new.png") }));
+      // A real drawing, but from a different zone's folder.
+      await assertFails(addDoc(drawings, { ...valid, url: drawingUrl("drawings/tree/2-new.png") }));
     });
 
     await check("unauthenticated create rejected with invalid zone (Firestore)", async () => {
@@ -122,7 +170,7 @@ async function main() {
       await assertFails(
         addDoc(collection(anon.firestore(), "drawings"), {
           zone: "stem",
-          url: "https://example.com/no-thumb.png",
+          url: drawingUrl("drawings/stem/no-thumb.png"),
           path: "drawings/stem/no-thumb.png",
           createdAt: serverTimestamp(),
         }),
@@ -137,11 +185,24 @@ async function main() {
       await assertFails(deleteDoc(doc(visitor.firestore(), "drawings", seededId)));
     });
 
-    await check("unauthenticated write succeeds (Storage, matches create rule)", async () => {
+    await check("non-admin email/password user delete is REJECTED (Firestore)", async () => {
+      await assertFails(deleteDoc(doc(stranger.firestore(), "drawings", seededId)));
+    });
+
+    await check("unauthenticated upload succeeds (Storage, matches create rule)", async () => {
       await assertSucceeds(
         uploadBytes(ref(anon.storage(), "drawings/tree/anon-upload.png"), PNG_BYTES, {
           contentType: "image/png",
         }),
+      );
+    });
+
+    await check("overwriting an existing drawing is REJECTED (Storage)", async () => {
+      await assertFails(
+        uploadBytes(ref(anon.storage(), seededPath), PNG_BYTES, { contentType: "image/png" }),
+      );
+      await assertFails(
+        uploadBytes(ref(stranger.storage(), seededThumbPath), PNG_BYTES, { contentType: "image/png" }),
       );
     });
 
@@ -158,6 +219,10 @@ async function main() {
       await assertFails(deleteObject(ref(visitor.storage(), seededPath)));
     });
 
+    await check("non-admin email/password user delete is REJECTED (Storage)", async () => {
+      await assertFails(deleteObject(ref(stranger.storage(), seededPath)));
+    });
+
     await check("authenticated admin delete succeeds (Firestore)", async () => {
       await assertSucceeds(deleteDoc(doc(admin.firestore(), "drawings", seededId)));
     });
@@ -170,7 +235,7 @@ async function main() {
       await assertSucceeds(deleteObject(ref(admin.storage(), seededThumbPath)));
     });
 
-    await shelfTests(testEnv, { anon, admin, visitor, visitorB });
+    await shelfTests(testEnv, { anon, admin, visitor, visitorB, stranger });
 
     console.log(`\n${passed} rules tests passed.`);
   } finally {
@@ -223,7 +288,7 @@ async function votesOn(testEnv, bookId) {
   return votes;
 }
 
-async function shelfTests(testEnv, { anon, admin, visitor, visitorB }) {
+async function shelfTests(testEnv, { anon, admin, visitor, visitorB, stranger }) {
   await check("signed-out visitor can't add a book (Shelf)", async () => {
     await assertFails(addBookBatch(anon, "nobody", "book1"));
   });
@@ -248,6 +313,31 @@ async function shelfTests(testEnv, { anon, admin, visitor, visitorB }) {
   await check("book with a non-Google cover is rejected (Shelf)", async () => {
     await assertFails(
       addBookBatch(visitor, "visitor-a", "book2", { book: { ...BOOK, cover: "https://evil.example/x.png" } }),
+    );
+  });
+
+  await check("book with a lookalike Google link or cover is rejected (Shelf)", async () => {
+    await assertFails(
+      addBookBatch(visitor, "visitor-a", "book2", {
+        book: { ...BOOK, link: "https://books.google.evil.com/books?id=abc" },
+      }),
+    );
+    await assertFails(
+      addBookBatch(visitor, "visitor-a", "book2", {
+        book: { ...BOOK, cover: "https://books.google.evil.com/x.png" },
+      }),
+    );
+  });
+
+  await check("book with a country Google Books link is accepted (Shelf)", async () => {
+    await assertSucceeds(
+      addBookBatch(visitor, "visitor-a", "book-au", {
+        book: {
+          ...BOOK,
+          cover: "https://books.google.com.au/books/content?id=xyz",
+          link: "https://play.google.com/store/books/details?id=xyz",
+        },
+      }),
     );
   });
 
@@ -319,6 +409,10 @@ async function shelfTests(testEnv, { anon, admin, visitor, visitorB }) {
 
   await check("visitor can't delete books or notes; admin can (Shelf)", async () => {
     await assertFails(deleteDoc(doc(visitor.firestore(), "shelfBooks", "book1")));
+    await assertFails(deleteDoc(doc(stranger.firestore(), "shelfBooks", "book1")));
+    await assertFails(
+      getDocs(query(collection(stranger.firestore(), "shelfVotes"), where("bookId", "==", "book1"))),
+    );
     // Mirrors shelfStore.js's deleteBook: votes and notes, then the book.
     const db = admin.firestore();
     const [votes, notes] = await Promise.all([

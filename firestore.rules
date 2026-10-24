@@ -2,11 +2,32 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Uma's email/password account. Shelf visitors are signed in too, but
-    // anonymously, and must never count as admin.
+    // Admins are the accounts listed in admins/{uid}, added by hand in the
+    // Firebase console (which skips these rules). Not "any non-anonymous
+    // sign-in": anyone with the web API key can make their own email/password
+    // account, but nothing in the app can add them to admins. storage.rules
+    // checks the same list.
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // A download URL for one of our own uploads in drawings/{zone}/ (see
+    // saveDrawing in drawingsStore.js), so a drawing doc can't point the
+    // street at an image hosted anywhere else.
+    function isDrawingUrl(url, zone) {
+      return url is string
+        && url.size() < 2000
+        && url.matches('https://firebasestorage[.]googleapis[.]com/v0/b/to-gather-54dd7[.]firebasestorage[.]app/o/drawings%2F'
+          + zone + '%2F[A-Za-z0-9_-]+[.]png[?].*');
+    }
+
+    // A Google Books / Play address. The host has to end right after the
+    // country part, so books.google.evil.com doesn't pass. Mirrors
+    // isGoogleUrl in Bookshelf.jsx.
+    function isGoogleUrl(url, hosts) {
+      return url.size() < 2000
+        && url.matches('https://(' + hosts + ')[.]google[.](com|com[.][a-z]{2}|co[.][a-z]{2}|[a-z]{2})/.*');
     }
 
     function signedIn() {
@@ -22,15 +43,18 @@ service cloud.firestore {
       return /databases/$(database)/documents/shelfVotes/$(request.auth.uid + '_' + bookId);
     }
 
+    // Console-only: see isAdmin().
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
+
     match /drawings/{drawingId} {
       allow read: if true;
 
       allow create: if request.resource.data.keys().hasOnly(['zone', 'url', 'path', 'thumbUrl', 'thumbPath', 'createdAt'])
         && request.resource.data.zone in ['tree', 'stem', 'free']
-        && request.resource.data.url is string
-        && request.resource.data.url.size() < 2000
-        && request.resource.data.thumbUrl is string
-        && request.resource.data.thumbUrl.size() < 2000
+        && isDrawingUrl(request.resource.data.url, request.resource.data.zone)
+        && isDrawingUrl(request.resource.data.thumbUrl, request.resource.data.zone)
         && request.resource.data.createdAt == request.time;
 
       allow update: if false;
@@ -54,12 +78,10 @@ service cloud.firestore {
         && request.resource.data.authors.size() <= 200
         && request.resource.data.cover is string
         && (request.resource.data.cover == ''
-          || (request.resource.data.cover.size() < 2000
-            && request.resource.data.cover.matches('https://books[.]google[.].*')))
+          || isGoogleUrl(request.resource.data.cover, 'books'))
         && request.resource.data.link is string
         && (request.resource.data.link == ''
-          || (request.resource.data.link.size() < 2000
-            && request.resource.data.link.matches('https://(books|play)[.]google[.].*')))
+          || isGoogleUrl(request.resource.data.link, 'books|play'))
         && request.resource.data.votes == 1
         && request.resource.data.createdAt == request.time
         && !exists(myVotePath(bookId))
