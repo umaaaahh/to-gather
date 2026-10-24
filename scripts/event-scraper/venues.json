@@ -1,0 +1,151 @@
+[
+  {
+    "name": "The Curtin",
+    "address": "29 Lygon St, Carlton",
+    "url": "https://johncurtinhotel.com/gigs",
+    "link_pattern": "oztix\\.com\\.au/outlet/event/",
+    "follow": true,
+    "title_case": true,
+    "default_genre": "Music",
+    "link_label": "Get tickets"
+  },
+  {
+    "name": "The Lincoln",
+    "address": "91 Cardigan St, Carlton",
+    "url": "https://www.hotellincoln.com.au/whats-on",
+    "default_genre": "Food & Drink",
+    "link_label": "What's on",
+    "weeks_ahead": 4,
+    "recurring": [
+      {
+        "title": "Sunday Roast",
+        "days": [
+          "Sun"
+        ],
+        "start_time": "12:00 pm",
+        "description": "Sunday roast at the Lincoln, from 12pm until sold out."
+      },
+      {
+        "title": "$25 Weekday Counter Meal",
+        "days": [
+          "Mon"
+        ],
+        "start_time": "12:00 pm",
+        "description": "$25 counter meal every weekday, Monday to Friday, from 12pm until sold out.",
+        "link": "https://bookings.obeeapp.com/thelincolnhotel",
+        "link_label": "Book a table",
+        "skip_months": [
+          12
+        ]
+      }
+    ]
+  },
+  {
+    "name": "RMIT",
+    "url": "https://www.rmit.edu.au/events",
+    "link_pattern": "rmit\\.edu\\.au/(.+/)?events/20\\d\\d/.+",
+    "aggregator": true,
+    "follow": true,
+    "default_genre": "Talks & Community",
+    "link_label": "More info"
+  },
+  {
+    "name": "City of Melbourne",
+    "url": [
+      "https://whatson.melbourne.vic.gov.au/things-to-do/whats-on-this-week-in-melbourne",
+      "https://whatson.melbourne.vic.gov.au/things-to-do/free"
+    ],
+    "link_pattern": "whatson\\.melbourne\\.vic\\.gov\\.au/things-to-do/[^/?#]+$",
+    "aggregator": true,
+    "follow": true,
+    "default_genre": "Talks & Community",
+    "link_label": "More info"
+  },
+  {
+    "name": "The Clyde Hotel",
+    "address": "385 Cardigan St, Carlton",
+    "url": "https://www.theclydehotel.com.au",
+    "default_genre": "Food & Drink",
+    "link_label": "What's on",
+    "weeks_ahead": 4,
+    "recurring": [
+      {
+        "title": "Sunday Jazz",
+        "days": [
+          "Sun"
+        ],
+        "start_time": "1:00 pm",
+        "end_time": "4:00 pm",
+        "genre": "Music",
+        "description": "Live jazz in the front bar every Sunday afternoon."
+      }
+    ],
+    "note": "Specials only for now. The site isn't scraped until a method is set up."
+  },
+  {
+    "name": "Prince Alfred Hotel",
+    "address": "191 Grattan St, Carlton",
+    "url": "",
+    "default_genre": "Games & Play",
+    "link_label": "More info",
+    "weeks_ahead": 4,
+    "recurring": [
+      {
+        "title": "Pub Trivia Night",
+        "days": [
+          "Tue"
+        ],
+        "start_time": "7:00 pm",
+        "genre": "Games & Play",
+        "description": "Weekly pub trivia at the Prince Alfred."
+      }
+    ],
+    "note": "Trivia night from Eat Drink Cheap's Carlton listings (Oct 2026). Add the pub's website as url if you want a link on the card."
+  },
+  {
+    "name": "Elder Gods and Dragons",
+    "address": "Unit 5/233 Cardigan St, Carlton",
+    "url": "https://www.egad.com.au",
+    "default_genre": "Games & Play",
+    "link_label": "Register",
+    "disabled": true,
+    "note": "Not set up yet."
+  },
+  {
+    "name": "Johnny's Green Room",
+    "address": "293-297 Lygon St, Carlton",
+    "url": "https://johnnysgreenroom.com/music-program/",
+    "default_genre": "Music",
+    "link_label": "See program",
+    "disabled": true,
+    "note": "Not set up yet."
+  },
+  {
+    "name": "The Motley Bauhaus",
+    "address": "118 Elgin St, Carlton",
+    "url": "https://www.themotley.com.au",
+    "default_genre": "Theatre & Cabaret",
+    "link_label": "What's on",
+    "disabled": true,
+    "note": "Not set up yet."
+  },
+  {
+    "name": "Science Gallery Melbourne",
+    "address": "114 Grattan St, Parkville",
+    "url": "https://melbourne.sciencegallery.com",
+    "default_genre": "Arts & Making",
+    "link_label": "More info",
+    "disabled": true,
+    "note": "Not set up yet."
+  },
+  {
+    "name": "Potter Museum of Art",
+    "address": "Cnr Swanston St & Masson Rd, Parkville",
+    "url": "https://potter-museum.unimelb.edu.au/whats-on",
+    "default_genre": "Arts & Making",
+    "link_label": "More info",
+    "link_pattern": "potter-museum\\.unimelb\\.edu\\.au/whats-on/events/.+",
+    "title_from_heading": true,
+    "follow": true
+  }
+]
