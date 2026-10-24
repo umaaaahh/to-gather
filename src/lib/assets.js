@@ -58,6 +58,8 @@ export const ASSETS = {
   kangarooHead: url("Kangaroo L.svg"),
   // UI pop played on every button press (see lib/sounds.js).
   clickPop: url("floraphonic-minimal-pop-click-ui-1-198301.mp3"),
+  // "Your drawing is on the street!" sparkle (see DrawingArrival).
+  revealSound: url("Sound/lucadialessandro-cute-sound-for-videos-397053.mp3"),
 };
 
 // Where the street sign sits in its 595x842 file (the rest is empty page).

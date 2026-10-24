@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "../lib/a11y";
 import { ASSETS } from "../lib/assets";
+import { playSound } from "../lib/sounds";
 // Alpha-only silhouette of the notice board art, bundled so it's same-origin:
 // a CSS mask-image needs CORS, which the asset bucket doesn't send.
 import noticeBoardMask from "../assets/notice-board-mask.png";
@@ -22,9 +23,10 @@ const SCROLL_DONE_PX = 60;
 const ADVANCE_MS = 700;
 
 // Each step spotlights the first selector that matches something in the
-// scene. hint is the pointer drawn on it: "tap" points down at the target,
-// "swipe" slides side to side along the road. padTop stretches the spotlight
+// scene. padTop stretches the spotlight
 // upwards past the element's own box (the tree's leaves hang above it).
+// boardCutout dims everything but the notice board's own silhouette, instead
+// of lighting a box around it.
 //
 // The spotlit area is live — the street underneath really pans and taps —
 // and doneWhen says what doing the step looks like, so the tour moves on by
@@ -35,26 +37,23 @@ const TOUR_STEPS = [
   {
     text: "Welcome to To Gather, Cardigan Street's digital fun hub! Doodle, explore and see what's on. Scroll along the street to start.",
     target: [".scene-ground"],
-    hint: "swipe",
     doneWhen: "scroll",
   },
   {
     text: "Hidden details are everywhere! Find community radio to listen to while you draw, or book picks from other users.",
     target: [".window-boombox", ".window-books"],
-    hint: "tap",
     look: true,
   },
   {
     text: "Ready to draw? Tap the sun, then pick a drawing zone!",
     target: [".scene-cta"],
-    hint: "tap",
     doneWhen: ".scene-cta",
   },
   {
     text: "Don't forget the notice board for real life events around Cardigan Street!",
     target: [".notice-board-art"],
-    hint: "tap",
     look: true,
+    boardCutout: true,
   },
 ];
 
@@ -65,8 +64,8 @@ export const DRAWING_DONE_STEPS = [
   {
     text: "Great work leaving your mark on the community! Check out what's going on in the real world to let this community leave its mark on you!",
     target: [".notice-board-art"],
-    hint: "tap",
     doneWhen: ".notice-board-button",
+    boardCutout: true,
   },
 ];
 
@@ -102,15 +101,6 @@ function measureTourLayout(scene, step) {
     ? road.top - sceneBox.top + road.height * FEET_DOWN_ROAD
     : sceneBox.height * 0.85;
 
-  let pointer = null;
-  if (step.hint === "swipe") {
-    // Along the road, left of the kangaroo.
-    pointer = { x: sceneBox.width * 0.28, y: feetY - 30 };
-  } else if (spot) {
-    const x = spot.left + spot.width / 2;
-    pointer = { x: Math.min(Math.max(x, 28), sceneBox.width - 28), y: spot.top };
-  }
-
   // The notice board's box, so it can be cut out of the kangaroo layer.
   const boardEl = scene.querySelector(".notice-board-art");
   let board = null;
@@ -126,7 +116,7 @@ function measureTourLayout(scene, step) {
     }
   }
 
-  return { spot, pointer, board, kangarooBottom: sceneBox.height - feetY };
+  return { spot, board, kangarooBottom: sceneBox.height - feetY };
 }
 
 // The board stands at the front of the street, so the kangaroo should hop
@@ -157,7 +147,7 @@ const sameLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // Guided first-visit tour over the live street scene: the kangaroo hops in
 // along the road, then talks through the steps one speech bubble at a time
-// (swipe, arrows or dots) while a spotlight and pointer pick out what each
+// (swipe, arrows or dots) while a spotlight picks out what each
 // step is about. Rendered inside .street-scene, which sceneRef points at.
 // steps defaults to the first-visit tour; a single step is just a message,
 // with no arrows or dots. onGo, if given, runs when "Let's go!" is tapped
@@ -262,9 +252,13 @@ export default function StreetTour({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The kangaroo's hop in, as it arrives.
+  useEffect(() => playSound("hopIn"), []);
+
   // Kangaroo hops back off, then the tour unmounts.
   useEffect(() => {
     if (!leaving) return undefined;
+    playSound("hopOut");
     const timer = setTimeout(onDone, prefersReducedMotion() ? 0 : LEAVE_MS);
     return () => clearTimeout(timer);
   }, [leaving, onDone]);
@@ -273,6 +267,7 @@ export default function StreetTour({
     if (leaving || i < 0 || i >= steps.length || i === step) return;
     setDir(i > step ? "next" : "prev");
     setStep(i);
+    playSound("bubble");
   }
 
   const finish = () => setLeaving(true);
@@ -311,7 +306,14 @@ export default function StreetTour({
     >
       {layout?.spot ? (
         <>
-          <div className="tour-spotlight" style={layout.spot} />
+          <div
+            className="tour-spotlight"
+            data-hidden={(current.boardCutout && layout.board) || undefined}
+            style={layout.spot}
+          />
+          {current.boardCutout && layout.board && (
+            <div className="tour-dim" style={behindBoardMask(layout.board)} />
+          )}
           {/* Four invisible blockers around the spotlight: they swallow
              taps and drags on the dimmed parts, leaving only the lit hole
              open to the street underneath. */}
@@ -337,21 +339,6 @@ export default function StreetTour({
         </>
       ) : (
         <div className="tour-dim tour-block" />
-      )}
-
-      {layout?.pointer && (
-        <div
-          className="tour-pointer"
-          data-hint={current.hint}
-          data-first={dir === "enter" || undefined}
-          style={{ left: layout.pointer.x, top: layout.pointer.y }}
-          aria-hidden="true"
-        >
-          {/* Keyed so the bob/sway restarts when the pointer moves on. */}
-          <span key={step} className="tour-pointer-hand">
-            {current.hint === "swipe" ? "👆" : "👇"}
-          </span>
-        </div>
       )}
 
       {layout && (

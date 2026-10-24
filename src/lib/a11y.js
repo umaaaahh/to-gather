@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 // and applied as attributes on <html>, which the stylesheets respond to:
 //   data-text="md|lg|xl"   text size (--text-scale in popup.css)
 //   data-motion="reduced"  reduce motion (only when reduced)
-//   data-sound="off"       no click pop (lib/sounds.js); the radio is separate
+//   data-sound="off"       no sound effects or ambience (lib/sounds.js); the radio is separate
 //   data-contrast="high"   high contrast (popup.css)
 //   data-font="readable"   Atkinson Hyperlegible everywhere (popup.css)
 //

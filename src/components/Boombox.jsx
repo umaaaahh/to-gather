@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "../lib/a11y";
+import { startLoop } from "../lib/sounds";
 import LoadingLogo from "./LoadingLogo";
 import "./Boombox.css";
 
@@ -264,6 +265,9 @@ export default function Boombox({ onNowPlaying }) {
     handleStation(current ?? STATIONS[0]);
   }
 
+  // Dial static while a station tunes in, until the stream starts.
+  useEffect(() => (status === "tuning" ? startLoop("tuning") : undefined), [status]);
+
   let nowPlaying;
   if (status === "live" && current) {
     nowPlaying = (
@@ -388,6 +392,7 @@ export default function Boombox({ onNowPlaying }) {
               style={{ "--c": station.color }}
               onClick={() => handleStation(station)}
               aria-pressed={active === station.id}
+              data-sfx="radioButton"
             >
               {station.label}
             </button>
@@ -414,6 +419,7 @@ export default function Boombox({ onNowPlaying }) {
           className={`boombox-power${active ? " on" : ""}`}
           onClick={handlePower}
           aria-pressed={!!active}
+          data-sfx="radioButton"
         >
           <span className="boombox-power-icon" aria-hidden="true">
             ⏻

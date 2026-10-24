@@ -11,6 +11,7 @@ import {
   subscribeToSubmissions,
 } from "../lib/drawingsStore";
 import { ASSETS, STREET_SIGN_CROP, cropImgStyle } from "../lib/assets";
+import { playSound, setAmbience } from "../lib/sounds";
 import "./StreetScene.css";
 
 // Zones are positioned as a % of the scene-ground box so they hold across phone
@@ -858,9 +859,16 @@ export default function StreetScene({
   const [saveFailed, setSaveFailed] = useState(false);
 
   useEffect(() => subscribe(setDrawings), []);
+  // The street's ambience loop plays while the street is mounted (see
+  // lib/sounds.js — it waits for the first tap if autoplay blocks it).
+  useEffect(() => {
+    setAmbience(true);
+    return () => setAmbience(false);
+  }, []);
   useEffect(
     () =>
       subscribeToSaveErrors(() => {
+        playSound("oops");
         setSaveFailed(true);
         setArrival(null); // nothing's coming — drop the loading screen
       }),
@@ -981,6 +989,7 @@ export default function StreetScene({
             className="notice-board-button"
             onClick={() => setEventsOpen(true)}
             disabled={mode !== "view"}
+            data-sfx="noticeBoard"
             aria-label="What's on in the community"
             style={{
               bottom: NOTICE_BOARD.bottom,
@@ -1096,6 +1105,7 @@ export default function StreetScene({
                           style={treeHotspotBox(t)}
                           disabled={t.status !== "open"}
                           onClick={() => navigate("/draw/tree")}
+                          data-sfx="openCanvas"
                           aria-label={
                             t.status === "open"
                               ? `${TREE_HOTSPOT.label} — ${TREE_HOTSPOT.level}`
@@ -1135,6 +1145,7 @@ export default function StreetScene({
                 className="street-surprise-button"
                 onClick={onOpenRadio}
                 disabled={mode !== "view"}
+                data-sfx="radioOpen"
                 aria-label="Something's playing in the window"
                 style={{
                   top: WINDOW_RADIO.top,
@@ -1154,6 +1165,7 @@ export default function StreetScene({
                 className="street-surprise-button ledge-button"
                 onClick={onOpenBookshelf}
                 disabled={mode !== "view"}
+                data-sfx="bookOpen"
                 aria-label="Open the community bookshelf"
                 style={{
                   top: WINDOW_BOOK.top,
@@ -1172,6 +1184,7 @@ export default function StreetScene({
                 className="street-surprise-button"
                 onClick={onOpenStreetSign}
                 disabled={mode !== "view"}
+                data-sfx="signCreak"
                 aria-label="About Cardigan St"
                 style={STREET_SIGN}
               >
@@ -1194,6 +1207,7 @@ export default function StreetScene({
                 className="street-surprise-button"
                 onClick={onOpenStreetStats}
                 disabled={mode !== "view"}
+                data-sfx="neonBuzz"
                 aria-label="See the street's stats"
                 style={STREET_POSTER}
               >
@@ -1280,6 +1294,7 @@ export default function StreetScene({
                       style={bedBox(b)}
                       disabled={b.status !== "open"}
                       onClick={() => navigate("/draw/stem")}
+                      data-sfx="openCanvas"
                       aria-label={
                         b.status === "open"
                           ? `${FLOWER_HOTSPOT.label} — ${FLOWER_HOTSPOT.level}`
@@ -1397,6 +1412,7 @@ export default function StreetScene({
                       height: zone.height,
                     }}
                     onClick={() => navigate(`/draw/${zone.id}`)}
+                    data-sfx="openCanvas"
                     aria-label={`${zone.label} — ${zone.level}`}
                   >
                     <span className="zone-label px-btn">
@@ -1421,6 +1437,7 @@ export default function StreetScene({
       <SunButton
         className="scene-cta"
         onClick={() => setMode((m) => (m === "view" ? "contribute" : "view"))}
+        data-sfx={mode === "view" ? "sunDraw" : "sunBack"}
       >
         {mode === "view" ? "Draw" : "Back"}
       </SunButton>
@@ -1459,6 +1476,7 @@ export default function StreetScene({
           sceneRef={sceneRef}
           onDone={() => {
             setArrival(null);
+            playSound("cheer");
             setCheering(true);
           }}
         />

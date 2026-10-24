@@ -145,13 +145,13 @@ export default function EventsPopout({ initial, onClose }) {
 
             <section className="ep-calendar" aria-label="Calendar">
               <div className="ep-cal-head">
-                <button type="button" className="ep-cal-nav" onClick={() => goMonth(-1)} aria-label="Previous month">
+                <button type="button" className="ep-cal-nav" onClick={() => goMonth(-1)} aria-label="Previous month" data-sfx="pageTurn">
                   ‹
                 </button>
                 <span className="ep-cal-month">
                   {MONTH_NAMES[shownMonth.getMonth()]} {shownMonth.getFullYear()}
                 </span>
-                <button type="button" className="ep-cal-nav" onClick={() => goMonth(1)} aria-label="Next month">
+                <button type="button" className="ep-cal-nav" onClick={() => goMonth(1)} aria-label="Next month" data-sfx="pageTurn">
                   ›
                 </button>
               </div>

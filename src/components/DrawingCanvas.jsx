@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { startLoop } from "../lib/sounds";
 import "./DrawingCanvas.css";
 
 // Internal raster resolution (square). The canvas is displayed scaled to fit
@@ -54,6 +55,9 @@ export default function DrawingCanvas({
   // because it must block re-entry synchronously — a second pointer event
   // can land before React commits the re-render that disables the button.
   const submitLockRef = useRef(false);
+  // Stops the crayon / eraser loop that plays while a stroke is down.
+  const stopStrokeSoundRef = useRef(null);
+  useEffect(() => () => stopStrokeSoundRef.current?.(), []);
 
   const [tool, setTool] = useState("brush"); // "brush" | "eraser"
   const [color, setColor] = useState(palette[0] ?? "#000000");
@@ -163,12 +167,14 @@ export default function DrawingCanvas({
       drawingRef.current = true;
       lastPtRef.current = pt;
       strokeSettings();
+      stopStrokeSoundRef.current?.();
+      stopStrokeSoundRef.current = startLoop(tool === "eraser" ? "eraser" : "crayon");
       // a dot, so a tap leaves a mark
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, ctx.lineWidth / 2, 0, Math.PI * 2);
       ctx.fill();
     },
-    [toCanvasPt, pushUndo, strokeSettings],
+    [toCanvasPt, pushUndo, strokeSettings, tool],
   );
 
   const handleMove = useCallback(
@@ -193,6 +199,8 @@ export default function DrawingCanvas({
     if (!drawingRef.current) return;
     drawingRef.current = false;
     lastPtRef.current = null;
+    stopStrokeSoundRef.current?.();
+    stopStrokeSoundRef.current = null;
     const ctx = ctxRef.current;
     ctx.globalCompositeOperation = "source-over";
     canvasRef.current.releasePointerCapture?.(e.pointerId);
@@ -333,10 +341,11 @@ export default function DrawingCanvas({
             className="dc-btn"
             onClick={undo}
             disabled={!canUndo || busy}
+            data-sfx="undo"
           >
             Undo
           </button>
-          <button type="button" className="dc-btn" onClick={clearAll} disabled={busy}>
+          <button type="button" className="dc-btn" onClick={clearAll} disabled={busy} data-sfx="crumple">
             Clear
           </button>
           <button
@@ -344,6 +353,7 @@ export default function DrawingCanvas({
             className="px-btn dc-done"
             onClick={handleDone}
             disabled={busy}
+            data-sfx="submit"
           >
             Done
           </button>

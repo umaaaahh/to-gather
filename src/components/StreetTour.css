@@ -42,44 +42,15 @@
 .tour-spotlight {
   position: absolute;
   border-radius: 1rem;
-  box-shadow:
-    0 0 0 3px rgba(255, 250, 243, 0.85),
-    0 0 0 200vmax var(--tour-dim);
+  box-shadow: 0 0 0 200vmax var(--tour-dim);
   pointer-events: none;
   /* transition: see "Leaving" below — it glides and fades on one rule. */
 }
 
-/* ---- Pointer ---------------------------------------------------------- */
-.tour-pointer {
-  position: absolute;
-  font-size: calc(2.25rem * var(--text-scale));
-  line-height: 1;
-  pointer-events: none;
-  transform: translate(-50%, -100%); /* fingertip on the target's top edge */
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
-  transition:
-    left 0.45s ease,
-    top 0.45s ease,
-    opacity 0.3s ease;
-  animation: tour-fade-in 0.3s ease both;
-}
-
-/* The first time, it waits for the kangaroo to land before pointing. */
-.tour-pointer[data-first] {
-  animation: tour-fade-in 0.4s ease 1.5s both;
-}
-
-.tour-pointer[data-hint="swipe"] {
-  transform: translate(-50%, -50%);
-}
-
-.tour-pointer-hand {
-  display: inline-block;
-  animation: tour-bob 1s ease-in-out infinite;
-}
-
-.tour-pointer[data-hint="swipe"] .tour-pointer-hand {
-  animation: tour-sway 1.6s ease-in-out infinite;
+/* On a board-cutout step a masked .tour-dim does the dimming instead, so
+   the lit box around the board goes dark too. */
+.tour-spotlight[data-hidden] {
+  opacity: 0;
 }
 
 /* ---- Kangaroo + speech bubble, standing on the road -------------------- */
@@ -311,7 +282,6 @@
 
 .tour[data-leaving] .tour-dim,
 .tour[data-leaving] .tour-spotlight,
-.tour[data-leaving] .tour-pointer,
 .tour[data-leaving] .tour-bubble,
 .tour[data-leaving] .tour-skip {
   opacity: 0;
@@ -392,31 +362,9 @@
   }
 }
 
-@keyframes tour-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes tour-sway {
-  0%,
-  100% {
-    transform: translateX(-40px);
-  }
-  50% {
-    transform: translateX(40px);
-  }
-}
-
 /* Reduced motion: the OS setting or the accessibility menu (see
    lib/a11y.js) sets html[data-motion="reduced"]. */
 html[data-motion="reduced"] .tour,
-html[data-motion="reduced"] .tour-pointer,
-html[data-motion="reduced"] .tour-pointer-hand,
 html[data-motion="reduced"] .tour-kangaroo,
 html[data-motion="reduced"] .tour-kangaroo-img,
 html[data-motion="reduced"] .tour[data-leaving] .tour-kangaroo,
@@ -426,7 +374,6 @@ html[data-motion="reduced"] .tour-bubble[data-dir] {
 }
 
 html[data-motion="reduced"] .tour-spotlight,
-html[data-motion="reduced"] .tour-pointer,
 html[data-motion="reduced"] .tour-dot {
   transition: none;
 }

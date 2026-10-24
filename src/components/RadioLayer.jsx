@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { duckAmbience } from "../lib/sounds";
 import RibbonTitle from "./RibbonTitle";
 import Boombox from "./Boombox";
 import MiniRadio from "./MiniRadio";
@@ -21,7 +22,10 @@ export default function RadioLayer({ open, onOpen, onClose }) {
   // Stable callback: Boombox reports from an effect that depends on it.
   const [radio, setRadio] = useState(null); // { station, playing } | null
   const handleNowPlaying = useCallback(
-    (station, playing) => setRadio(station ? { station, playing } : null),
+    (station, playing) => {
+      setRadio(station ? { station, playing } : null);
+      duckAmbience(Boolean(station && playing)); // the street goes quiet under the music
+    },
     [],
   );
 

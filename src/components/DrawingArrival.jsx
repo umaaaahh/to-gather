@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { prefersReducedMotion } from "../lib/a11y";
 import { ASSETS } from "../lib/assets";
+import { playSound } from "../lib/sounds";
 import "./SplashScreen.css";
 import "./DrawingArrival.css";
 
@@ -78,11 +79,13 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
         scrollIntoCentre(sceneRef.current, img);
         setTarget(measureLandingSpot(img));
       }
+      playSound("reveal");
       setPhase("reveal");
       await wait(FADE_MS + HOLD_MS);
       if (cancelled) return;
 
       if (img && !reduceMotion) {
+        playSound("whoosh");
         setPhase("fly");
         await wait(FLY_MS);
         if (cancelled) return;
@@ -92,6 +95,7 @@ export default function DrawingArrival({ arrival, sceneRef, onDone }) {
         // DrawingArrival.css).
         sceneItem = img.closest(".scatter-item");
         sceneItem.dataset.glow = "on";
+        playSound("landed");
         setPhase("glow");
         await wait(GLOW_MS);
         if (cancelled) return;

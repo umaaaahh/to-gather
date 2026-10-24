@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import RibbonTitle from "./RibbonTitle";
 import LoadingLogo from "./LoadingLogo";
 import { addBook, addToBook, setVote, subscribeMyVotes, subscribeShelf } from "../lib/shelfStore";
+import { playSound } from "../lib/sounds";
 import "./Bookshelf.css";
 
 // Book details (search, covers, links) come from Google Books. The shelf
@@ -180,6 +181,7 @@ function Bookshelf() {
         await addBook(book, note);
         setStatus(`Added "${book.title}" to the shelf!`);
       }
+      playSound("bookAdded");
       resetForm();
     } catch (err) {
       console.warn("Shelf save failed:", err);
@@ -422,6 +424,7 @@ function Bookshelf() {
             aria-label={`${isVoted ? "Remove your vote for" : "Vote for"} ${book.title}, ${votes} votes`}
             disabled={pendingVotes.has(book.id)}
             onClick={() => toggleVote(book.id)}
+            data-sfx="vote"
           >
             <span aria-hidden="true">{isVoted ? "♥" : "▲"}</span>
             <span className="num" aria-hidden="true">
