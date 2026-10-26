@@ -13,7 +13,7 @@ import { ASSETS } from "./assets";
 // that artwork is ready.
 export const ZONE_CONFIG = {
   tree: {
-    label: "Colour the tree",
+    label: "Colour the leaf",
     palette: [
       "#1b5e20", // deep leaf green
       "#2e7d32",

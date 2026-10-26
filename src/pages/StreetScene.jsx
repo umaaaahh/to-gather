@@ -339,7 +339,7 @@ const CRAYON_TREES = [
   .map(scaleTree);
 
 // The label on whichever tree is open.
-const TREE_HOTSPOT = { label: "Colour the tree", level: "Easy", stars: 1 };
+const TREE_HOTSPOT = { label: "Colour the leaf", level: "Easy", stars: 1 };
 
 // Every tree's tap box runs between the same two lines, whatever each tree's
 // own box is — TREE_HOTSPOT_TOP down to TREE_HOTSPOT_BOTTOM, as a % of the
