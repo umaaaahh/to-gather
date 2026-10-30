@@ -9,6 +9,11 @@ const TEXT_SIZES = [
   { value: "xl", label: "A++", name: "130%" },
 ];
 
+// Where the Contact buttons send people: each opens their own mail app with
+// the subject filled in.
+const CONTACT_EMAIL = "uma@squ1d1nc.com";
+const mailto = (subject) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
+
 // The settings menu (accessibility, then sound): a slim pixel cog tab
 // pinned to the top centre of every
 // screen (first in tab order, above the street, popups, Acknowledgement and
@@ -133,6 +138,16 @@ export default function AccessMenu() {
         <button type="button" className="px-btn px-btn--cream access-reset" onClick={resetSettings}>
           Reset
         </button>
+
+        <h3 className="access-subtitle">Contact</h3>
+        <div className="access-contact">
+          <a className="px-btn px-btn--cream access-link" href={mailto("To-gather: issue report")}>
+            Report an issue
+          </a>
+          <a className="px-btn px-btn--cream access-link" href={mailto("To-gather: getting in contact")}>
+            Get in contact
+          </a>
+        </div>
       </div>
     </div>
   );

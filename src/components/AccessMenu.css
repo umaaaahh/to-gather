@@ -274,6 +274,19 @@ body:has(.splash[data-phase="showing"]) .access-menu {
   margin-top: calc(var(--u) * 2);
 }
 
+/* The two email links, drawn as the same pixel buttons as Reset. */
+.access-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--u) * 2);
+}
+
+.access-link {
+  --u: 3px;
+  display: inline-block;
+  text-decoration: none;
+}
+
 /* ---- .px-slider ---- */
 /* The music volume: a pixel track like .px-switch-track, filled blue up to
    --fill (set inline), with a square knob like .px-switch-knob. The input
