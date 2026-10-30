@@ -236,6 +236,7 @@ async function main() {
     });
 
     await shelfTests(testEnv, { anon, admin, visitor, visitorB, stranger });
+    await eventsTests({ anon, admin, visitor, stranger });
 
     console.log(`\n${passed} rules tests passed.`);
   } finally {
@@ -430,3 +431,53 @@ main().catch((err) => {
   console.error("\nRULES TEST FAILURE:", err);
   process.exit(1);
 });
+
+// Admin > Events (eventsStore.js): anyone reads, only admins add, edit,
+// hide or undo, and a doc is either a whole event or a hide marker.
+async function eventsTests({ anon, admin, visitor, stranger }) {
+  const event = {
+    title: "Open mic",
+    date: "2026-11-05",
+    start_time: "7:30 PM",
+    end_time: "",
+    location: "The Curtin",
+    genre: "Music",
+    description: "",
+    link: "https://example.com",
+    link_label: "",
+    address: "",
+    image: "",
+    updatedAt: serverTimestamp(),
+  };
+
+  await check("only admins can add or edit events (Events)", async () => {
+    await assertFails(setDoc(doc(anon.firestore(), "events", "admin-open-mic-2026-11-05"), event));
+    await assertFails(setDoc(doc(visitor.firestore(), "events", "admin-open-mic-2026-11-05"), event));
+    await assertFails(setDoc(doc(stranger.firestore(), "events", "admin-open-mic-2026-11-05"), event));
+    await assertSucceeds(setDoc(doc(admin.firestore(), "events", "admin-open-mic-2026-11-05"), event));
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "events", "admin-open-mic-2026-11-05"), { ...event, title: "Open mic night" }),
+    );
+  });
+
+  await check("anyone can read events (Events)", async () => {
+    await assertSucceeds(getDocs(collection(anon.firestore(), "events")));
+  });
+
+  await check("event docs are validated (Events)", async () => {
+    const db = admin.firestore();
+    await assertFails(setDoc(doc(db, "events", "x-2026-11-05"), { ...event, title: "" }));
+    await assertFails(setDoc(doc(db, "events", "x-2026-11-05"), { ...event, date: "next tuesday" }));
+    await assertFails(setDoc(doc(db, "events", "x-2026-11-05"), { ...event, extra: "nope" }));
+    await assertFails(setDoc(doc(db, "events", "Bad ID!"), event));
+    await assertFails(setDoc(doc(db, "events", "x-2026-11-05"), { deleted: false, updatedAt: serverTimestamp() }));
+  });
+
+  await check("admins can hide a CSV event and undo it (Events)", async () => {
+    const hide = { deleted: true, updatedAt: serverTimestamp() };
+    await assertFails(setDoc(doc(stranger.firestore(), "events", "walter-majik-2026-09-03"), hide));
+    await assertSucceeds(setDoc(doc(admin.firestore(), "events", "walter-majik-2026-09-03"), hide));
+    await assertFails(deleteDoc(doc(stranger.firestore(), "events", "walter-majik-2026-09-03")));
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), "events", "walter-majik-2026-09-03")));
+  });
+}

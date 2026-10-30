@@ -7,6 +7,7 @@ import CanvasTest from "./pages/CanvasTest";
 import Admin from "./pages/admin/Admin";
 import DrawingsAdmin from "./pages/admin/DrawingsAdmin";
 import ShelfAdmin from "./pages/admin/ShelfAdmin";
+import EventsAdmin from "./pages/admin/EventsAdmin";
 import SplashScreen from "./components/SplashScreen";
 import AccessMenu from "./components/AccessMenu";
 import RadioLayer from "./components/RadioLayer";
@@ -75,6 +76,7 @@ export default function App() {
           <Route index element={<Navigate to="drawings" replace />} />
           <Route path="drawings" element={<DrawingsAdmin />} />
           <Route path="shelf" element={<ShelfAdmin />} />
+          <Route path="events" element={<EventsAdmin />} />
         </Route>
       </Routes>
       <RadioLayer open={radioOpen} onOpen={openRadio} onClose={closeRadio} />

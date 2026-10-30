@@ -307,3 +307,130 @@
   padding: 0.2rem 0.5rem;
   font-size: calc(0.75rem * var(--text-scale));
 }
+
+/* Admin > Events */
+.admin-search {
+  flex: 1 1 14rem;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: calc(0.9rem * var(--text-scale));
+}
+
+.admin-primary-btn {
+  background: #2f6b4f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  font-size: calc(0.9rem * var(--text-scale));
+  cursor: pointer;
+}
+
+.admin-edit-btn {
+  background: #fff;
+  color: #333;
+  border: 1px solid #999;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: calc(0.8rem * var(--text-scale));
+  cursor: pointer;
+}
+
+:is(.admin-primary-btn, .admin-edit-btn):disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.admin-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 720px;
+}
+
+.admin-event {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem;
+}
+
+.admin-event--hidden {
+  opacity: 0.7;
+}
+
+.admin-event-main {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.admin-event-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.admin-badge {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: #e3efe8;
+  color: #2f6b4f;
+  font-size: calc(0.7rem * var(--text-scale));
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.admin-subheading {
+  margin: 0 0 0.75rem;
+  font-size: calc(1.05rem * var(--text-scale));
+}
+
+.admin-hidden {
+  margin-top: 2rem;
+}
+
+.admin-event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 720px;
+}
+
+.admin-event-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 10rem;
+  min-width: 0;
+  font-size: calc(0.9rem * var(--text-scale));
+}
+
+.admin-event-form :is(input, select, textarea) {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+  font-size: calc(1rem * var(--text-scale));
+}
+
+.admin-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

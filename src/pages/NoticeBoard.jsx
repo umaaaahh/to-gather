@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { buildMonthGrid, EVENTS, MONTH_NAMES, sameDay } from "../lib/events";
+import { buildMonthGrid, MONTH_NAMES, sameDay } from "../lib/events";
+import { useEvents } from "../lib/eventsStore";
 import "./NoticeBoard.css";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export default function NoticeBoard() {
   const navigate = useNavigate();
+  const { events } = useEvents();
   const today = useMemo(() => new Date(), []);
   const [shownMonth, setShownMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -17,10 +19,10 @@ export default function NoticeBoard() {
 
   const eventsThisMonth = useMemo(
     () =>
-      EVENTS.filter(
+      events.filter(
         (e) => e.date.getFullYear() === shownMonth.getFullYear() && e.date.getMonth() === shownMonth.getMonth(),
       ).sort((a, b) => a.date - b.date),
-    [shownMonth],
+    [events, shownMonth],
   );
 
   const goMonth = (delta) =>
@@ -62,7 +64,7 @@ export default function NoticeBoard() {
             {cells.map((date, i) => {
               if (!date) return <span key={`empty-${i}`} className="nb-cal-cell nb-cal-cell--empty" />;
               const isToday = sameDay(date, today);
-              const hasEvent = EVENTS.some((e) => sameDay(e.date, date));
+              const hasEvent = events.some((e) => sameDay(e.date, date));
               return (
                 <span
                   key={date.toISOString()}

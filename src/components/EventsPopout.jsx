@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildMonthGrid,
   DAY_NAMES,
-  EVENTS,
-  GENRES,
   genreColor,
   MONTH_NAMES,
   isUpcoming,
@@ -12,6 +10,7 @@ import {
   startOfDay,
   upcomingShows,
 } from "../lib/events";
+import { useEvents } from "../lib/eventsStore";
 import { playSound, useDuckAmbience } from "../lib/sounds";
 import RibbonTitle from "./RibbonTitle";
 import "./EventsPopout.css";
@@ -42,6 +41,7 @@ const mapsLink = (address) =>
 // initial: { genre?, day?, showId? } — what the board was showing when it
 // was tapped: a genre filter, a day, or one show to open up and scroll to.
 export default function EventsPopout({ initial, onClose }) {
+  const { events, genres } = useEvents();
   const now = useMemo(() => new Date(), []);
   const today = startOfDay(now);
   const [genre, setGenre] = useState(initial.genre ?? null);
@@ -75,8 +75,8 @@ export default function EventsPopout({ initial, onClose }) {
   }, [initial.showId]);
 
   const filtered = useMemo(
-    () => (genre ? EVENTS.filter((e) => e.genre === genre) : EVENTS),
-    [genre],
+    () => (genre ? events.filter((e) => e.genre === genre) : events),
+    [events, genre],
   );
   // Day (ms) -> the genres on that day, for the calendar dots.
   const eventDays = useMemo(() => {
@@ -92,11 +92,11 @@ export default function EventsPopout({ initial, onClose }) {
     () => buildMonthGrid(shownMonth.getFullYear(), shownMonth.getMonth()),
     [shownMonth],
   );
-  const shows = useMemo(() => upcomingShows(now, genre), [now, genre]);
+  const shows = useMemo(() => upcomingShows(events, now, genre), [events, now, genre]);
   // Every upcoming show, for the "other dates" in an opened day-view card.
   const showsByKey = useMemo(
-    () => new Map(upcomingShows(now).map((s) => [s.showId, s])),
-    [now],
+    () => new Map(upcomingShows(events, now).map((s) => [s.showId, s])),
+    [events, now],
   );
   const daySessions = useMemo(
     () => (day ? filtered.filter((e) => sameDay(e.date, day)) : []),
@@ -157,7 +157,7 @@ export default function EventsPopout({ initial, onClose }) {
               >
                 All
               </button>
-              {GENRES.map((g) => (
+              {genres.map((g) => (
                 <button
                   key={g}
                   type="button"

@@ -10,10 +10,11 @@ import LoadingLogo from "../../components/LoadingLogo";
 import "./Admin.css";
 
 // The admin shell: sign-in, then a tab per thing to moderate. Each tab is a
-// child route (/admin/drawings, /admin/shelf) rendered through <Outlet>.
+// child route (/admin/drawings, /admin/shelf, /admin/events) rendered through <Outlet>.
 const SECTIONS = [
   { path: "drawings", label: "Drawings" },
   { path: "shelf", label: "Shelf" },
+  { path: "events", label: "Events" },
 ];
 
 function LoginForm({ onError }) {

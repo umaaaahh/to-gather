@@ -1,8 +1,16 @@
 // Events for the notice board, read from src/data/events.csv (exported from
-// the events spreadsheet — replace the file to update the listings).
+// the events spreadsheet — replace the file to update the listings). Admin >
+// Events layers its own adds, edits and deletes over the CSV through
+// Firestore (see eventsStore.js), so the scraper can keep rewriting the file.
 // Columns: id,title,date,start_time,end_time,location,genre,description,
 // link,link_label,address,image (a thumbnail URL; the scraper fills it in).
 import csv from "../data/events.csv?raw";
+
+// Every column but id.
+export const EVENT_FIELDS = [
+  "title", "date", "start_time", "end_time", "location", "genre",
+  "description", "link", "link_label", "address", "image",
+];
 
 export const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -12,7 +20,7 @@ export const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // Carousel/filter order. A genre in the sheet that isn't listed here still
 // shows up, after these.
-const GENRE_ORDER = [
+export const GENRE_ORDER = [
   "Music",
   "Comedy",
   "Theatre & Cabaret",
@@ -81,7 +89,7 @@ function parseCsv(text) {
 }
 
 // "5:00 PM" -> [17, 0]; null if blank or unreadable.
-function parseTime(s) {
+export function parseTime(s) {
   const m = /^(\d{1,2}):(\d{2})\s*([AP]M)$/i.exec(s);
   if (!m) return null;
   let h = Number(m[1]) % 12;
@@ -95,6 +103,7 @@ function cleanLink(url) {
   if (!url) return "";
   try {
     const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return "";
     for (const key of [...u.searchParams.keys()]) {
       if (key.startsWith("utm_")) u.searchParams.delete(key);
     }
@@ -136,17 +145,21 @@ function toEvent(r) {
   };
 }
 
-export const EVENTS = parseCsv(csv)
-  .filter((r) => r.title && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
-  .map(toEvent)
-  .sort((a, b) => a.start - b.start);
+export const isValidRow = (r) => !!r.title && /^\d{4}-\d{2}-\d{2}$/.test(r.date);
 
-export const GENRES = (() => {
-  const inData = new Set(EVENTS.map((e) => e.genre));
+// The CSV's rows as plain strings, before the admin's changes.
+export const CSV_ROWS = parseCsv(csv).filter(isValidRow);
+
+// Rows -> events, soonest first.
+export const buildEvents = (rows) => rows.map(toEvent).sort((a, b) => a.start - b.start);
+
+// The genres in a set of events, in carousel order.
+export function genresOf(events) {
+  const inData = new Set(events.map((e) => e.genre));
   const known = GENRE_ORDER.filter((g) => inData.has(g));
   const extra = [...inData].filter((g) => !GENRE_ORDER.includes(g));
   return [...known, ...extra];
-})();
+}
 
 export const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
@@ -175,9 +188,9 @@ export const isUpcoming = (e, now) =>
 // Upcoming sessions grouped into shows, soonest first. Each show carries the
 // first session's details (description falls back to any session's) plus
 // all of its upcoming sessions.
-export function upcomingShows(now, genre = null) {
+export function upcomingShows(events, now, genre = null) {
   const shows = new Map();
-  for (const e of EVENTS) {
+  for (const e of events) {
     if (genre && e.genre !== genre) continue;
     if (!isUpcoming(e, now)) continue;
     let show = shows.get(e.showId);
