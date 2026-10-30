@@ -26,6 +26,12 @@ const ADVANCE_MS = 700;
 const MOVE_MS = 1500;
 // Gap (px) the kangaroo, and a targetAt target, keep from the screen edges.
 const EDGE_GAP = 12;
+// A nudge step's hint that the street scrolls: it glides NUDGE_PX along
+// and back, once per NUDGE_MS, starting once the first bubble is up (it
+// pops in 2.4s after the tour starts; see .tour-bubble[data-dir="enter"]).
+const NUDGE_PX = 70;
+const NUDGE_MS = 4000;
+const NUDGE_DELAY_MS = 2800;
 
 // Each step spotlights the first selector that matches something in the
 // scene. padTop stretches the spotlight
@@ -44,10 +50,14 @@ const EDGE_GAP = 12;
 // lands, rather than following the target). targetAt: "left" always pans the street so
 // the target sits at the left of the screen, wherever it was left — the two
 // together keep the kangaroo's bubble clear of what it's pointing out.
+// open: no spotlight and no dimming — the whole street stays live. nudge:
+// the street glides a little way along and back, to show it scrolls.
 const TOUR_STEPS = [
   {
     text: "Welcome to To Gather, Cardigan Street's digital fun hub! Doodle, explore and see what's on. Scroll along the street to start.",
-    target: [".scene-ground"],
+    target: [],
+    open: true,
+    nudge: true,
     doneWhen: "scroll",
   },
   {
@@ -326,6 +336,40 @@ export default function StreetTour({
     scroller.scrollBy({ left, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, [sceneRef, current]);
 
+  // A nudge step: the street glides along a little and back, over and over,
+  // until the user takes over or the step changes. A transform on the
+  // track, not a scroll, so it doesn't count as the user's own scroll.
+  // Towards the end with more street left (normally the right).
+  useEffect(() => {
+    const scene = sceneRef.current;
+    const track = scene?.querySelector(".scene-track");
+    const scroller = scene?.querySelector(".street-scroll");
+    if (!current.nudge || leaving || !track || !scroller || prefersReducedMotion()) return undefined;
+    const roomLeft = scroller.scrollLeft;
+    const roomRight = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft;
+    const shift = `translateX(${roomRight >= roomLeft ? -NUDGE_PX : NUDGE_PX}px)`;
+    const nudge = track.animate(
+      [
+        { transform: "translateX(0)", easing: "ease-in-out" },
+        { transform: shift, offset: 0.2 },
+        { transform: shift, offset: 0.3, easing: "ease-in-out" },
+        { transform: "translateX(0)", offset: 0.5 },
+        { transform: "translateX(0)" },
+      ],
+      { duration: NUDGE_MS, delay: dir === "enter" ? NUDGE_DELAY_MS : 600, iterations: Infinity },
+    );
+    const stop = () => nudge.cancel();
+    scroller.addEventListener("pointerdown", stop);
+    scroller.addEventListener("wheel", stop, { passive: true });
+    return () => {
+      nudge.cancel();
+      scroller.removeEventListener("pointerdown", stop);
+      scroller.removeEventListener("wheel", stop);
+    };
+    // dir only sets the first delay; it changes along with current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sceneRef, current, leaving]);
+
   // Move on once the user actually does a step. A tap can also finish a
   // later step early (tapping the sun while still on the swipe step).
   useEffect(() => {
@@ -449,7 +493,7 @@ export default function StreetTour({
       onPointerUp={onPointerUp}
       onPointerCancel={() => (swipeStartX.current = null)}
     >
-      {layout?.spot ? (
+      {current.open ? null : layout?.spot ? (
         <>
           <div
             className="tour-spotlight"
